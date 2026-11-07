@@ -65,20 +65,26 @@ export component SettingsNavigation inherits Rectangle {
                     { text: "Notifications", icon: @image-url("../icons/bell.svg"), id: 3 },
                     { text: "Sounds", icon: @image-url("../icons/volume-2.svg"), id: 5 },
                     { text: "Appearance", icon: @image-url("../icons/palette.svg"), id: 7 },
+                    { heading: true, text: "Games & Apps", id: -1 },
+                    { text: "Game Activity", icon: @image-url("../icons/play.svg"), id: 8 },
+                    { text: "Connected Apps", icon: @image-url("../icons/link.svg"), id: 9 },
                     { heading: true, text: "App Settings", id: -1 },
                     { text: "Discord", icon: @image-url("../icons/discord.svg"), id: 4 },
-                    { text: "Game Activity", icon: @image-url("../icons/play.svg"), id: 8 },
                     { text: "Advanced", icon: @image-url("../icons/settings.svg"), id: 6 },
                 ]: VerticalLayout {
-                    if entry.heading && root.query == "": VerticalLayout {
+                    if entry.heading && root.query == "" && (root.with-discord || entry.text != "Games & Apps"): VerticalLayout {
                         padding-top: entry.text == "Account" ? 0px : 16px;
                         height: entry.text == "Account" ? 24px : 40px;
                         Text { x: 8px; text: entry.text; color: Theme.muted; font-size: 12px; vertical-alignment: center; }
                     }
-                    if !entry.heading && root.matches(entry.text) && (root.with-discord || (entry.id != 4 && entry.id != 8)): ChannelRow {
+                    if !entry.heading && (root.matches(entry.text) || (entry.id == 9 && root.matches("Connections"))) && (root.with-discord || (entry.id != 4 && entry.id != 8 && entry.id != 9)): ChannelRow {
                         height: 40px; text: entry.text; icon: entry.icon;
                         selected: root.selected == entry.id;
                         clicked => { root.chose(entry.id); }
+                    }
+                    if entry.id == 9 && root.with-discord && (root.selected == 9 || (root.query != "" && root.matches("Connections"))): HorizontalLayout {
+                        padding-left: 24px;
+                        ChannelRow { height: 32px; text: "Connections"; selected: root.selected == 9; clicked => { root.chose(9); } }
                     }
                 }
             }

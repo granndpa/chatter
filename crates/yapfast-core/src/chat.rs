@@ -2077,9 +2077,68 @@ pub struct OAuthPreview {
     pub guilds: Vec<OAuthGuild>,
 }
 
+/// A connected account's settings, without access tokens or integrations.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ConnectedAccount {
+    pub id: String,
+    pub kind: String,
+    pub name: String,
+    pub visible: bool,
+    pub activity: bool,
+    pub revoked: bool,
+}
+
+/// Work for Connected Apps. Login codes and state stay in memory.
+#[derive(Clone)]
+pub enum ConnectionOperation {
+    List,
+    Profile {
+        kind: String,
+        id: String,
+        shown: bool,
+    },
+    Activity {
+        kind: String,
+        id: String,
+        shown: bool,
+    },
+    Remove {
+        kind: String,
+        id: String,
+    },
+    Authorize(String),
+    Complete {
+        kind: String,
+        state: String,
+        address: String,
+    },
+}
+
+pub enum ConnectionAnswer {
+    Listed {
+        accounts: Vec<ConnectedAccount>,
+        completed: bool,
+    },
+    Authorized {
+        kind: String,
+        url: String,
+        state: String,
+    },
+}
+
 /// Commands only the linked Discord account carries out.
 #[derive(Clone)]
 pub enum DiscordCommand {
+    ArrangeServers {
+        source: String,
+        target: String,
+        mode: i32,
+        name: String,
+    },
+    Connections {
+        request: u64,
+        operation: ConnectionOperation,
+    },
     /// Downloads these pictures for the disk cache alone, decoding none and
     /// holding none in memory: what a start prefetches so that the picker's
     /// first look finds its emoji kept. See [`Pictures::prefetch`].
@@ -3298,6 +3357,11 @@ pub enum ForwardFailure {
 }
 
 pub enum Event {
+    ServersArranged(Result<(), String>),
+    Connections {
+        request: u64,
+        result: Result<ConnectionAnswer, String>,
+    },
     /// The GIF picker's home, or why it couldn't load.
     GifCategories(Result<(Vec<GifCategory>, Option<Gif>), String>),
     /// GIFs for a search, or with `None` those trending, or why not.

@@ -2,7 +2,10 @@
 //! session, and never in Matrix. So does the key [`crate::cache`] encrypts
 //! its files with.
 
-use std::sync::{Mutex, OnceLock};
+use std::{
+    collections::HashMap,
+    sync::{Mutex, OnceLock},
+};
 
 use anyhow::{Result, anyhow, bail};
 use keyring::Entry;
@@ -21,17 +24,27 @@ fn entry() -> Result<Entry> {
 }
 
 fn named(account: &str) -> Result<Entry> {
-    Entry::new(SERVICE, account).map_err(|_| anyhow!("could not access the OS credential store"))
+    let slot = crate::accounts::active_slot();
+    let account = if slot == "default" {
+        account.to_owned()
+    } else {
+        format!("{account}:{slot}")
+    };
+    Entry::new(SERVICE, &account).map_err(|_| anyhow!("could not access the OS credential store"))
 }
 
 /// With the test server, the link lasts while Yapfast runs. It starts linked,
 /// with [`crate::client::TEST_TOKEN`], unless `YAPFAST_DISCORD_TEST_UNLINKED` is
 /// set, which shows linking against the fake.
-fn test_link() -> &'static Mutex<Option<String>> {
-    static LINK: OnceLock<Mutex<Option<String>>> = OnceLock::new();
+fn test_link() -> &'static Mutex<HashMap<String, String>> {
+    static LINK: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
     LINK.get_or_init(|| {
         let unlinked = std::env::var_os("YAPFAST_DISCORD_TEST_UNLINKED").is_some();
-        Mutex::new((!unlinked).then(|| crate::client::TEST_TOKEN.to_owned()))
+        Mutex::new(if unlinked {
+            HashMap::new()
+        } else {
+            HashMap::from([("default".to_owned(), crate::client::TEST_TOKEN.to_owned())])
+        })
     })
 }
 
@@ -51,9 +64,10 @@ impl std::error::Error for NotLinked {}
 pub fn store(token: &str) -> Result<()> {
     let token = clean(token)?;
     if crate::client::test_server().is_some() {
-        *test_link()
+        test_link()
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(token);
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(crate::accounts::active_slot().to_owned(), token);
         return Ok(());
     }
     entry()?
@@ -66,7 +80,8 @@ pub fn load() -> Result<String> {
         return test_link()
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .clone()
+            .get(crate::accounts::active_slot())
+            .cloned()
             .ok_or_else(|| NotLinked.into());
     }
     match entry()?.get_password() {
@@ -113,9 +128,10 @@ pub(crate) fn cache_key() -> Result<crate::cache::Key> {
 pub fn forget() -> Result<()> {
     crate::cache::forget();
     if crate::client::test_server().is_some() {
-        *test_link()
+        test_link()
             .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner()) = None;
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .remove(crate::accounts::active_slot());
         return Ok(());
     }
     for account in [ACCOUNT, EARLIER_ACCOUNT, CACHE_KEY] {

@@ -136,6 +136,11 @@ export component RailItem inherits Rectangle {
     in property <bool> call;
     /// Marks a Discord server.
     in property <bool> discord;
+    in property <bool> draggable;
+    private property <bool> dragging;
+    callback begin-drag(length);
+    callback dragged(length);
+    callback dropped;
     callback clicked;
     /// A right click, or the Menu key or Shift+F10 when focused: where to open
     /// a menu in the window.
@@ -211,8 +216,18 @@ export component RailItem inherits Rectangle {
         }
         pointer := TouchArea {
             mouse-cursor: MouseCursor.pointer;
-            clicked => { root.clicked(); }
+            clicked => { if !root.dragging { root.clicked(); } }
+            moved => {
+                if self.pressed && root.draggable && !root.dragging && abs(self.mouse-y - self.pressed-y) > 4px {
+                    root.dragging = true;
+                    root.begin-drag(self.absolute-position.y + self.pressed-y);
+                }
+                if root.dragging { root.dragged(self.absolute-position.y + self.mouse-y); }
+            }
             pointer-event(event) => {
+                if event.button == PointerEventButton.left && event.kind == PointerEventKind.up && root.dragging {
+                    root.dropped(); root.dragging = false;
+                }
                 if event.button == PointerEventButton.right && event.kind == PointerEventKind.down {
                     root.context-menu(self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
                 }
@@ -246,6 +261,11 @@ component FolderItem inherits Rectangle {
     in property <string> badge;
     /// In a call in one of its servers, shown at the top right while closed.
     in property <bool> call;
+    in property <bool> draggable;
+    private property <bool> dragging;
+    callback begin-drag(length);
+    callback dragged(length);
+    callback dropped;
     callback clicked;
     /// A right click, or the Menu key or Shift+F10 when focused: where to open
     /// a menu in the window.
@@ -318,8 +338,18 @@ component FolderItem inherits Rectangle {
         }
         pointer := TouchArea {
             mouse-cursor: MouseCursor.pointer;
-            clicked => { root.clicked(); }
+            clicked => { if !root.dragging { root.clicked(); } }
+            moved => {
+                if self.pressed && root.draggable && !root.dragging && abs(self.mouse-y - self.pressed-y) > 4px {
+                    root.dragging = true;
+                    root.begin-drag(self.absolute-position.y + self.pressed-y);
+                }
+                if root.dragging { root.dragged(self.absolute-position.y + self.mouse-y); }
+            }
             pointer-event(event) => {
+                if event.button == PointerEventButton.left && event.kind == PointerEventKind.up && root.dragging {
+                    root.dropped(); root.dragging = false;
+                }
                 if event.button == PointerEventButton.right && event.kind == PointerEventKind.down {
                     root.context-menu(self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
                 }
@@ -816,6 +846,29 @@ export component ServerRail inherits Rectangle {
     callback navigate-dms;
     callback navigate-server(string);
     callback toggle-folder(string);
+    in property <bool> can-arrange;
+    callback arrange(string, string, int);
+    private property <string> dragging;
+    private property <bool> dragging-folder;
+    private property <length> drag-y;
+    private property <string> landing;
+    private property <int> landing-mode;
+    function start(id: string, folder: bool, y: length) {
+        root.dragging = id; root.dragging-folder = folder; root.drag-y = y; root.landing = ""; Tip.text = "";
+    }
+    function finish() {
+        if root.dragging != "" && root.landing != "" && root.dragging != root.landing {
+            root.arrange(root.dragging, root.landing, root.landing-mode);
+        }
+        root.dragging = ""; root.landing = "";
+    }
+    Timer {
+        interval: 40ms; running: root.dragging != "";
+        triggered => {
+            if root.drag-y < server-list.absolute-position.y + 28px { server-list.content-y = min(0px, server-list.content-y + 10px); }
+            if root.drag-y > server-list.absolute-position.y + server-list.height - 28px { server-list.content-y = max(min(0px, server-list.height - server-list.content-height), server-list.content-y - 10px); }
+        }
+    }
     /// An unread DM was clicked: open it.
     callback open-dm(string);
     /// A server's, folder's or DM's menu was asked for: its id, and where in
@@ -841,9 +894,16 @@ export component ServerRail inherits Rectangle {
         }
         // A list view makes only the servers in sight, which
         // matters on accounts in many servers. Unread DMs scroll with them.
-        ListView {
+        server-list := ListView {
             vertical-stretch: 1;
-            for server[index] in root.servers: Rectangle {
+            for server[index] in root.servers: entry := Rectangle {
+                property <bool> over: root.dragging != "" && server.discord && !server.dm && !server.divider && root.drag-y >= self.absolute-position.y && root.drag-y < self.absolute-position.y + self.height;
+                property <int> drop-mode: root.dragging-folder ? (root.drag-y < self.absolute-position.y + self.height / 2 ? 0 : 1)
+                    : root.drag-y < self.absolute-position.y + self.height * 0.25 ? 0 : root.drag-y > self.absolute-position.y + self.height * 0.75 ? 1 : 2;
+                function landed() { if self.over { root.landing = server.id; root.landing-mode = self.drop-mode; } }
+                changed over => { if self.over { self.landed(); } else if root.landing == server.id { root.landing = ""; } }
+                changed drop-mode => { self.landed(); }
+
                 // Home already has a pinned separator. Keep the model's line
                 // only when it separates unread DMs from servers below them.
                 height: server.divider ? (ClientStyle.enabled && index == 0 ? 0px : (ClientStyle.enabled ? 1px : 2px) + 8px) : (server.folder ? ClientStyle.folder-tile : ClientStyle.rail-tile) + (ClientStyle.enabled && ((server.folder && server.open) || (server.nested && server.last)) ? 4px : 0px) + (ClientStyle.enabled && server.folder && server.open ? 0px : 8px);
@@ -867,6 +927,10 @@ export component ServerRail inherits Rectangle {
                     tip: server.name;
                     open: server.open; tint: server.tint; servers: server.preview;
                     selected: server.selected; unread: server.unread; badge: server.badge; call: server.call;
+                    draggable: root.can-arrange;
+                    begin-drag(y) => { root.start(server.id, true, y); }
+                    dragged(y) => { root.drag-y = y; }
+                    dropped => { root.finish(); }
                     clicked => { root.toggle-folder(server.id); }
                     context-menu(x, y) => { root.open-server-menu(server.id, x, y); }
                 }
@@ -890,8 +954,19 @@ export component ServerRail inherits Rectangle {
                     selected: server.selected; unread: server.unread; badge: server.badge; discord: server.discord;
                     call: server.call;
                     opacity: server.unavailable ? 0.5 : 1;
+                    draggable: root.can-arrange && server.discord;
+                    begin-drag(y) => { root.start(server.id, false, y); }
+                    dragged(y) => { root.drag-y = y; }
+                    dropped => { root.finish(); }
                     clicked => { root.navigate-server(server.id); }
                     context-menu(x, y) => { root.open-server-menu(server.id, x, y); }
+                }
+                if entry.over && root.dragging != server.id: Rectangle {
+                    x: 8px; width: parent.width - 16px;
+                    y: entry.drop-mode == 1 ? parent.height - 3px : 0px;
+                    height: entry.drop-mode == 2 ? parent.height : 3px;
+                    background: entry.drop-mode == 2 ? Theme.accent.with-alpha(0.2) : Theme.accent;
+                    border-width: entry.drop-mode == 2 ? 1px : 0px; border-color: Theme.accent; border-radius: 6px;
                 }
             }
         }

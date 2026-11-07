@@ -2,8 +2,8 @@
 //! disturb or invisible, and a custom status; and its server list's order and
 //! folders.
 //! The settings are a protobuf message, `PreloadedUserSettings`, in base64;
-//! Yapfast reads its `status` and `guild_folders` fields and writes only `status`,
-//! by hand. `status` also says whether the account shares the game it plays.
+//! Yapfast reads and writes its `status` and `guild_folders` fields by hand.
+//! `status` also says whether the account shares the game it plays.
 //!
 //! Each session tells the gateway its presence, so Yapfast sends the status the
 //! settings hold once connected, and again when they change.
@@ -267,8 +267,7 @@ pub(crate) fn write_server_order(folders: &[&[u64]]) -> String {
 
 /// Base64 settings holding only a server list. An entry with an empty `id`
 /// is a server outside any folder.
-#[cfg(test)]
-pub(crate) fn write_server_list(entries: &[Folder]) -> String {
+pub fn write_server_list(entries: &[Folder]) -> String {
     let mut message = Vec::new();
     for entry in entries {
         let packed: Vec<u8> = entry
@@ -297,6 +296,13 @@ pub(crate) fn write_server_list(entries: &[Folder]) -> String {
         }
         put_bytes(&mut message, FOLDERS, &folder);
     }
+    let positions = entries
+        .iter()
+        .flat_map(|f| &f.servers)
+        .filter_map(|id| id.parse::<u64>().ok())
+        .flat_map(u64::to_le_bytes)
+        .collect::<Vec<_>>();
+    put_bytes(&mut message, GUILD_POSITIONS, &positions);
     let mut settings = Vec::new();
     put_bytes(&mut settings, GUILD_FOLDERS, &message);
     base64::engine::general_purpose::STANDARD.encode(settings)

@@ -1,0 +1,353 @@
+diff --git a/crates/yapfast-discord/src/api.rs b/crates/yapfast-discord/src/api.rs
+index 9f479df..2f856bb 100644
+--- a/crates/yapfast-discord/src/api.rs
++++ b/crates/yapfast-discord/src/api.rs
+@@ -259,6 +259,14 @@ pub fn may_work_later(error: &anyhow::Error) -> bool {
+     }
+ }
+ 
++/// What Spotify says plays.
++pub enum Spotify {
++    Playing(Value),
++    Idle,
++    /// The token ran out; Discord lends a new one.
++    Expired,
++}
++
+ pub struct Api {
+     http: Client,
+     /// Empty without a login; Discord may refresh it in READY.
+@@ -617,6 +625,65 @@ impl Api {
+ 
+     /// A user's profile, with what they share with this account, and their
+     /// profile in `guild`.
++    /// This account's id.
++    pub async fn own_user_id(&self) -> Result<Option<String>> {
++        let me = self.json(self.request(Method::GET, "/users/@me")).await?;
++        Ok(me["id"].as_str().map(str::to_owned))
++    }
++
++    /// The connected Spotify account's access token, which Discord lends its
++    /// client; none without a connection, or when it isn't shown as status.
++    pub async fn spotify_access_token(&self) -> Result<Option<String>> {
++        let connections = self
++            .json(self.request(Method::GET, "/users/@me/connections"))
++            .await?;
++        let Some(id) = connections
++            .as_array()
++            .and_then(|list| {
++                list.iter().find(|connection| {
++                    connection["type"] == "spotify" && connection["show_activity"] != false
++                })
++            })
++            .and_then(|connection| connection["id"].as_str())
++            .map(str::to_owned)
++        else {
++            return Ok(None);
++        };
++        let path = format!("/users/@me/connections/spotify/{id}/access-token");
++        let token = self.json(self.request(Method::GET, &path)).await?;
++        Ok(token["access_token"].as_str().map(str::to_owned))
++    }
++
++    /// What Spotify plays for the account whose token this is. Sent without
++    /// Discord's headers or token.
++    pub async fn spotify_now_playing(&self, token: &str) -> Result<Spotify> {
++        let response = self
++            .http
++            .get("https://api.spotify.com/v1/me/player/currently-playing")
++            .bearer_auth(token)
++            .send()
++            .await
++            .context("could not reach Spotify")?;
++        match response.status() {
++            StatusCode::NO_CONTENT => Ok(Spotify::Idle),
++            StatusCode::UNAUTHORIZED => Ok(Spotify::Expired),
++            status if status.is_success() => {
++                let body = response
++                    .bytes()
++                    .await
++                    .context("could not read Spotify's answer")?;
++                if body.is_empty() {
++                    return Ok(Spotify::Idle);
++                }
++                Ok(Spotify::Playing(
++                    serde_json::from_slice(&body)
++                        .context("could not understand Spotify's answer")?,
++                ))
++            }
++            status => bail!("Spotify answered {status}"),
++        }
++    }
++
+     pub async fn profile(&self, user: &str, guild: Option<&str>) -> Result<Value> {
+         let mut path = format!(
+             "/users/{user}/profile?with_mutual_guilds=true&with_mutual_friends=true&with_mutual_friends_count=false"
+diff --git a/crates/yapfast-discord/src/lib.rs b/crates/yapfast-discord/src/lib.rs
+index 85d0a3d..2e6a606 100644
+--- a/crates/yapfast-discord/src/lib.rs
++++ b/crates/yapfast-discord/src/lib.rs
+@@ -44,6 +44,7 @@ pub mod server_settings;
+ pub mod service;
+ pub mod settings;
+ pub mod soundboard;
++mod spotify_presence;
+ pub mod stream;
+ pub mod stream_connection;
+ pub mod token;
+diff --git a/crates/yapfast-discord/src/service/session.rs b/crates/yapfast-discord/src/service/session.rs
+index a7c0594..bea305b 100644
+--- a/crates/yapfast-discord/src/service/session.rs
++++ b/crates/yapfast-discord/src/service/session.rs
+@@ -237,8 +237,10 @@ async fn connected_session(
+     tracker.beside(shared.beside.as_ref().map(|(_, thread)| thread.as_str()));
+     shared.snapshots.send_replace(Arc::new(tracker.snapshot()));
+     let quiet = tracker.next_quiet(now_ms());
++    let spotify = crate::spotify_presence::spawn(shared.api.clone());
+     let mut session = Session {
+         gateway,
++        spotify,
+         publisher: Publisher::new(shared.snapshots.clone()),
+         acks: ReadAcks::new(shared.api.clone()),
+         status_ends: Box::pin(tokio::time::sleep(status_left(&tracker))),
+@@ -279,6 +281,8 @@ struct Session<'a> {
+     gateway: Gateway,
+     tracker: Tracker,
+     shared: &'a mut Shared,
++    /// The song this account plays on Spotify, as an activity.
++    spotify: watch::Receiver<Option<Arc<Value>>>,
+     publisher: Publisher,
+     join: VoiceJoin,
+     streams: StreamOpenings,
+@@ -336,6 +340,7 @@ impl Session<'_> {
+                     self.show_presence().await
+                 }
+                 () = activity_changed(&mut self.shared.activity) => self.show_presence().await,
++                () = activity_changed(&mut self.spotify) => self.show_presence().await,
+                 () = self.away_changes.as_mut(), if self.away_change.is_some() => {
+                     self.show_presence().await
+                 }
+@@ -696,6 +701,11 @@ impl Session<'_> {
+         let activity = activity.filter(|_| self.tracker.show_game);
+         self.show_playing(activity.as_deref());
+         crate::own_activity::merge(&mut presence, activity.as_deref());
++        if let Some(spotify) = self.spotify.borrow_and_update().clone()
++            && let Some(activities) = presence.get_mut("activities").and_then(Value::as_array_mut)
++        {
++            activities.push((*spotify).clone());
++        }
+         if presence != self.shared.presence {
+             self.gateway.update_presence(presence.clone()).await?;
+             self.shared
+diff --git a/crates/yapfast-discord/src/spotify_presence.rs b/crates/yapfast-discord/src/spotify_presence.rs
+new file mode 100644
+index 0000000..a1315b8
+--- /dev/null
++++ b/crates/yapfast-discord/src/spotify_presence.rs
+@@ -0,0 +1,206 @@
++//! The song this account plays on Spotify, shown as Discord's own client
++//! shows it: Discord lends the connected Spotify account's token, Spotify
++//! says what plays, and the session adds it to its presence.
++
++use std::{
++    sync::Arc,
++    time::{Duration, SystemTime, UNIX_EPOCH},
++};
++
++use serde_json::{Value, json};
++use tokio::sync::watch;
++
++use crate::api::{Api, Spotify};
++
++/// How often Spotify is asked what plays.
++const POLL: Duration = Duration::from_secs(5);
++/// How long to wait without a Spotify connection, or after Discord failed.
++const RETRY: Duration = Duration::from_secs(60);
++/// A start that moved more than this was a seek, worth showing again.
++const DRIFT_MS: u64 = 2500;
++
++/// Asks Spotify what plays until the receiver is dropped with its session.
++pub(crate) fn spawn(api: Arc<Api>) -> watch::Receiver<Option<Arc<Value>>> {
++    let (sender, receiver) = watch::channel(None);
++    tokio::spawn(async move {
++        let mut token: Option<String> = None;
++        let mut user: Option<String> = None;
++        loop {
++            let wait = tokio::select! {
++                () = sender.closed() => return,
++                wait = poll(&api, &mut token, &mut user, &sender) => wait,
++            };
++            tokio::select! {
++                () = sender.closed() => return,
++                () = tokio::time::sleep(wait) => {}
++            }
++        }
++    });
++    receiver
++}
++
++async fn poll(
++    api: &Api,
++    token: &mut Option<String>,
++    user: &mut Option<String>,
++    sender: &watch::Sender<Option<Arc<Value>>>,
++) -> Duration {
++    if user.is_none() {
++        match api.own_user_id().await {
++            Ok(id) => *user = id,
++            Err(_) => return RETRY,
++        }
++    }
++    let Some(user) = user.clone() else {
++        return RETRY;
++    };
++    if token.is_none() {
++        match api.spotify_access_token().await {
++            Ok(Some(fresh)) => *token = Some(fresh),
++            _ => {
++                show(sender, None);
++                return RETRY;
++            }
++        }
++    }
++    let Some(current) = token.as_deref() else {
++        return RETRY;
++    };
++    let activity = match api.spotify_now_playing(current).await {
++        Ok(Spotify::Playing(answer)) => activity(&user, now_ms(), &answer),
++        Ok(Spotify::Idle) => None,
++        Ok(Spotify::Expired) => {
++            *token = None;
++            return Duration::from_secs(1);
++        }
++        // Keeps what it showed through a brief failure.
++        Err(_) => return POLL,
++    };
++    show(sender, activity);
++    POLL
++}
++
++/// Sends the activity only when the song, its state or its place changed,
++/// so the presence isn't sent again every poll.
++fn show(sender: &watch::Sender<Option<Arc<Value>>>, activity: Option<Value>) {
++    sender.send_if_modified(|shown| {
++        if same(shown.as_deref(), activity.as_ref()) {
++            return false;
++        }
++        *shown = activity.map(Arc::new);
++        true
++    });
++}
++
++fn same(old: Option<&Value>, new: Option<&Value>) -> bool {
++    match (old, new) {
++        (None, None) => true,
++        (Some(old), Some(new)) => {
++            old["sync_id"] == new["sync_id"] && start(old).abs_diff(start(new)) < DRIFT_MS
++        }
++        _ => false,
++    }
++}
++
++fn start(activity: &Value) -> u64 {
++    activity["timestamps"]["start"].as_u64().unwrap_or(0)
++}
++
++/// The activity Discord's client sends for a track, from Spotify's
++/// currently-playing answer. Nothing while paused, or for ads and episodes.
++fn activity(user: &str, now_ms: u64, answer: &Value) -> Option<Value> {
++    if answer["is_playing"] != true || answer["currently_playing_type"] != "track" {
++        return None;
++    }
++    let item = &answer["item"];
++    let id = item["id"].as_str()?;
++    let progress = answer["progress_ms"].as_u64()?;
++    let duration = item["duration_ms"].as_u64()?;
++    let artists = item["artists"].as_array()?;
++    let names: Vec<&str> = artists.iter().filter_map(|a| a["name"].as_str()).collect();
++    let artist_ids: Vec<&str> = artists.iter().filter_map(|a| a["id"].as_str()).collect();
++    let start = now_ms.saturating_sub(progress);
++    let mut activity = json!({
++        "type": 2,
++        "name": "Spotify",
++        "flags": 48,
++        "sync_id": id,
++        "details": item["name"].as_str().unwrap_or_default(),
++        "state": names.join("; "),
++        "timestamps": {"start": start, "end": start + duration},
++        "party": {"id": format!("spotify:{user}")},
++        "assets": {"large_text": item["album"]["name"].as_str().unwrap_or_default()},
++        "metadata": {
++            "album_id": item["album"]["id"].as_str().unwrap_or_default(),
++            "artist_ids": artist_ids,
++            "type": "track",
++        },
++    });
++    if let Some(hash) = item["album"]["images"][0]["url"]
++        .as_str()
++        .and_then(|url| url.rsplit('/').next())
++        .filter(|hash| !hash.is_empty())
++    {
++        activity["assets"]["large_image"] = json!(format!("spotify:{hash}"));
++    }
++    if let Some(context) = answer["context"]["uri"].as_str() {
++        activity["metadata"]["context_uri"] = json!(context);
++    }
++    Some(activity)
++}
++
++fn now_ms() -> u64 {
++    SystemTime::now()
++        .duration_since(UNIX_EPOCH)
++        .map_or(0, |since| since.as_millis() as u64)
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    fn answer(playing: bool) -> Value {
++        json!({
++            "is_playing": playing,
++            "currently_playing_type": "track",
++            "progress_ms": 10_000,
++            "context": {"uri": "spotify:playlist:abc"},
++            "item": {
++                "id": "1zi7xx7UVEFkmKfv06H8x0",
++                "name": "One Dance",
++                "duration_ms": 174_000,
++                "album": {"id": "alb", "name": "Views",
++                          "images": [{"url": "https://i.scdn.co/image/ab67616d0000b273abc"}]},
++                "artists": [{"id": "a1", "name": "Drake"}, {"id": "a2", "name": "Wizkid"}],
++            },
++        })
++    }
++
++    #[test]
++    fn a_playing_track_becomes_discords_spotify_activity() {
++        let activity = activity("42", 100_000, &answer(true)).unwrap();
++        assert_eq!(activity["sync_id"], "1zi7xx7UVEFkmKfv06H8x0");
++        assert_eq!(activity["state"], "Drake; Wizkid");
++        assert_eq!(activity["party"]["id"], "spotify:42");
++        assert_eq!(
++            activity["assets"]["large_image"],
++            "spotify:ab67616d0000b273abc"
++        );
++        assert_eq!(activity["timestamps"]["start"], 90_000);
++        assert_eq!(activity["timestamps"]["end"], 264_000);
++    }
++
++    #[test]
++    fn nothing_shows_while_paused() {
++        assert!(activity("42", 100_000, &answer(false)).is_none());
++    }
++
++    #[test]
++    fn small_drift_is_the_same_song_but_a_seek_is_not() {
++        let first = activity("42", 100_000, &answer(true)).unwrap();
++        let later = activity("42", 101_000, &answer(true)).unwrap();
++        let seeked = activity("42", 160_000, &answer(true)).unwrap();
++        assert!(same(Some(&first), Some(&later)));
++        assert!(!same(Some(&first), Some(&seeked)));
++    }
++}

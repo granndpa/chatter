@@ -319,6 +319,7 @@ impl Adapter {
         self.show_profile_editor(window);
         self.show_server_settings(window);
         self.show_channel_settings(window);
+        self.show_connections(window);
         self.show_mfa(window);
         self.show_dialogs(window);
         self.show_reactions(window);
@@ -1035,8 +1036,22 @@ impl Adapter {
         );
         window.set_has_custom_status(state.custom_status.is_some());
         window.set_show_game(state.discord_show_game);
+        window.set_may_arrange_servers(
+            state.discord_online && !state.preview && !state.server_arranging,
+        );
         let playing = state.discord_playing.as_ref();
         window.set_game_activity_name(playing.map_or("", |playing| &playing.name).into());
+        window.set_account_spotify(same_list(
+            &window.get_account_spotify(),
+            activity_rows(
+                &state
+                    .discord_spotify
+                    .iter()
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .into(),
+            ),
+        ));
         window.set_discord_status(state.discord_presence.as_deref().unwrap_or("online").into());
         window.set_storage(state.storage.unwrap_or_default().into());
         window.set_notice(state.notice.as_deref().unwrap_or_default().into());

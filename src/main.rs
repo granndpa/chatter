@@ -290,8 +290,10 @@ fn relaunch(arguments: &[String], gpu_failure: Option<&str>, link: Option<&str>)
     }
     #[cfg(not(unix))]
     {
-        let status = command.status().context("could not restart Yapfast")?;
-        std::process::exit(status.code().unwrap_or(1));
+        command.spawn().context("could not restart Yapfast")?;
+        // An account switch must release this process, including its cached
+        // keys, instead of retaining a parent for every later switch.
+        std::process::exit(0);
     }
 }
 

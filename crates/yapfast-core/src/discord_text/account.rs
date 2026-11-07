@@ -11,9 +11,63 @@ use super::{
     *,
 };
 use crate::chat::{
-    EventPreview, GiftPreview, InvitePreview, JoinedServer, MemberChange, Muting,
-    NotificationChange, NotifyLevel, OAuthGuild, OAuthPreview, RelationshipChange,
+    ConnectedAccount, ConnectionAnswer, ConnectionOperation, EventPreview, GiftPreview,
+    InvitePreview, JoinedServer, MemberChange, Muting, NotificationChange, NotifyLevel, OAuthGuild,
+    OAuthPreview, RelationshipChange,
 };
+
+/// Changes one connection, then reads back the switches Discord kept.
+async fn connections(
+    discord: &Discord,
+    operation: ConnectionOperation,
+) -> anyhow::Result<ConnectionAnswer> {
+    use yapfast_discord::connections::Setting;
+    let completed = matches!(&operation, ConnectionOperation::Complete { .. });
+    match operation {
+        ConnectionOperation::List => {}
+        ConnectionOperation::Profile { kind, id, shown } => {
+            discord
+                .update_connection(&kind, &id, Setting::Profile(shown))
+                .await?
+        }
+        ConnectionOperation::Activity { kind, id, shown } => {
+            discord
+                .update_connection(&kind, &id, Setting::Activity(shown))
+                .await?
+        }
+        ConnectionOperation::Remove { kind, id } => discord.remove_connection(&kind, &id).await?,
+        ConnectionOperation::Authorize(kind) => {
+            let authorization = discord.authorize_connection(&kind).await?;
+            return Ok(ConnectionAnswer::Authorized {
+                kind,
+                url: authorization.url,
+                state: authorization.state,
+            });
+        }
+        ConnectionOperation::Complete {
+            kind,
+            state,
+            address,
+        } => discord.complete_connection(&kind, &state, &address).await?,
+    }
+    let accounts = discord
+        .connections()
+        .await?
+        .into_iter()
+        .map(|connection| ConnectedAccount {
+            id: connection.id,
+            kind: connection.kind,
+            name: connection.name,
+            visible: connection.visibility == 1,
+            activity: connection.show_activity,
+            revoked: connection.revoked,
+        })
+        .collect();
+    Ok(ConnectionAnswer::Listed {
+        accounts,
+        completed,
+    })
+}
 
 /// Carries out a command about the account, or gives back any other.
 pub(super) fn command(
@@ -23,6 +77,50 @@ pub(super) fn command(
     previews: &SharedPreviews,
     events: &UnboundedSender<Event>,
 ) -> Option<Command> {
+    if let Command::Discord(DiscordCommand::ArrangeServers {
+        source,
+        target,
+        mode,
+        name,
+    }) = command
+    {
+        match discord {
+            Ok(discord) => {
+                let (discord, events) = (discord.clone(), events.clone());
+                tokio::spawn(async move {
+                    let result = discord
+                        .arrange_servers(&source, &target, mode, &name)
+                        .await
+                        .map_err(|error| error.to_string());
+                    let _ = events.send(Event::ServersArranged(result));
+                });
+            }
+            Err(why) => {
+                let _ = events.send(Event::ServersArranged(Err(why.into())));
+            }
+        }
+        return None;
+    }
+    if let Command::Discord(DiscordCommand::Connections { request, operation }) = command {
+        match discord {
+            Ok(discord) => {
+                let (discord, events) = (discord.clone(), events.clone());
+                tokio::spawn(async move {
+                    let result = connections(&discord, operation)
+                        .await
+                        .map_err(|error| error.to_string());
+                    let _ = events.send(Event::Connections { request, result });
+                });
+            }
+            Err(why) => {
+                let _ = events.send(Event::Connections {
+                    request,
+                    result: Err(why.into()),
+                });
+            }
+        }
+        return None;
+    }
     // Matrix looks for people too.
     if let Command::FindPeople { query } = &command {
         if let Ok(discord) = discord {

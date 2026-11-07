@@ -160,6 +160,7 @@ pub(super) struct Tracker {
     /// the game it shows.
     pub(super) show_game: bool,
     pub(super) playing: Option<Arc<crate::own_activity::Playing>>,
+    pub(super) spotify: Option<crate::activity::Activity>,
     /// The soundboard's volume and join sounds, from the settings.
     soundboard_volume: Option<f32>,
     join_sounds: Arc<[crate::soundboard::JoinSound]>,
@@ -217,6 +218,7 @@ impl Tracker {
             // As in Discord's apps, until the settings say otherwise.
             show_game: true,
             playing: None,
+            spotify: None,
             soundboard_volume: None,
             join_sounds: Arc::from([]),
             requests: HashMap::new(),
@@ -602,10 +604,13 @@ impl Tracker {
             // member list takes servers' presences too.
             Event::PresenceUpdate => {
                 let user = data["user"]["id"].as_str();
-                if !data["guild_id"].is_null() && !user.is_some_and(|user| self.in_private(user)) {
+                if !data["guild_id"].is_null()
+                    && !user.is_some_and(|user| user == self.me || self.in_private(user))
+                {
                     return false;
                 }
-                self.presence(user, data) && self.shows_presence(user)
+                self.presence(user, data)
+                    && (user == Some(self.me.as_str()) || self.shows_presence(user))
             }
             // A member list's rows carry presences, which the DMs of those
             // people show too.
@@ -1808,6 +1813,14 @@ impl Tracker {
             soundboard_volume: self.soundboard_volume,
             join_sounds: self.join_sounds.clone(),
             playing: self.playing.clone(),
+            spotify: self.spotify.clone().or_else(|| {
+                self.presences
+                    .get(&self.me)?
+                    .activities
+                    .iter()
+                    .find(|a| a.spotify())
+                    .cloned()
+            }),
             friend_requests: people.friend_requests,
             voice,
             listed: None,
@@ -1822,6 +1835,35 @@ mod tests {
     use serde_json::json;
 
     use super::*;
+
+    #[test]
+    fn shows_this_accounts_spotify_from_the_gateway() {
+        let mut tracker = Tracker::from_ready(
+            "1".into(),
+            &json!({"user": {"id": "1", "username": "alice"}}),
+            Default::default(),
+        );
+        assert!(tracker.apply(&Event::PresenceUpdate, &json!({"user": {"id": "1"}, "guild_id": "10", "status": "online", "activities": [{
+            "type": 2, "name": "Spotify", "details": "A song", "state": "An artist", "sync_id": "song",
+            "timestamps": {"start": 1000, "end": 100000}
+        }]})));
+        let snapshot = tracker.snapshot();
+        assert_eq!(
+            snapshot.spotify.as_ref().unwrap().details.as_deref(),
+            Some("A song")
+        );
+        assert!(
+            serde_json::to_value(snapshot)
+                .unwrap()
+                .get("spotify")
+                .is_none()
+        );
+        assert!(tracker.apply(
+            &Event::PresenceUpdate,
+            &json!({"user": {"id": "1"}, "status": "online", "activities": []})
+        ));
+        assert!(tracker.snapshot().spotify.is_none());
+    }
 
     #[test]
     fn tracks_voice_channels_and_names() {

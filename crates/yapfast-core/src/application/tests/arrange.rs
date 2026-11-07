@@ -4,6 +4,28 @@ use super::*;
 use crate::chat::ChannelPlacement;
 use yapfast_discord::{marked::MarkedServer, ready::permission};
 
+#[test]
+fn server_rail_waits_for_each_request_and_reports_a_failed_save() {
+    let mut app = Application::default();
+    let input = || Action::ArrangeServers {
+        source: "1".into(),
+        target: "2".into(),
+        mode: 2,
+        name: String::new(),
+    };
+    assert!(app.dispatch(input()).is_empty());
+    app.state.discord_online = true;
+    app.state.discord_linked = true;
+    assert_eq!(app.dispatch(input()).len(), 1);
+    assert!(app.state.server_arranging);
+    assert!(app.dispatch(input()).is_empty());
+    app.apply(Event::ServersArranged(Err("refused".into())));
+    assert!(!app.state.server_arranging);
+    assert!(app.state.notice.as_deref().unwrap().contains("refused"));
+    app.state.preview = true;
+    assert!(app.dispatch(input()).is_empty());
+}
+
 /// The channel list as it shows, by room id: #rules outside any category,
 /// Talk with #general, #news and Lounge, Games with #chess and Arena, and
 /// Empty, which locks @everyone out of sending.

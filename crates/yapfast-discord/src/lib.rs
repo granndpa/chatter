@@ -1,6 +1,7 @@
 //! Yapfast's Discord connection: account login, the gateway, messages and voice.
 //! See docs/discord/README.md. Everything Discord-specific stays in this crate.
 
+pub mod accounts;
 pub mod activity;
 pub mod api;
 pub mod cache;
@@ -10,6 +11,7 @@ pub mod call_video;
 pub mod captcha;
 pub mod client;
 pub mod components;
+pub mod connections;
 pub mod cookies;
 mod dave;
 pub mod embed;
@@ -40,10 +42,12 @@ mod rpc;
 pub mod rtp;
 pub mod scheduled_event;
 pub mod search;
+pub mod server_folders;
 pub mod server_settings;
 pub mod service;
 pub mod settings;
 pub mod soundboard;
+mod spotify_presence;
 pub mod stream;
 pub mod stream_connection;
 pub mod token;

@@ -7,7 +7,7 @@ use std::{
 };
 
 use anyhow::{Result, anyhow};
-use serde_json::Value;
+use serde_json::{Value, json};
 use tokio::{
     sync::{broadcast, mpsc, watch},
     time::{Duration, Instant, Sleep},
@@ -237,8 +237,10 @@ async fn connected_session(
     tracker.beside(shared.beside.as_ref().map(|(_, thread)| thread.as_str()));
     shared.snapshots.send_replace(Arc::new(tracker.snapshot()));
     let quiet = tracker.next_quiet(now_ms());
+    let spotify = crate::spotify_presence::spawn(shared.api.clone());
     let mut session = Session {
         gateway,
+        spotify,
         publisher: Publisher::new(shared.snapshots.clone()),
         acks: ReadAcks::new(shared.api.clone()),
         status_ends: Box::pin(tokio::time::sleep(status_left(&tracker))),
@@ -279,6 +281,8 @@ struct Session<'a> {
     gateway: Gateway,
     tracker: Tracker,
     shared: &'a mut Shared,
+    /// The song this account plays on Spotify, as an activity.
+    spotify: watch::Receiver<Option<Arc<Value>>>,
     publisher: Publisher,
     join: VoiceJoin,
     streams: StreamOpenings,
@@ -336,6 +340,7 @@ impl Session<'_> {
                     self.show_presence().await
                 }
                 () = activity_changed(&mut self.shared.activity) => self.show_presence().await,
+                () = activity_changed(&mut self.spotify) => self.show_presence().await,
                 () = self.away_changes.as_mut(), if self.away_change.is_some() => {
                     self.show_presence().await
                 }
@@ -696,6 +701,21 @@ impl Session<'_> {
         let activity = activity.filter(|_| self.tracker.show_game);
         self.show_playing(activity.as_deref());
         crate::own_activity::merge(&mut presence, activity.as_deref());
+        let spotify = self.spotify.borrow_and_update().clone();
+        let shown = spotify.as_deref().and_then(|activity| {
+            crate::activity::activities(&json!([activity]))
+                .first()
+                .cloned()
+        });
+        if self.tracker.spotify != shown {
+            self.tracker.spotify = shown;
+            self.publisher.changed();
+        }
+        if let Some(spotify) = spotify
+            && let Some(activities) = presence.get_mut("activities").and_then(Value::as_array_mut)
+        {
+            activities.push((*spotify).clone());
+        }
         if presence != self.shared.presence {
             self.gateway.update_presence(presence.clone()).await?;
             self.shared

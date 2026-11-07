@@ -36,6 +36,7 @@ use yapfast_core::{
 use crate::drop::Drag;
 use crate::{autostart, custom_emoji, emoji, emoji_text, graphics, zoom};
 
+mod accounts;
 mod appearance;
 mod away;
 mod browser;
@@ -43,6 +44,7 @@ mod call_link;
 mod call_timer;
 mod callbacks;
 mod channel_settings;
+mod connections;
 mod emoji_animation;
 mod games;
 mod gifs;
@@ -55,6 +57,7 @@ mod placement;
 mod polls;
 mod profile;
 mod refresh;
+mod server_folders;
 mod server_settings;
 mod shell;
 mod theme;
@@ -95,6 +98,8 @@ pub fn run(
     background: bool,
     open_link: Option<String>,
 ) -> Result<Exit> {
+    #[cfg(feature = "discord")]
+    yapfast_core::yapfast_discord::accounts::configure(&root)?;
     let (plan, placement, system_title_bar, mut instance) = {
         let mut layout = Layout::read(&root);
         let instance = if preview {

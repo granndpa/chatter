@@ -476,6 +476,7 @@ impl Application {
                     expires_at_ms: custom.expires_at_ms,
                 });
         self.state.discord_show_game = snapshot.show_game;
+        self.state.discord_spotify = snapshot.spotify.clone();
         self.state.soundboard_volume = snapshot
             .soundboard_volume
             .unwrap_or(yapfast_discord::soundboard::DEFAULT_VOLUME);
@@ -591,6 +592,8 @@ impl Application {
         self.state.discord_user = None;
         self.state.discord_friends = Arc::default();
         self.state.discord_blocked.clear();
+        self.state.connections.clear();
+        self.state.server_arranging = false;
         self.state.discord_ignored = Arc::default();
         #[cfg(feature = "discord")]
         {
@@ -606,6 +609,7 @@ impl Application {
         self.state.custom_status = None;
         self.state.discord_show_game = false;
         self.state.discord_playing = None;
+        self.state.discord_spotify = None;
         self.state.join_sounds.clear();
         self.state.sound_catalog = None;
         self.show_lists()

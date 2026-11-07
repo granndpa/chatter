@@ -560,6 +560,18 @@ function joinSound(guild: string | null): [string, bigint] | undefined {
 let settings = Buffer.from(
   protoBytes(11, protoBytes(2, new Uint8Array([...protoBytes(1, text("Testing Yapfast")), ...protoBytes(3, text("🧪"))]))),
 ).toString("base64");
+// GET /users/@me/connections lists Alice's linked accounts. PATCH and DELETE
+// change them and dispatch USER_CONNECTIONS_UPDATE. Authorize returns a login
+// URL; callback checks the fake's code and state. GET /_control/connections
+// records their mutation bodies and authorization requests.
+const connectedAccounts: any[] = [
+  { id: "spotify-alice", type: "spotify", name: "Alice", visibility: 0, show_activity: true },
+  { id: "github-alice", type: "github", name: "alice", visibility: 1, show_activity: false },
+  { id: "alice.example", type: "domain", name: "alice.example", visibility: 1 },
+];
+const connectionRequests: any[] = [];
+const connectionStates = new Map<string, string>();
+
 // The presence Alice's session last sent, if any.
 let alicePresence: unknown = null;
 
@@ -5909,6 +5921,44 @@ async function api(req: Request, path: string, origin: string): Promise<Response
     return messages.has(m[1]!) ? empty() : notFound("Unknown Channel", 10003);
   }
 
+  if (method === "GET" && path === "/users/@me/connections") return json(connectedAccounts);
+  if ((method === "PATCH" || method === "DELETE") && (m = path.match(/^\/users\/@me\/connections\/([^/]+)\/([^/]+)$/))) {
+    const [kind, id] = [m[1]!, decodeURIComponent(m[2]!)];
+    const index = connectedAccounts.findIndex(a => a.type === kind && a.id === id);
+    if (index < 0) return notFound("Unknown Connection", 10017);
+    const body: any = method === "PATCH" ? await req.json() : null;
+    if (body && (Object.keys(body).length !== 1 || !Object.keys(body).every(k => ["visibility", "show_activity"].includes(k) && typeof body[k] === "boolean"))) {
+      return json({ message: "Invalid Form Body", code: 50035 }, 400);
+    }
+    connectionRequests.push({ method, kind, id, body });
+    if (method === "DELETE") connectedAccounts.splice(index, 1);
+    else if ("visibility" in body) connectedAccounts[index].visibility = body.visibility ? 1 : 0;
+    else connectedAccounts[index].show_activity = body.show_activity;
+    dispatch("USER_CONNECTIONS_UPDATE", {});
+    return method === "DELETE" ? empty() : json(connectedAccounts[index]);
+  }
+  if (method === "GET" && (m = path.match(/^\/connections\/([^/]+)\/authorize$/))) {
+    const kind = m[1]!;
+    const state = `test-${kind}-${connectionRequests.length}`;
+    connectionStates.set(kind, state);
+    connectionRequests.push({ method, kind, action: "authorize" });
+    return json({ url: `https://example.com/authorize?state=${state}` });
+  }
+  if (method === "POST" && (m = path.match(/^\/connections\/([^/]+)\/callback$/))) {
+    const kind = m[1]!;
+    const body: any = await req.json();
+    if (body.code !== "test-code" || body.state !== connectionStates.get(kind) || body.insecure !== false || body.friend_sync !== false) {
+      return json({ message: "Invalid Form Body", code: 50035 }, 400);
+    }
+    connectionRequests.push({ method, kind, body });
+    connectionStates.delete(kind);
+    if (kind === "xbox") return json({ redirect: "https://example.com/continue" });
+    const account = { id: `${kind}-new`, type: kind, name: "Alice", visibility: 1, show_activity: false };
+    connectedAccounts.push(account);
+    dispatch("USER_CONNECTIONS_UPDATE", {});
+    return json(account);
+  }
+
   // Signing out ends the session; the fake counts them.
   if (method === "POST" && path === "/auth/logout") {
     logouts++;
@@ -7702,6 +7752,17 @@ const server = Bun.serve<SocketData>({
     }
     if (path === "/_control/health") return new Response("ok\n");
     if (path === "/_control/presence") return Response.json(alicePresence);
+    // A song heard from another session of Alice's account, without needing
+    // Spotify or a provider token. `?off` stops it.
+    if (req.method === "POST" && path === "/_control/own-spotify") {
+      const activities = url.searchParams.has("off") ? [] : [{
+        type: 2, name: "Spotify", details: "A test song", state: "A test artist",
+        sync_id: "test-song", timestamps: { start: Date.now() - 45000, end: Date.now() + 135000 },
+        assets: { large_text: "A test album", large_image: "spotify:ab67616d0000b273" },
+      }];
+      dispatch("PRESENCE_UPDATE", { user: { id: ALICE }, status: "online", activities, client_status: {} });
+      return new Response("Spotify presence updated\n");
+    }
     if (req.method === "POST" && path === "/_control/bob-away") {
       // Bob goes idle with a custom status, as his friends hear it.
       presences[users.bob.id] = {
@@ -7722,6 +7783,7 @@ const server = Bun.serve<SocketData>({
       return new Response("Bob is offline\n");
     }
     if (path === "/_control/logouts") return Response.json(logouts);
+    if (path === "/_control/connections") return Response.json(connectionRequests);
     if (path === "/_control/voice-identifies") return Response.json(voiceIdentifies);
     if (path === "/_control/voice-changes") return Response.json(voiceChanges);
     if (req.method === "POST" && path === "/_control/voice-reset") {

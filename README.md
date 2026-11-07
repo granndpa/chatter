@@ -144,6 +144,14 @@ does, and names games Yapfast doesn't know. See
   <img src="docs/images/features/playing.webp" width="260" alt="A profile card saying Playing Deadlock, with the game's icon.">
 </p>
 
+### Connected accounts
+
+**Settings → Connected Apps → Connections** lists your linked accounts,
+controls profile visibility and Spotify status, and removes or adds connections
+through your browser. See [Connections](docs/discord/connections.md).
+The account menu shows your username and Spotify listening activity, and
+switches between saved accounts with separate logins and caches.
+
 ### Running a server
 
 Server Settings with roles, emoji, stickers, bans, the audit log and the rest of
@@ -153,7 +161,8 @@ nicknames, time out, kick and ban. In voice, server mute, deafen and move
 people to another channel. Edit your server profile, and leave. Join a server
 by invite, from the + under your servers or a link in chat, and open a
 scheduled event from its link to mark yourself interested. Folders show up as
-they do in Discord.
+they do in Discord. Drag servers and folders to reorder or group them, or use
+their menus to create, rename and ungroup folders.
 
 <p align="center">
   <img src="docs/images/features/server-settings.webp" width="640" alt="Server Settings on a role's Display page: its name, a gold color picked, and its icon.">

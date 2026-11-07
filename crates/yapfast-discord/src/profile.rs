@@ -59,6 +59,19 @@ pub struct Connection {
 /// A connected account's page on its service, where Discord's client links
 /// one.
 fn connection_url(kind: &str, id: &str, name: &str) -> Option<String> {
+    if kind == "domain" {
+        let address = if name.starts_with("https://") {
+            name.to_owned()
+        } else {
+            format!("https://{name}")
+        };
+        let url = url::Url::parse(&address).ok()?;
+        return (url.scheme() == "https"
+            && url.host_str().is_some()
+            && url.username().is_empty()
+            && url.password().is_none())
+        .then(|| url.to_string());
+    }
     Some(match kind {
         "steam" => format!("https://steamcommunity.com/profiles/{id}"),
         "twitch" => format!("https://twitch.tv/{name}"),
@@ -276,6 +289,16 @@ mod tests {
     use serde_json::json;
 
     use super::*;
+
+    #[test]
+    fn connected_websites_open_as_https_without_credentials() {
+        assert_eq!(
+            connection_url("domain", "", "alice.pages.dev").as_deref(),
+            Some("https://alice.pages.dev/")
+        );
+        assert!(connection_url("domain", "", "https://alice@evil.example").is_none());
+        assert!(connection_url("domain", "", "javascript:alert(1)").is_none());
+    }
 
     #[test]
     fn the_servers_profile_wins_over_their_own() {

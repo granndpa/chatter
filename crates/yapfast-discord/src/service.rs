@@ -315,6 +315,9 @@ pub struct Snapshot {
     /// The game this account shows it plays now.
     #[serde(skip)]
     pub playing: Option<Arc<crate::own_activity::Playing>>,
+    /// This account's Spotify activity, including its album and progress.
+    #[serde(skip)]
+    pub spotify: Option<crate::activity::Activity>,
     /// The soundboard's volume, from 0 to 100 on the power curve of the
     /// other volumes, and the sounds that play as this account joins
     /// voice, as its settings keep them; the volume is none until they say,
@@ -1421,6 +1424,57 @@ impl Discord {
     /// Gives up on a prompt; the request waiting on it fails.
     pub fn cancel_mfa(&self, id: u64) {
         self.mfa.answer(id, mfa::Answer::Cancelled);
+    }
+
+    /// This account's connected services and the switches kept by Discord.
+    pub async fn arrange_servers(
+        &self,
+        source: &str,
+        target: &str,
+        mode: i32,
+        name: &str,
+    ) -> Result<()> {
+        let encoded = self.api.user_settings().await?;
+        let mut list = settings::server_list(&encoded).unwrap_or_default();
+        for server in &self.snapshots.borrow().servers {
+            if !list.order.contains(&server.id) {
+                list.order.push(server.id.clone());
+            }
+        }
+        let entries = crate::server_folders::entries(&list);
+        let changed = crate::server_folders::edit(&entries, source, target, mode, name, now_ms())?;
+        self.api
+            .set_user_settings(&settings::write_server_list(&changed))
+            .await
+    }
+
+    /// This account's connected services and the switches kept by Discord.
+    pub async fn connections(&self) -> Result<Vec<crate::connections::Connection>> {
+        self.api.connections().await
+    }
+
+    pub async fn update_connection(
+        &self,
+        kind: &str,
+        id: &str,
+        setting: crate::connections::Setting,
+    ) -> Result<()> {
+        self.api.update_connection(kind, id, setting).await
+    }
+
+    pub async fn remove_connection(&self, kind: &str, id: &str) -> Result<()> {
+        self.api.remove_connection(kind, id).await
+    }
+
+    pub async fn authorize_connection(
+        &self,
+        kind: &str,
+    ) -> Result<crate::connections::Authorization> {
+        self.api.authorize_connection(kind).await
+    }
+
+    pub async fn complete_connection(&self, kind: &str, state: &str, address: &str) -> Result<()> {
+        self.api.complete_connection(kind, state, address).await
     }
 
     /// This account's own profile, for its editor, fetched afresh: in

@@ -76,6 +76,24 @@ fn events(adapter: &Adapter, server: &str) -> Menu {
 /// What a server's, conversation's or person's menu offers; nothing for one
 /// Yapfast doesn't know.
 pub(super) fn menu(adapter: &Adapter, id: &str, person: bool) -> Menu {
+    if id.starts_with("discord-folder:") {
+        let disabled = !adapter.app.state.discord_online || adapter.app.state.server_arranging;
+        return (
+            [
+                ("folder-rename", "Rename Folder"),
+                ("folder-ungroup", "Ungroup Servers"),
+            ]
+            .into_iter()
+            .map(|(id, text)| MenuRow {
+                id: id.into(),
+                text: text.into(),
+                disabled,
+                ..Default::default()
+            })
+            .collect(),
+            vec![],
+        );
+    }
     if let Some(place) = id.strip_prefix(BELL) {
         return Notify::of(adapter, place)
             .map_or_else(Menu::default, |notify| notify.bell(adapter));
@@ -315,6 +333,29 @@ pub(super) fn menu(adapter: &Adapter, id: &str, person: bool) -> Menu {
         );
         if let Some(next) = rows.get_mut(1) {
             next.separated = true;
+        }
+    }
+    if !person && discord::parse_server(id).is_some() {
+        let disabled = !state.discord_online || state.server_arranging;
+        rows.push(MenuRow {
+            id: "folder-create".into(),
+            text: "Create Folder".into(),
+            disabled,
+            separated: true,
+            ..Default::default()
+        });
+        if state
+            .servers
+            .iter()
+            .find(|s| s.id == id)
+            .is_some_and(|s| s.folder.is_some())
+        {
+            rows.push(MenuRow {
+                id: "folder-out".into(),
+                text: "Move Out of Folder".into(),
+                disabled,
+                ..Default::default()
+            });
         }
     }
     let notify = Notify::of(adapter, id);
@@ -808,6 +849,40 @@ pub(super) fn choose(
     person: bool,
     id: &str,
 ) {
+    if matches!(id, "folder-create" | "folder-rename") {
+        window.set_folder_edit_target(target.clone().into());
+        window.set_folder_edit_mode(if id == "folder-create" { 3 } else { 4 });
+        let name = adapter
+            .app
+            .state
+            .servers
+            .iter()
+            .filter_map(|s| s.folder.as_ref())
+            .find(|f| f.id == target)
+            .and_then(|f| f.name.clone())
+            .unwrap_or_else(|| "New Folder".into());
+        window.set_folder_edit_name(name.into());
+        window.invoke_show_folder_editor();
+        return;
+    }
+    if id == "folder-ungroup" {
+        super::server_folders::arrange(adapter, window, &target, "", 5, String::new());
+        return;
+    }
+    if id == "folder-out" {
+        let folder = adapter
+            .app
+            .state
+            .servers
+            .iter()
+            .find(|s| s.id == target)
+            .and_then(|s| s.folder.as_ref())
+            .map(|f| f.id.clone());
+        if let Some(folder) = folder {
+            super::server_folders::arrange(adapter, window, &target, &folder, 1, String::new());
+        }
+        return;
+    }
     // The events popout only lists them.
     if target.starts_with(EVENTS) {
         return;

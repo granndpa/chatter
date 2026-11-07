@@ -6448,6 +6448,151 @@ async fn starts_threads_as_discords_client_does() {
     );
 }
 
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "starts testing/fake_discord.ts with bun; run scripts/test-fake-discord"]
+async fn manages_connected_accounts() {
+    use yapfast_discord::connections::Setting;
+    let Fixture {
+        _fake,
+        discord,
+        server,
+        ..
+    } = Fixture::start("manages_connected_accounts").await;
+    let accounts = discord.connections().await.unwrap();
+    assert_eq!(accounts.len(), 3);
+    let spotify = accounts.iter().find(|a| a.kind == "spotify").unwrap();
+    assert_eq!(spotify.visibility, 0);
+    assert!(spotify.show_activity);
+    discord
+        .update_connection("spotify", &spotify.id, Setting::Profile(true))
+        .await
+        .unwrap();
+    discord
+        .update_connection("spotify", &spotify.id, Setting::Activity(false))
+        .await
+        .unwrap();
+    let accounts = discord.connections().await.unwrap();
+    let spotify = accounts.iter().find(|a| a.kind == "spotify").unwrap();
+    assert_eq!(spotify.visibility, 1);
+    assert!(!spotify.show_activity);
+    discord
+        .remove_connection("domain", "alice.example")
+        .await
+        .unwrap();
+    let authorization = discord.authorize_connection("twitch").await.unwrap();
+    let bad = format!("https://discord.com/connections/twitch?code=test-code&state=wrong");
+    assert!(
+        discord
+            .complete_connection("twitch", &authorization.state, &bad)
+            .await
+            .is_err()
+    );
+    let address = format!(
+        "https://discord.com/connections/twitch?code=test-code&state={}",
+        authorization.state
+    );
+    discord
+        .complete_connection("twitch", &authorization.state, &address)
+        .await
+        .unwrap();
+    let accounts = discord.connections().await.unwrap();
+    assert_eq!(accounts.len(), 3);
+    assert!(accounts.iter().any(|a| a.kind == "twitch"));
+    assert!(!accounts.iter().any(|a| a.kind == "domain"));
+    let requests: serde_json::Value =
+        serde_json::from_str(&control(server, "GET", "/_control/connections", "")).unwrap();
+    assert_eq!(requests.as_array().unwrap().len(), 5);
+    assert_eq!(requests[0]["body"], serde_json::json!({"visibility": true}));
+    assert_eq!(
+        requests[1]["body"],
+        serde_json::json!({"show_activity": false})
+    );
+    assert_eq!(requests[2]["method"], "DELETE");
+    assert_eq!(requests[4]["body"]["insecure"], false);
+    assert_eq!(requests[4]["body"]["friend_sync"], false);
+    // A provider's next step must not be mistaken for a completed connection.
+    let authorization = discord.authorize_connection("xbox").await.unwrap();
+    let address = format!(
+        "https://discord.com/connections/xbox?code=test-code&state={}",
+        authorization.state
+    );
+    let error = discord
+        .complete_connection("xbox", &authorization.state, &address)
+        .await
+        .unwrap_err();
+    assert!(error.to_string().contains("another browser step"));
+    assert!(
+        !discord
+            .connections()
+            .await
+            .unwrap()
+            .iter()
+            .any(|a| a.kind == "xbox")
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "starts testing/fake_discord.ts with bun; run scripts/test-fake-discord"]
+async fn saves_server_folders_without_replacing_other_settings() {
+    let Fixture {
+        _fake,
+        discord,
+        guild,
+        snapshot,
+        ..
+    } = Fixture::start("saves_server_folders").await;
+    let custom = snapshot.custom_status.clone();
+    discord
+        .arrange_servers(&guild, "", 3, "Games")
+        .await
+        .unwrap();
+    let saved = snapshot_where(&discord, |s| {
+        s.folders.iter().any(|f| f.name.as_deref() == Some("Games"))
+    })
+    .await;
+    let folder = saved
+        .folders
+        .iter()
+        .find(|f| f.name.as_deref() == Some("Games"))
+        .unwrap();
+    assert!(folder.servers.contains(&guild));
+    assert_eq!(saved.custom_status, custom);
+    let id = format!("folder:{}", folder.id);
+    discord
+        .arrange_servers(&id, "", 4, "Friends")
+        .await
+        .unwrap();
+    snapshot_where(&discord, |s| {
+        s.folders
+            .iter()
+            .any(|f| f.name.as_deref() == Some("Friends"))
+    })
+    .await;
+    discord.arrange_servers(&id, "", 5, "").await.unwrap();
+    let ungrouped = snapshot_where(&discord, |s| s.folders.is_empty()).await;
+    assert!(ungrouped.servers.iter().any(|s| s.id == guild));
+    assert_eq!(ungrouped.custom_status, custom);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+#[ignore = "starts testing/fake_discord.ts with bun; run scripts/test-fake-discord"]
+async fn shows_own_spotify_from_another_session() {
+    let Fixture {
+        _fake,
+        discord,
+        server,
+        ..
+    } = Fixture::start("shows_own_spotify").await;
+    post_control(server, "/_control/own-spotify", "");
+    let shown = snapshot_where(&discord, |s| s.spotify.is_some()).await;
+    let song = shown.spotify.as_ref().unwrap();
+    assert_eq!(song.details.as_deref(), Some("A test song"));
+    assert_eq!(song.state.as_deref(), Some("A test artist"));
+    assert!(song.end > song.start);
+    post_control(server, "/_control/own-spotify?off", "");
+    snapshot_where(&discord, |s| s.spotify.is_none()).await;
+}
+
 /// A plain send, as the composer makes it, with `nonce` and `reply`.
 fn sending<'a>(nonce: &'a str, reply: Option<&'a str>) -> yapfast_discord::api::Sending<'a> {
     yapfast_discord::api::Sending {

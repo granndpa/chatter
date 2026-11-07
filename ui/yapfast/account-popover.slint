@@ -3,11 +3,14 @@ import { Theme, Middle } from "../theme.slint";
 import { Avatar, MenuItem, StatusText } from "../controls.slint";
 import { StatusDot } from "../rail.slint";
 import { StatusOption } from "../dialogs.slint";
+import { ActivityRow, ActivityCard } from "../people.slint";
 
 // Uses the account summary already supplied by Yapfast. A neutral header
 // deliberately avoids inventing a banner, decorations, biography or badges.
 export component AccountPopover inherits Rectangle {
     in property <string> name;
+    in property <string> username;
+    in property <[ActivityRow]> spotify;
     in property <string> initial;
     in property <color> tint;
     in property <image> picture;
@@ -25,6 +28,8 @@ export component AccountPopover inherits Rectangle {
     callback edit-profile;
     callback settings;
     callback copy-id;
+    callback open-link(string);
+    callback switch-accounts;
     callback game-duration-due;
     property <string> presence-label: root.status == "idle" ? "Idle" : root.status == "dnd" ? "Do Not Disturb" : root.status == "invisible" ? "Invisible" : "Online";
     background: Theme.panel; border-radius: 8px;
@@ -37,7 +42,7 @@ export component AccountPopover inherits Rectangle {
         content := VerticalLayout {
             spacing: 0px;
             Rectangle {
-                height: 156px;
+                height: root.username == "" ? 156px : 180px;
                 Rectangle { y: 0px; height: 80px; background: Theme.sunken; border-radius: 8px; }
                 Rectangle { y: 72px; height: 8px; background: Theme.sunken; }
                 Rectangle {
@@ -47,10 +52,18 @@ export component AccountPopover inherits Rectangle {
                     StatusDot { x: 66px; y: 65px; width: 20px; height: 20px; border-radius: 10px; presence: root.status == "invisible" ? "offline" : root.status; ring: Theme.panel; }
                 }
                 Text { x: 16px; y: 128px; width: parent.width - 32px; height: 24px; text: root.name; color: Theme.text; font-size: 20px; font-weight: 700; overflow: elide; }
+                if root.username != "": Text { x: 16px; y: 154px; width: parent.width - 32px; text: root.username; color: Theme.secondary; font-size: 14px; overflow: elide; }
             }
             VerticalLayout {
                 padding: 16px; padding-top: 8px; spacing: 12px;
                 if root.has-custom-status: StatusText { text: root.custom-text; emoji-url: root.custom-emoji; }
+                for activity in root.spotify: Rectangle {
+                    height: listening.preferred-height; background: Theme.raised; border-radius: 8px;
+                    listening := VerticalLayout {
+                        padding: 12px;
+                        ActivityCard { activity: activity; open-link(url) => { root.open-link(url); } }
+                    }
+                }
                 if root.game-name != "": Rectangle {
                     height: 80px; border-radius: 8px; background: Theme.raised;
                     VerticalLayout {
@@ -109,6 +122,7 @@ export component AccountPopover inherits Rectangle {
                     VerticalLayout {
                         padding: 8px; spacing: 4px;
                         if root.user-id != "": MenuItem { height: 40px; text: "Copy User ID"; icon: @image-url("../icons/copy.svg"); clicked => { root.copy-id(); } }
+                        MenuItem { height: 40px; text: "Switch Accounts"; icon: @image-url("../icons/user.svg"); clicked => { root.switch-accounts(); } }
                         MenuItem { height: 40px; text: "User Settings"; icon: @image-url("../icons/settings.svg"); clicked => { root.settings(); } }
                     }
                 }

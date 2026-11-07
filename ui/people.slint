@@ -1,3 +1,4 @@
+import { ConnectionIcons } from "connection-icons.slint";
 import { ClientStyle } from "yapfast/style.slint";
 import { ScrollView, ListView } from "scrollview.slint";
 import { Theme, Middle, Label } from "theme.slint";
@@ -722,7 +723,7 @@ export component ProfileCard inherits Rectangle {
                             accessible-action-default => { if connection.url != "" { root.open-link(connection.url); } }
                             connection-body := HorizontalLayout {
                                 spacing: 8px;
-                                Middle { Image { source: @image-url("icons/link.svg"); width: 24px; height: 24px; colorize: Theme.secondary; } }
+                                Middle { Image { source: ConnectionIcons.picture(connection.kind); width: 24px; height: 24px; colorize: ConnectionIcons.tint(connection.kind); } }
                                 VerticalLayout {
                                     alignment: center;
                                     HorizontalLayout {

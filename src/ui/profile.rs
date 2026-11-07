@@ -158,6 +158,7 @@ impl Adapter {
                 .any(|row| row.start > 0 || row.end > 0)
         };
         let shown = (self.app.state.profile.is_some() && timed(window.get_profile()))
+            || self.app.state.discord_spotify.is_some()
             || (self.app.state.panel_profile.is_some() && timed(window.get_panel_profile()));
         if !shown {
             self.activity_clock.stop();

@@ -259,7 +259,17 @@ pub fn may_work_later(error: &anyhow::Error) -> bool {
     }
 }
 
+/// What Spotify says plays.
+pub enum Spotify {
+    Playing(Value),
+    Idle,
+    /// The token ran out; Discord lends a new one.
+    Expired,
+}
+
 pub struct Api {
+    /// Wakes Spotify's presence when its connection changes here.
+    spotify_changed: tokio::sync::watch::Sender<()>,
     http: Client,
     /// Empty without a login; Discord may refresh it in READY.
     token: RwLock<String>,
@@ -297,6 +307,7 @@ impl Api {
             None => API.to_owned(),
         };
         Ok(Self {
+            spotify_changed: tokio::sync::watch::channel(()).0,
             http,
             token: RwLock::new(token),
             base,
@@ -613,6 +624,147 @@ impl Api {
         let request = with_json(self.request(Method::POST, &path), &body)
             .header("X-Context-Properties", context("forwarding"));
         self.json(request).await
+    }
+
+    /// This account's id.
+    pub async fn own_user_id(&self) -> Result<Option<String>> {
+        let me = self.json(self.request(Method::GET, "/users/@me")).await?;
+        Ok(me["id"].as_str().map(str::to_owned))
+    }
+
+    /// The connected Spotify account's access token, which Discord lends its
+    /// client; none without a connection, or when it isn't shown as status.
+    pub async fn spotify_access_token(&self) -> Result<Option<String>> {
+        let connections = self
+            .json(self.request(Method::GET, "/users/@me/connections"))
+            .await?;
+        let Some(id) = connections
+            .as_array()
+            .and_then(|list| {
+                list.iter().find(|connection| {
+                    connection["type"] == "spotify" && connection["show_activity"] != false
+                })
+            })
+            .and_then(|connection| connection["id"].as_str())
+            .map(str::to_owned)
+        else {
+            return Ok(None);
+        };
+        let path = format!("/users/@me/connections/spotify/{id}/access-token");
+        let token = self.json(self.request(Method::GET, &path)).await?;
+        Ok(token["access_token"].as_str().map(str::to_owned))
+    }
+
+    /// What Spotify plays for the account whose token this is. Sent without
+    /// Discord's headers or token.
+    pub async fn spotify_now_playing(&self, token: &str) -> Result<Spotify> {
+        let response = self
+            .http
+            .get("https://api.spotify.com/v1/me/player/currently-playing")
+            .bearer_auth(token)
+            .send()
+            .await
+            .context("could not reach Spotify")?;
+        match response.status() {
+            StatusCode::NO_CONTENT => Ok(Spotify::Idle),
+            StatusCode::UNAUTHORIZED => Ok(Spotify::Expired),
+            status if status.is_success() => {
+                let body = response
+                    .bytes()
+                    .await
+                    .context("could not read Spotify's answer")?;
+                if body.is_empty() {
+                    return Ok(Spotify::Idle);
+                }
+                Ok(Spotify::Playing(
+                    serde_json::from_slice(&body)
+                        .context("could not understand Spotify's answer")?,
+                ))
+            }
+            status => bail!("Spotify answered {status}"),
+        }
+    }
+
+    pub(crate) fn spotify_changes(&self) -> tokio::sync::watch::Receiver<()> {
+        self.spotify_changed.subscribe()
+    }
+
+    /// This account's connections, including the settings private to it.
+    pub async fn connections(&self) -> Result<Vec<crate::connections::Connection>> {
+        let value = self
+            .json(self.request(Method::GET, "/users/@me/connections"))
+            .await?;
+        let connections =
+            serde_json::from_value(value).context("could not understand Discord's connections")?;
+        // Refresh also takes a status change made in another Discord client.
+        self.spotify_changed.send_replace(());
+        Ok(connections)
+    }
+
+    pub async fn update_connection(
+        &self,
+        kind: &str,
+        id: &str,
+        setting: crate::connections::Setting,
+    ) -> Result<()> {
+        let path = crate::connections::path(kind, id)?;
+        self.empty(with_json(
+            self.request(Method::PATCH, &path),
+            &setting.body(),
+        ))
+        .await?;
+        if kind == "spotify" {
+            self.spotify_changed.send_replace(());
+        }
+        Ok(())
+    }
+
+    pub async fn remove_connection(&self, kind: &str, id: &str) -> Result<()> {
+        let path = crate::connections::path(kind, id)?;
+        self.empty(self.request(Method::DELETE, &path)).await?;
+        if kind == "spotify" {
+            self.spotify_changed.send_replace(());
+        }
+        Ok(())
+    }
+
+    pub async fn authorize_connection(
+        &self,
+        kind: &str,
+    ) -> Result<crate::connections::Authorization> {
+        crate::connections::path(kind, "@me")?;
+        let path = format!("/connections/{kind}/authorize");
+        let value = self.json(self.request(Method::GET, &path)).await?;
+        let address = value["url"]
+            .as_str()
+            .context("Discord returned no login URL")?;
+        crate::connections::Authorization::parse(address.to_owned())
+    }
+
+    pub async fn complete_connection(&self, kind: &str, state: &str, address: &str) -> Result<()> {
+        crate::connections::path(kind, "@me")?;
+        let body = crate::connections::callback(kind, state, address)?;
+        let path = format!("/connections/{kind}/callback");
+        let response = self
+            .execute(with_json(self.request(Method::POST, &path), &body))
+            .await?;
+        let bytes = response
+            .bytes()
+            .await
+            .context("could not read Discord's answer")?;
+        if !bytes.is_empty() {
+            let answer: Value =
+                serde_json::from_slice(&bytes).context("could not understand Discord's answer")?;
+            if answer["redirect"].is_string() {
+                bail!(
+                    "This provider needs another browser step. Finish linking in Discord's website, then Refresh."
+                );
+            }
+        }
+        if kind == "spotify" {
+            self.spotify_changed.send_replace(());
+        }
+        Ok(())
     }
 
     /// A user's profile, with what they share with this account, and their

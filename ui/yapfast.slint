@@ -35,7 +35,9 @@ import { ServerRow, RoomRow, StatusDot, ServerRail, ServerHeader, RoomList } fro
 import { StagedFile, StagedTile, Composer, MentionRow, MentionList, EmojiSuggestions, RequestBar } from "composer.slint";
 import { EmojiCell, EmojiRow, EmojiSection, EmojiCard, EmojiCardView, MessageRow, ReactionToggle, EmojiButton, EmojiPicker, MessageMenu, MessageGallery, MessageStickers, FileCard, MessageContent, EmbedView, BotTag, NoConversation, ConversationStart, HistoryEdge, UnreadBar, PresentBar, ImageViewer, VideoViewer, VideoPlayer, Polls } from "messages.slint";
 import { SettingsRow, SettingsScreen, AccountSettings, AppearanceSettings, ThemeCard, ThemeColour, VoiceSettings, MessageSettings, NotificationSettings, SoundSettings, AdvancedSettings, DiscordLinkSettings, DiscordSettings, BlockedRow, GameActivitySettings, GameExecutable } from "settings.slint";
-import { MemberRow, ProfileData, ProfileServerRow, MemberPanel, ProfileCard, ProfileModal, ServerCard, RoleCard } from "people.slint";
+import { ConnectionRow, ConnectionsSettings } from "connections.slint";
+export struct SavedAccountRow { slot: string, name: string, username: string, current: bool }
+import { ActivityRow, MemberRow, ProfileData, ProfileServerRow, MemberPanel, ProfileCard, ProfileModal, ServerCard, RoleCard } from "people.slint";
 import { RequestRow, FriendRow, FriendsScreen, HeaderTab, RequestsScreen, AddFriendDialog } from "friends.slint";
 import { ContactRow, PlaceRow, ReactionPill, ReactorRow, StatusDialog, NewDmDialog, ForwardDialog, QuickSwitcher, ReactionsDialog, StatusMenu, PersonPrompt, PersonDialog, LeavingDialog, PollAnswerDraft, PollDialog } from "dialogs.slint";
 import { InvitePrompt, InviteDialog, JoinPrompt, JoinDialog, EventPrompt, EventDialog, GiftPrompt, GiftDialog, OAuthPrompt, OAuthDialog, ChannelPrompt, ChannelDialog, ProfileEditorPrompt, ProfileEditorDialog } from "server.slint";
@@ -313,6 +315,19 @@ export component YapfastWindow inherits Window {
     /// The game the Discord account shows it plays, and for how long, which
     /// the window asks for with `game-duration-due` while the menu shows it.
     in property <string> game-activity-name;
+    in property <[ActivityRow]> account-spotify;
+    in property <bool> may-arrange-servers;
+    in-out property <string> folder-edit-target;
+    in-out property <string> folder-edit-name;
+    in-out property <int> folder-edit-mode;
+    callback arrange-servers(string, string, int, string);
+    callback show-folder-editor;
+    show-folder-editor => { folder-editor.show(); }
+    in property <[SavedAccountRow]> saved-accounts;
+    in property <string> accounts-error;
+    callback accounts-action(string, string);
+    callback show-accounts;
+    show-accounts => { accounts-popup.show(); }
     in property <string> game-activity-duration;
     callback game-duration-due();
     /// The address of the picture of the custom emoji in the account's status.
@@ -1064,15 +1079,26 @@ export component YapfastWindow inherits Window {
     in property <color> incoming-tint;
     in property <image> incoming-picture;
     /// The settings show over the window, one section at a time: 0 account, 1 voice and
-    /// audio, 2 messages, 3 notifications, 4 Discord, 5 sounds, 8 game activity.
+    /// audio, 2 messages, 3 notifications, 4 Discord, 5 sounds, 8 game activity,
+    /// 9 connected apps.
     in-out property <bool> settings-open;
     // Closing settings stops linking Discord there.
     changed settings-open => {
+        if self.settings-open && self.settings-section == 9 { self.connections-action("refresh", "", "", false); }
         if !self.settings-open && self.link-phase != 0 { self.cancel-discord-link(); }
         if !self.settings-open { self.camera-testing = false; }
         if !self.settings-open && self.theme-editor { self.cancel-theme(); }
     }
     in-out property <int> settings-section;
+    in property <[ConnectionRow]> connections;
+    in property <bool> connections-busy;
+    in property <bool> connections-online;
+    in property <bool> connections-loaded;
+    in property <string> connections-error;
+    in property <string> connections-authorizing;
+    in property <string> connections-removing-kind;
+    in property <string> connections-removing-id;
+    callback connections-action(string, string, string, bool);
     /// Preferences people set in the settings; preferences-changed reports any change.
     in-out property <bool> twelve-hour-clock;
     in-out property <bool> clock-seconds;
@@ -1169,7 +1195,10 @@ export component YapfastWindow inherits Window {
     callback save-theme();
     callback cancel-theme();
     callback delete-theme();
-    changed settings-section => { if root.theme-editor && root.settings-section != 7 { root.cancel-theme(); } }
+    changed settings-section => {
+        if root.theme-editor && root.settings-section != 7 { root.cancel-theme(); }
+        if root.settings-open && root.settings-section == 9 { root.connections-action("refresh", "", "", false); }
+    }
     out property <length> message-font-size: root.text-size == 0 ? 14px : root.text-size == 2 ? 18px : ClientStyle.text-size;
     // The sidebar keeps 180 to 380px. Dragging also leaves the conversation 420px;
     // the window width cannot enter this binding, because it depends on the layout.
@@ -1899,6 +1928,7 @@ export component YapfastWindow inherits Window {
             if ClientStyle.enabled: AccountPopover {
                 available-height: max(120px, root.menu-y - 12px);
                 name: root.account-name; initial: root.account-initial; tint: root.account-tint; picture: root.account-picture;
+                username: root.account-username; spotify: root.account-spotify;
                 user-id: root.account-user-id;
                 status: root.discord-status; has-custom-status: root.has-custom-status;
                 custom-text: root.account-status; custom-emoji: root.account-status-emoji;
@@ -1909,6 +1939,8 @@ export component YapfastWindow inherits Window {
                 custom-status => { root.open-status(); status-menu.close(); }
                 edit-profile => { root.edit-profile(); status-menu.close(); }
                 copy-id => { root.copy-text(root.account-user-id); status-menu.close(); }
+                open-link(url) => { root.open-link(url); }
+                switch-accounts => { status-menu.close(); root.accounts-action("open", ""); }
                 settings => { root.settings-section = 0; root.settings-open = true; status-menu.close(); }
             }
             if !ClientStyle.enabled: StatusMenu {
@@ -2191,6 +2223,45 @@ export component YapfastWindow inherits Window {
         }
     }
 
+    folder-editor := PopupWindow {
+        width: 360px; height: folder-form.preferred-height;
+        x: max(8px, (root.width - self.width) / 2); y: max(8px, (root.height - self.height) / 2);
+        close-policy: PopupClosePolicy.close-on-click-outside;
+        Rectangle {
+            background: Theme.panel; border-radius: 8px; border-width: 1px; border-color: Theme.line;
+            folder-form := VerticalLayout {
+                padding: 16px; spacing: 12px;
+                Text { text: root.folder-edit-mode == 3 ? "Create Folder" : "Rename Folder"; color: Theme.text; font-size: 20px; font-weight: 700; }
+                TextField { text <=> root.folder-edit-name; label: "Folder name"; placeholder: "Folder name"; }
+                HorizontalLayout {
+                    spacing: 8px;
+                    ActionButton { text: "Save"; primary: true; enabled: root.may-arrange-servers && root.folder-edit-name != ""; clicked => { root.arrange-servers(root.folder-edit-target, "", root.folder-edit-mode, root.folder-edit-name); folder-editor.close(); } }
+                    ActionButton { text: "Cancel"; clicked => { folder-editor.close(); } }
+                }
+            }
+        }
+    }
+    accounts-popup := PopupWindow {
+        width: 360px; height: account-choices.preferred-height;
+        x: max(8px, (root.width - self.width) / 2); y: max(8px, (root.height - self.height) / 2);
+        close-policy: PopupClosePolicy.close-on-click-outside;
+        Rectangle {
+            background: Theme.panel; border-radius: 8px; border-width: 1px; border-color: Theme.line;
+            account-choices := VerticalLayout {
+                padding: 16px; spacing: 12px;
+                Text { text: "Switch Accounts"; color: Theme.text; font-size: 20px; font-weight: 700; }
+                Text { text: "Switching restarts Yapfast and ends any current call. Each account keeps its own saved login."; color: Theme.muted; wrap: word-wrap; font-size: 13px; }
+                for account in root.saved-accounts: ActionButton {
+                    text: account.name + (account.username != "" ? " · " + account.username : "") + (account.current ? " (current)" : "");
+                    enabled: !account.current;
+                    clicked => { root.accounts-action("select", account.slot); }
+                }
+                if root.accounts-error != "": Text { text: root.accounts-error; color: Theme.danger-text; wrap: word-wrap; }
+                ActionButton { text: "Add account"; primary: true; clicked => { root.accounts-action("add", ""); } }
+                ActionButton { text: "Cancel"; clicked => { accounts-popup.close(); } }
+            }
+        }
+    }
     // Sign in; see SignInScreen.
     SignInScreen {
         y: root.title-height; height: root.height - root.title-height;
@@ -2208,6 +2279,10 @@ export component YapfastWindow inherits Window {
         open-discord-captcha => { root.open-discord-captcha(); }
     }
 
+    if !root.workspace && root.discord-build: ActionButton {
+        x: root.width - self.width - 32px; y: root.title-height + 24px;
+        text: "Switch Accounts"; clicked => { root.accounts-action("open", ""); }
+    }
     HorizontalLayout {
         y: root.title-height; height: root.height - root.title-height;
         visible: root.workspace;
@@ -2223,6 +2298,8 @@ export component YapfastWindow inherits Window {
                     ServerRail {
                         dms-selected: root.dms-selected; dms-unread: root.dms-unread; dms-badge: root.dms-badge; servers: root.servers;
                         matrix-build: root.matrix-build;
+                        can-arrange: root.may-arrange-servers;
+                        arrange(source, target, mode) => { root.arrange-servers(source, target, mode, ""); }
                         navigate-dms => { root.navigate-dms(); }
                         navigate-server(id) => { root.navigate-server(id); }
                         toggle-folder(id) => { root.toggle-folder(id); }
@@ -3715,6 +3792,13 @@ export component YapfastWindow inherits Window {
         discord-build: root.discord-build; preview: root.preview;
         close => { root.settings-open = false; }
         refresh-devices => { root.refresh-devices(); }
+        if root.settings-section == 9: ConnectionsSettings {
+            accounts: root.connections; linked: root.connections-online;
+            busy: root.connections-busy; loaded: root.connections-loaded;
+            error: root.connections-error; authorizing: root.connections-authorizing;
+            removing-kind: root.connections-removing-kind; removing-id: root.connections-removing-id;
+            action(what, kind, id, shown) => { root.connections-action(what, kind, id, shown); }
+        }
         if root.settings-section == 0: AccountSettings {
             account-name: root.account-name; account-status: root.account-status; account-status-emoji: root.account-status-emoji;
             account-initial: root.account-initial; account-tint: root.account-tint; account-picture: root.account-picture;

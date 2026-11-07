@@ -150,6 +150,15 @@ fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
 
 /// Keeps the account in `file` from now on, and the rest beside it.
 pub fn keep_in(file: PathBuf) {
+    let file = if crate::accounts::active_slot() == "default" {
+        file
+    } else {
+        let parent = file.parent().unwrap_or(Path::new("."));
+        parent
+            .join("accounts")
+            .join(crate::accounts::active_slot())
+            .join(file.file_name().unwrap_or_default())
+    };
     *lock(&FILE) = Some(file);
     if let (Some(pictures), Some(gifs), Some(messages), Some(profiles), Some(videos)) = (
         pictures(),

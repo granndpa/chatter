@@ -1,5 +1,28 @@
 # Servers
 
+## Server folders and order
+
+Drag a server or folder above or below another to reorder the rail. Drop a
+server on the centre of another server to group them, or on a folder to move
+it inside. The rail scrolls near its edges during a drag. Folder nesting is
+not supported. The highlighted edge or tile shows where the drop will go.
+
+A server's context menu offers Create Folder and, when inside one, Move Out
+of Folder. A folder's menu offers Rename Folder and Ungroup Servers. Ungrouping
+keeps its servers in order. Names accept 1 to 100 characters.
+
+These edits fetch the latest settings, change the server list, and PATCH only
+the `guild_folders` protobuf field in `/users/@me/settings-proto/1`. Server ids,
+folder names and colours are preserved. Both folder order and the legacy flat
+guild positions are written. The gateway's settings update redraws the rail;
+another edit waits until the request finishes. Changes persist in Discord.
+
+The format and folder actions were checked against Discord's public
+`web.72656029554c0370.js` bundle on 7 November 2026, including its
+`guildFolders` writer and `GuildFolders` protobuf. The service integration test
+`saves_server_folders_without_replacing_other_settings` checks persistence and
+preservation of unrelated settings against the local fake server.
+
 ## Permissions and roles
 
 What the account may do in a server is its @everyone role's permissions

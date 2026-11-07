@@ -1,0 +1,21 @@
+import { Theme } from "theme.slint";
+
+// Provider marks from Simple Icons, bundled so profiles work offline.
+export global ConnectionIcons {
+    public pure function picture(kind: string) -> image {
+        return kind == "spotify" ? @image-url("icons/connections/spotify.svg")
+            : kind == "github" ? @image-url("icons/connections/github.svg")
+            : kind == "reddit" ? @image-url("icons/connections/reddit.svg")
+            : kind == "steam" ? @image-url("icons/connections/steam.svg")
+            : kind == "youtube" ? @image-url("icons/connections/youtube.svg")
+            : kind == "twitch" ? @image-url("icons/connections/twitch.svg")
+            : kind == "epicgames" ? @image-url("icons/connections/epicgames.svg")
+            : kind == "riotgames" ? @image-url("icons/connections/riotgames.svg")
+            : kind == "domain" ? @image-url("icons/connections/domain.svg") : @image-url("icons/link.svg");
+    }
+    public pure function tint(kind: string) -> color {
+        return kind == "spotify" ? #1db954 : kind == "reddit" ? #ff4500
+            : kind == "youtube" ? #ff0033 : kind == "twitch" ? #a970ff
+            : kind == "riotgames" ? #eb0029 : Theme.text;
+    }
+}

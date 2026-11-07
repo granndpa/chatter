@@ -2,6 +2,7 @@
 
 | Area | Works on Linux | Open |
 | --- | --- | --- |
+| [Connected Apps](connections.md) | Connections list, profile visibility, Spotify status, removal, browser login with redirect completion | Live provider logins, provider-specific continuation flows, Authorized Apps |
 | [Linking](#account-linking) | QR code from Settings, or the sign-in of a build without Matrix; unlinking; Discord's captcha, in the browser | A captcha solved against real Discord |
 | [Voice](voice.md) | Server voice channels, mute, deafen, per-person volume, voice gate with its sensitivity, [push-to-talk](voice.md#push-to-talk) on a recorded key, [DeepFilterNet noise suppression](voice.md#microphone) and its strength, taking a room's echo out, [camera video](voice.md#camera-video), [the soundboard](voice.md#soundboard) | A check of Windows audio, cameras and push-to-talk on real Windows, and of push-to-talk on real Wayland desktops |
 | [DM calls](voice.md#dm-calls) | Starting, ringing, answering and declining DM and group DM calls, with cameras | A check by hand through real Discord |

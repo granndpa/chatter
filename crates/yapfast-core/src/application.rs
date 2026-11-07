@@ -22,6 +22,7 @@ mod browse;
 mod calls;
 mod channel_settings;
 mod compose;
+mod connections;
 mod discord_account;
 mod forum;
 mod gifs;
@@ -53,6 +54,7 @@ pub use channel_settings::{
     ChannelInput, ChannelSection, ChannelSettingsScreen, OverwriteConfirm, OverwriteRules,
     OverwriteState, Overwrites, channel_groups, channel_permission,
 };
+pub use connections::{ConnectionInput, ConnectionsPage};
 pub use forum::{ForumInfo, ForumPost, ForumPosts, ForumView};
 pub use gifs::{AskedPicture, GifPicker, GifPicture, GifView};
 pub use gift::GiftDialog;
@@ -457,10 +459,14 @@ pub struct AppState {
     pub friend_requests: Vec<chat::FriendRequest>,
     /// The Discord account's custom status, while it lasts.
     pub custom_status: Option<chat::CustomStatus>,
+    /// The connected services shown in Settings, and their pending request.
+    pub connections: ConnectionsPage,
+    pub server_arranging: bool,
     /// Whether the Discord account shares the game it plays, and the game
     /// it shows.
     pub discord_show_game: bool,
     pub discord_playing: Option<chat::Playing>,
+    pub discord_spotify: Option<chat::Activity>,
     /// How loud the Discord account's soundboard plays, as Discord keeps
     /// it: from 0 to 100, on its slider's curve.
     pub soundboard_volume: f32,
@@ -1297,6 +1303,13 @@ pub enum Relation {
 }
 
 pub enum Action {
+    ArrangeServers {
+        source: String,
+        target: String,
+        mode: i32,
+        name: String,
+    },
+    Connections(ConnectionInput),
     Navigate(Navigation),
     SelectRoom(String),
     /// Mark a listed conversation read, or every conversation of a listed
@@ -2151,6 +2164,17 @@ fn pictures_on_screen<'a>(
         .filter(move |_| list_avatars)
         .filter_map(|server| server.icon.as_deref())
         .chain(state.account_avatar.as_deref())
+        .chain(state.discord_spotify.iter().filter_map(|activity| {
+            #[cfg(feature = "discord")]
+            {
+                activity.large_image.as_deref()
+            }
+            #[cfg(not(feature = "discord"))]
+            {
+                let _ = activity;
+                None
+            }
+        }))
         .chain(
             state
                 .scoped_rooms()
@@ -2540,6 +2564,30 @@ impl Application {
 
     fn dispatch_action(&mut self, action: Action) -> Vec<Effect> {
         match action {
+            Action::ArrangeServers {
+                source,
+                target,
+                mode,
+                name,
+            } => {
+                if self.state.preview
+                    || !self.state.discord_online
+                    || !self.state.discord_linked
+                    || self.state.server_arranging
+                {
+                    return vec![];
+                }
+                self.state.server_arranging = true;
+                vec![Effect::Backend(Command::Discord(
+                    DiscordCommand::ArrangeServers {
+                        source,
+                        target,
+                        mode,
+                        name,
+                    },
+                ))]
+            }
+            Action::Connections(input) => self.connection_input(input),
             Action::VisibleMessages {
                 room,
                 items,
@@ -3334,6 +3382,15 @@ impl Application {
 
     fn apply_event(&mut self, event: Event) -> Vec<Effect> {
         match event {
+            Event::ServersArranged(result) => {
+                self.state.server_arranging = false;
+                if let Err(error) = result {
+                    self.state.notice = Some(format!("Couldn't arrange your servers: {error}"));
+                }
+            }
+            Event::Connections { request, result } => {
+                return self.connections_answer(request, result);
+            }
             Event::Voice(state) => {
                 let sounds = call_sounds(&self.state.voice, &state);
                 // Someone moved the call to another channel, as a bot does

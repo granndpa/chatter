@@ -1,0 +1,107 @@
+import { ConnectionIcons } from "connection-icons.slint";
+import { Theme, Label } from "theme.slint";
+import { ActionButton, TextField } from "controls.slint";
+import { SettingsTitle, SettingsSwitch } from "settings.slint";
+
+export struct ConnectionRow {
+    kind: string,
+    id: string,
+    name: string,
+    provider: string,
+    visible: bool,
+    activity: bool,
+    revoked: bool,
+}
+
+export component ConnectionsSettings inherits VerticalLayout {
+    in property <[ConnectionRow]> accounts;
+    in property <bool> linked;
+    in property <bool> busy;
+    in property <bool> loaded;
+    in property <string> error;
+    in property <string> authorizing;
+    in property <string> removing-kind;
+    in property <string> removing-id;
+    callback action(string, string, string, bool);
+    private property <string> redirect;
+    property <bool> available: root.linked && !root.busy;
+    spacing: 20px;
+    SettingsTitle { text: "Connections"; }
+    Label { text: "Connect accounts from other platforms and choose what appears on your Discord profile."; }
+    if !root.linked: Label { text: "Connect to Discord to manage your connections."; }
+    Text { text: "Add a new connection"; color: Theme.text; font-size: 16px; font-weight: 700; }
+    VerticalLayout {
+        spacing: 8px;
+        HorizontalLayout {
+            spacing: 8px;
+            for provider in [
+                { kind: "spotify", text: "Spotify" }, { kind: "github", text: "GitHub" },
+                { kind: "reddit", text: "Reddit" }, { kind: "steam", text: "Steam" }
+            ]: ActionButton { text: provider.text; icon: ConnectionIcons.picture(provider.kind); enabled: root.available; clicked => { root.redirect = ""; root.action("authorize", provider.kind, "", false); } }
+        }
+        HorizontalLayout {
+            spacing: 8px;
+            for provider in [
+                { kind: "youtube", text: "YouTube" }, { kind: "twitch", text: "Twitch" },
+                { kind: "epicgames", text: "Epic Games" }, { kind: "riotgames", text: "Riot Games" }
+            ]: ActionButton { text: provider.text; icon: ConnectionIcons.picture(provider.kind); enabled: root.available; clicked => { root.redirect = ""; root.action("authorize", provider.kind, "", false); } }
+        }
+    }
+    if root.authorizing != "": Rectangle {
+        background: Theme.field; border-radius: 8px; border-width: 1px; border-color: Theme.line;
+        height: login.preferred-height;
+        login := VerticalLayout {
+            padding: 16px; spacing: 12px;
+            Text { text: "Connecting " + root.authorizing; color: Theme.text; font-size: 16px; font-weight: 700; }
+            Label { text: "Finish the provider login in your browser. If it is signed into the same Discord account, finish there and Refresh below. Otherwise paste the full discord.com/connections redirect URL here. Keep this URL private."; }
+            TextField { text <=> root.redirect; password: true; enabled: root.available; label: "Discord redirect URL"; placeholder: "Paste the complete Discord redirect URL"; }
+            HorizontalLayout {
+                spacing: 8px; alignment: start;
+                ActionButton { text: "Finish connection"; primary: true; enabled: root.available && root.redirect != ""; clicked => { root.action("complete", "", root.redirect, false); root.redirect = ""; } }
+                ActionButton { text: "Cancel"; enabled: !root.busy; clicked => { root.redirect = ""; root.action("cancel-authorization", "", "", false); } }
+            }
+        }
+    }
+    HorizontalLayout {
+        spacing: 12px;
+        Text { text: root.loaded ? (root.accounts.length == 1 ? "1 connection" : root.accounts.length + " connections") : "Your connections"; color: Theme.text; font-size: 16px; font-weight: 700; vertical-alignment: center; horizontal-stretch: 1; }
+        ActionButton { text: root.busy ? "Working..." : "Refresh"; enabled: root.available; clicked => { root.action("refresh", "", "", false); } }
+    }
+    if root.error != "": Label { text: root.error; color: Theme.danger-text; }
+    if root.loaded && root.accounts.length == 0: Label { text: "No connected accounts yet. Choose a platform above to add one."; }
+    for account in root.accounts: Rectangle {
+        background: Theme.field; border-radius: 8px; border-width: 1px; border-color: Theme.line;
+        height: card.preferred-height;
+        card := VerticalLayout {
+            padding: 20px; spacing: 16px;
+            HorizontalLayout {
+                spacing: 12px;
+                Image { source: ConnectionIcons.picture(account.kind); width: 28px; height: 28px; colorize: ConnectionIcons.tint(account.kind); image-fit: contain; }
+                VerticalLayout {
+                    horizontal-stretch: 1; spacing: 4px;
+                    Text { text: account.name; color: Theme.text; font-size: 16px; font-weight: 700; overflow: elide; }
+                    Text { text: account.provider; color: Theme.muted; font-size: 13px; }
+                }
+                ActionButton { horizontal-stretch: 0; text: "Remove"; label: "Remove " + account.name + " connection"; small: true; enabled: root.available; clicked => { root.action("ask-remove", account.kind, account.id, false); } }
+            }
+            if account.revoked: Label { text: "This connection needs authorization again. Add the provider above to reconnect."; }
+            SettingsSwitch {
+                text: "Display on profile"; checked: account.visible; controlled: true; enabled: root.available;
+                toggled(shown) => { root.action("profile", account.kind, account.id, shown); }
+            }
+            if account.kind == "spotify": SettingsSwitch {
+                text: "Display Spotify as your status"; checked: account.activity; controlled: true; enabled: root.available;
+                toggled(shown) => { root.action("activity", account.kind, account.id, shown); }
+            }
+            if root.removing-kind == account.kind && root.removing-id == account.id: VerticalLayout {
+                spacing: 12px;
+                Label { text: "Disconnect " + account.name + " from Discord? You can add it again later."; }
+                HorizontalLayout {
+                    spacing: 8px; alignment: start;
+                    ActionButton { text: "Disconnect"; danger: true; enabled: root.available; clicked => { root.action("remove", "", "", false); } }
+                    ActionButton { text: "Cancel"; enabled: !root.busy; clicked => { root.action("cancel-remove", "", "", false); } }
+                }
+            }
+        }
+    }
+}

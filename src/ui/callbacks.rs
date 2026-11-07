@@ -196,6 +196,9 @@ fn show_emoji(adapter: &Rc<RefCell<Adapter>>, window: &YapfastWindow, query: &st
 
 pub(super) fn bind_callbacks(window: &YapfastWindow, adapter: &Rc<RefCell<Adapter>>) {
     super::games::bind(window, adapter);
+    super::connections::bind(window, adapter);
+    super::accounts::bind(window, adapter);
+    super::server_folders::bind(window, adapter);
     super::gifs::bind(window, adapter);
     super::polls::bind(window, adapter);
     super::call_link::bind(window, adapter);
