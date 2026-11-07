@@ -145,7 +145,7 @@ def open_https(url):
             request_path += '?' + parsed.query
         try:
             connection.request('GET', request_path,
-                               headers={'User-Agent': 'Yapfast Skia preparation'})
+                               headers={'User-Agent': 'Static Skia preparation'})
             response = connection.getresponse()
         except (OSError, http.client.HTTPException):
             connection.close()
@@ -840,7 +840,7 @@ def run_native_prepare(raw, raw_hash, llvm):
     if result.returncode:
         fail(f'nix/prepare-skia-native.py failed with exit code {result.returncode}; inspect the helper diagnostics above')
     prepared = output / PACKAGE
-    helper_stamp = output / 'yapfast-skia-native.json'
+    helper_stamp = output / 'static-skia-native.json'
     if not prepared.is_file() or not helper_stamp.is_file():
         fail('the native Skia helper returned without producing its archive and stamp')
     return prepared, helper_stamp
@@ -900,7 +900,7 @@ def run_application_build(cargo):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Build Yapfast\'s pinned static-CRT Windows Skia archive on native Windows.')
+    parser = argparse.ArgumentParser(description='Build Static\'s pinned static-CRT Windows Skia archive on native Windows.')
     parser.add_argument('--jobs', type=int, default=os.cpu_count() or 1,
                         help='maximum Ninja jobs (default: host CPU count)')
     modes = parser.add_mutually_exclusive_group()
@@ -930,7 +930,7 @@ def main():
     inputs = build_inputs(source, args.jobs, tools, gn_args, ninja_wrapper)
     raw = WORK / PACKAGE
     prepared = WORK / 'prepared' / PACKAGE
-    helper_stamp = WORK / 'prepared/yapfast-skia-native.json'
+    helper_stamp = WORK / 'prepared/static-skia-native.json'
     stamp_path = WORK / 'build.json'
     if existing_build_is_current(stamp_path, inputs, raw, prepared, helper_stamp):
         say('The prepared Skia archive matches every stamped input; nothing to rebuild')

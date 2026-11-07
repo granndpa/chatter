@@ -42,10 +42,10 @@ for tool in ('pactl', 'pw-play', 'parec', 'pasta', 'nft', 'ip', 'cargo'):
         raise SystemExit(f'{tool} is required; run inside the development shell on a Linux desktop with PipeWire.')
 
 
-# Without a session bus the fixture uses Yapfast's private-file credential fallback.
+# Without a session bus the fixture uses Static's private-file credential fallback.
 # This keeps disposable secrets out of the desktop keyring, and works inside
 # Bob's namespace, where D-Bus would see a different user ID.
-NO_BUS = dict(os.environ, DBUS_SESSION_BUS_ADDRESS='unix:path=/nonexistent/yapfast-test-bus')
+NO_BUS = dict(os.environ, DBUS_SESSION_BUS_ADDRESS='unix:path=/nonexistent/static-test-bus')
 
 
 def provision():
@@ -55,7 +55,7 @@ def provision():
 NAMESPACE_MEDIA = """
 gateway=$(ip -4 route show default | awk '{print $3; exit}')
 nft -f - <<RULES
-table ip yapfast_test {
+table ip static_test {
   chain output {
     type nat hook output priority -100;
     ip daddr 127.0.0.1 udp dport 50100-50120 dnat to $gateway
@@ -190,7 +190,7 @@ def tone_file(fixture):
 
 def output_energy():
     """440 Hz amplitude reaching Alice's virtual speakers over three seconds."""
-    samples = subprocess.run(['timeout', '3s', 'parec', '--device=yapfast_reliability_output.monitor',
+    samples = subprocess.run(['timeout', '3s', 'parec', '--device=static_reliability_output.monitor',
                               '--format=s16le', '--rate=48000', '--channels=1', '--latency-msec=50'],
                              capture_output=True).stdout
     values = struct.unpack(f'<{len(samples) // 2}h', samples[:len(samples) // 2 * 2])
@@ -210,8 +210,8 @@ participants = []
 report = {'date': time.strftime('%Y-%m-%d'), 'physical_audio': False, 'muted_participants': True}
 try:
     for module in (
-        ['module-null-sink', 'sink_name=yapfast_reliability_output', 'sink_properties=device.description=Yapfast_reliability_speakers'],
-        ['module-null-sink', 'sink_name=yapfast_reliability_input', 'sink_properties=device.description=Yapfast_reliability_input'],
+        ['module-null-sink', 'sink_name=static_reliability_output', 'sink_properties=device.description=Static_reliability_speakers'],
+        ['module-null-sink', 'sink_name=static_reliability_input', 'sink_properties=device.description=Static_reliability_input'],
     ):
         modules.append(subprocess.check_output(['pactl', 'load-module', *module], text=True).strip())
     executable = test_binary()
@@ -219,7 +219,7 @@ try:
     manifest = json.loads((fixture / 'rooms.json').read_text())
     alice_id, bob_id = manifest['alice'], manifest['bob']
     environment = dict(NO_BUS, YAPFAST_TEST_VOICE_ROOT=str(fixture),
-                       PULSE_SINK='yapfast_reliability_output', PULSE_SOURCE='yapfast_reliability_input.monitor')
+                       PULSE_SINK='static_reliability_output', PULSE_SOURCE='static_reliability_input.monitor')
     print(f'Fixture {fixture}', flush=True)
 
     alice = Participant('alice', executable, fixture, environment, isolated=False)
@@ -294,7 +294,7 @@ try:
         # Bob publishes a generated tone. Alice leaving rotates Bob's key, and
         # her rejoin holds only the new index. A full LiveKit reconnect then
         # republishes Bob's microphone with a new frame cryptor at index 0.
-        tone = subprocess.Popen(['pw-play', '--volume=1.0', '--target=yapfast_reliability_input', str(tone_file(fixture))])
+        tone = subprocess.Popen(['pw-play', '--volume=1.0', '--target=static_reliability_input', str(tone_file(fixture))])
         try:
             bob.send('unmute')
             bob.wait('unmuted', lambda state: not state['muted'], 30)

@@ -1,16 +1,16 @@
 # Channels and messages
 
-Yapfast shows Discord live from its own Discord connection. Every server, channel
+Static shows Discord live from its own Discord connection. Every server, channel
 and DM is visible without copying anything into Matrix.
 
-Yapfast lists the linked account's Discord servers in the rail with their
+Static lists the linked account's Discord servers in the rail with their
 channels. Channels the account's roles and channel overwrites keep it out of
 show greyed out with a lock, as in Discord; channels hidden from it appear the
 same way only with the "Show channels you can't access" setting, which is off
 by default. Server text channels are listed under their Discord categories and
-open in Yapfast's timeline. Clicking a category's heading collapses it, leaving
+open in Static's timeline. Clicking a category's heading collapses it, leaving
 the open channel, unread ones and voice channels with people in them, as in
-Discord; Yapfast remembers which categories are collapsed, per server. History
+Discord; Static remembers which categories are collapsed, per server. History
 loads from Discord 50 messages at a time (`GET /channels/{id}/messages` with
 `before` the oldest loaded message and `limit=50`) as the timeline scrolls near
 its top, one page at a time per channel, until a short page shows the channel's
@@ -18,22 +18,22 @@ first message is there; and new messages, edits, deletions and reactions arrive
 live. A jump to a message that isn't loaded shows the messages around it; see
 [jumping to a message](#jumping-to-a-message). Opening a channel subscribes to
 its server, as the web client does, because Discord sends large servers'
-messages only to subscribers. Yapfast sends, replies, edits, deletes, reacts
+messages only to subscribers. Static sends, replies, edits, deletes, reacts
 and sends files through Discord's cloud uploads. Mentions and timestamps show
 as text, custom emoji and stickers as pictures, every attachment shows, images
 with previews scaled by Discord's media proxy, and channels the account can't
 send in are read-only. Bots and webhooks have a BOT tag after their name. An
 author's name takes their highest coloured role's colour, once their roles are
-known: live messages carry them, and for history Yapfast asks Discord for the
+known: live messages carry them, and for history Static asks Discord for the
 authors' member profiles.
 
-Yapfast keeps the open channel's messages in memory, and those of the 40
+Static keeps the open channel's messages in memory, and those of the 40
 channels open before it, so going back to one shows it at once. A closed
 channel keeps its newest 200 messages as metadata and follows new messages,
 edits, deletions and reactions while it's kept. Opening it again shows those
 without asking Discord, as long as it kept up: its latest page came, and no
 live event went by without it since, as when the connection drops for a new
-session (a resume replays what was missed) or Yapfast falls behind on
+session (a resume replays what was missed) or Static falls behind on
 events. Otherwise it loads the latest page in the background and fits it
 in: messages kept within the page's
 span that it lacks were deleted meanwhile, and when a full page starts after
@@ -74,15 +74,15 @@ counts DM mentions and the friend requests waiting for an answer.
 Reading an unread channel marks it read, as Discord's client does: once its
 newest message is in view, with the window in front and the "New" divider
 placed, so opening a channel at its divider and leaving it doesn't. A
-channel whose new messages don't show, deleted, of a kind Yapfast leaves out
+channel whose new messages don't show, deleted, of a kind Static leaves out
 or hidden as blocked, has no divider once its newest page has come, and reads
 then. With the "Mark messages read on Discord" setting, on by default,
-Yapfast acknowledges it on Discord within a second.
+Static acknowledges it on Discord within a second.
 Reads within that second go together: one channel as its own
 acknowledgement, several, as when a server is marked read from its menu, in
 one `POST /read-states/ack-bulk` of up to 100 channels, as the official
 client does.
-Before it does, Yapfast notes the channel's last read message, from READY's read
+Before it does, Static notes the channel's last read message, from READY's read
 state or the last acknowledgement since, and the "New" divider goes above the
 first message after it from someone else. Snowflakes order messages, so the
 divider finds its place even when the last read message was deleted. When
@@ -102,43 +102,43 @@ The open text channel lists its members on the right as Discord's sidebar
 does: under hoisted roles, then online, then offline, with offline members
 faded. Each shows a status dot for online, idle or do not disturb, their name
 in their highest coloured role's colour, and their custom status or what
-they're playing below it. Yapfast shows the list's first 100 rows, headings
+they're playing below it. Static shows the list's first 100 rows, headings
 included. Discord keeps one list for all channels with the same readers, and
 its id says who they are: `everyone` when @everyone sees the channel and no
 overwrite hides it, else a MurmurHash3 of the overwrites that allow or deny
-seeing it, as Discord's client computes it. Yapfast keys its lists by that id, so
+seeing it, as Discord's client computes it. Static keys its lists by that id, so
 moving between such channels shows the same list and asks Discord for
-nothing, and an update applies only to the list it names. Yapfast keeps the last
+nothing, and an update applies only to the list it names. Static keeps the last
 40 lists. An INVALIDATE, by which Discord stops sending rows, leaves them as
 they were, to show when their channel is again. One Discord still sends, or
 sent within 10 minutes, shows without asking again. An older one shows at
-once while Yapfast subscribes, and Discord's sync replaces it. A list
+once while Static subscribes, and Discord's sync replaces it. A list
 on screen that Discord doesn't send is asked for again once it's 10 minutes
 old. When no list comes within 8 seconds of opening a channel, the panel
 says Discord didn't send one instead of loading on, and the header says
 "Members" until a count is known. A build without Matrix shows the Discord
 account's name, avatar and connection in the bottom-left panel.
 
-Yapfast starts from Discord as it last saw it, kept in the data directory by
-`yapfast_discord::cache`, and Discord's answers replace it as they arrive:
+Static starts from Discord as it last saw it, kept in the data directory by
+`static_discord::cache`, and Discord's answers replace it as they arrive:
 
 - `discord-account.json` holds the account's name and avatar, its servers
   with their channels, roles and emoji, its DMs, friends, friend requests and
-  status. It also holds the names Yapfast learned (users, server nicknames,
+  status. It also holds the names Static learned (users, server nicknames,
   server avatars and members' roles), which messages and member lists show
   people by, and the member lists shown lately. Every message Discord sends
-  from any server teaches Yapfast its author, so it keeps the 20,000 people it
+  from any server teaches Static its author, so it keeps the 20,000 people it
   learned most lately and forgets a quarter of them, those learned longest
   ago, once there are more. It's written at most every 20
   seconds while connected. Calls and who is in voice aren't saved. On the
-  next start Yapfast shows it all at once, identifies with the saved status, and
-  READY replaces it. A saved member list shows at once, even before Yapfast
+  next start Static shows it all at once, identifies with the saved status, and
+  READY replaces it. A saved member list shows at once, even before Static
   connects, and Discord's sync replaces it. The list on screen is kept with
   them when the connection drops, so it shows again at once after
   reconnecting.
 - `discord-messages/` holds, for each channel shown lately, its newest 100
   messages, written within 20 seconds of a change, when the channel leaves
-  the 40 kept in memory, and when Yapfast closes. The 300 channels used last are
+  the 40 kept in memory, and when Static closes. The 300 channels used last are
   kept. Opening a channel shows its saved messages, and the latest page fits
   in as it does for a channel kept in memory.
 - `discord-pictures/` holds avatars, server icons, emoji and stickers, and the
@@ -148,7 +148,7 @@ Yapfast starts from Discord as it last saw it, kept in the data directory by
   so a picture signed again is found. Past 256 MiB the least recently shown
   go. Attachments' own files aren't kept.
 - `discord-build-number` holds the web client's build number as its page
-  last gave it, which Yapfast sends with every request and the gateway's
+  last gave it, which Static sends with every request and the gateway's
   identify, as the web client does. A start with it kept connects at once
   and reads the page meanwhile, keeping what it finds for the next start;
   without it, the page is read before connecting.
@@ -156,7 +156,7 @@ Yapfast starts from Discord as it last saw it, kept in the data directory by
 The files are readable only by the user and aren't encrypted. Each names its
 login by a SHA-256 hash of the token, so another linked account starts empty,
 and unlinking deletes them all. While Discord is unreachable, an open channel
-shows what was saved, waits, and loads once Yapfast is back, rather than showing
+shows what was saved, waits, and loads once Static is back, rather than showing
 an error.
 
 - Discord servers appear in the server rail with a Discord badge, and Discord
@@ -174,27 +174,27 @@ an error.
   colour holding its first four servers' icons, with the pill, unread dot
   and mention count of all its servers; its tooltip is its name, or its
   servers' names when it has none. Clicking opens it: a folder icon in its
-  colour, its servers below it on a strip of that colour. Yapfast remembers the
+  colour, its servers below it on a strip of that colour. Static remembers the
   open folders on this device, in `layout.json`, as Discord's client keeps
   them per device. Settings entries with an id are folders, read with their
   name and colour (`GuildFolder` fields 2 to 4, each in a wrapper); one
-  without is a server on its own. Folders can't be made or changed in Yapfast
+  without is a server on its own. Folders can't be made or changed in Static
   yet.
 - A server out of reach in a Discord outage (`GUILD_DELETE` with
   `unavailable`, or READY listing it so) stays in the rail, faded, as last
   known, until its `GUILD_CREATE` brings it back. Only a `GUILD_DELETE`
   without `unavailable`, as when the account leaves, removes it.
 - Server icons and avatars come from Discord's CDN, which needs no login.
-  Yapfast asks for each one once it shows: in the rail, beside people in a
+  Static asks for each one once it shows: in the rail, beside people in a
   voice channel of the open server, in the call, or beside a message. A
-  member's server avatar wins over their own. Yapfast decodes them at 128px
+  member's server avatar wins over their own. Static decodes them at 128px
   before the UI sees them. Once more than 400 have arrived, those off
-  screen go, and Yapfast asks for them again, from disk, when they show.
+  screen go, and Static asks for them again, from disk, when they show.
   Custom emoji stay, since the picker asks for hundreds at once.
   Initials show until a picture arrives or when it fails. A download that
   may work later, when the CDN is out of reach, fails or answers 429, is
   tried up to six times; every download then waits together, 10 seconds
-  and doubling up to five minutes, so a CDN in trouble hears from Yapfast
+  and doubling up to five minutes, so a CDN in trouble hears from Static
   rarely. One Discord refuses, such as a 404, isn't tried again. A server
   without an icon keeps its initials, and a person without
   an avatar gets Discord's default avatar for their account.
@@ -234,10 +234,10 @@ an error.
   menu does. A linked image or GIF
   shows with the message's images, without its address when that's all the
   message says. Pictures come through Discord's
-  media proxy (`images-ext-*.discordapp.net`), so Yapfast never contacts the
+  media proxy (`images-ext-*.discordapp.net`), so Static never contacts the
   linked site, and embeds of a message marked to hide them don't show.
 - Discord's own links to a server, channel, message or person open that
-  place in Yapfast, DM links included; an invite opens Join a Server first,
+  place in Static, DM links included; an invite opens Join a Server first,
   an event link shows the scheduled event with its Interested button
   ([Event links](servers.md#event-links)), and a gift link
   (`discord.gift/…`, `/gifts/…`) shows the gift and redeems it on the click,
@@ -248,9 +248,9 @@ an error.
   is redeeming and opened again shows it still redeeming, and Discord's
   answer. The same reader takes web, `discord://` and `yapfast://` links
   handed to a start. Only Discord's own hosts and snowflake ids match, so a
-  look-alike stays an ordinary web link. Discord pages Yapfast has no screen for, such
+  look-alike stays an ordinary web link. Discord pages Static has no screen for, such
   as the shop and server templates, still open in the browser, as does a
-  link Yapfast can't show: to a server the account isn't in, or any while
+  link Static can't show: to a server the account isn't in, or any while
   Discord is offline (`AppState::opens_discord_route`).
 - An authorization link (`/oauth2/authorize`) shows what the application
   asks for, in the words of Discord's page, and authorizes it only on the
@@ -259,14 +259,14 @@ an error.
   for Administrator; a bot's permissions no role switch names count as
   "N more". A link that locks its server shows that server and can't be
   moved to another: if the account can't add apps there, the dialog says so
-  and offers no Authorize. Like Discord's client, Yapfast sends only the
+  and offers no Authorize. Like Discord's client, Static sends only the
   fields it read (`client_id`, `scope`, `response_type`, `redirect_uri`,
   `state`, `nonce`, the PKCE pair, `integration_type`), rebuilt into each
   query, with the server and permissions in the body; a link naming one of
   them twice opens in the browser, as do links without scopes (install
   links, whose scopes Discord's page reads from the application), links
   asking for `webhook.incoming` (which needs a channel picked) and links
-  with a scope Yapfast can't describe. Afterwards Yapfast goes where
+  with a scope Static can't describe. Afterwards Static goes where
   Discord's answer (`location`) says: a page of Discord's own ends the
   dialog at "Authorized", a web page opens in the browser, and any other
   address, such as an app's `myapp://`, is shown to copy and never opened,
@@ -306,32 +306,32 @@ an error.
   mute button a slider sets how loud, as does the wheel; its travel is
   squared, so its middle sounds about half as loud. Turning it to nothing
   mutes, and unmuting brings back the level it had. The next video plays as
-  loud, until Yapfast closes.
+  loud, until Static closes.
 - Markdown shows as Discord's client shows it. Bold, italics, strikethrough,
   inline code, lists and links are Slint's Markdown. Headings (`#` to `###`),
   subtext (`-# `), quotes (`> ` lines, or `>>> ` and the rest) and code fenced
-  by three backticks are blocks that `blocks.rs` in `yapfast-core` splits out
+  by three backticks are blocks that `blocks.rs` in `static-core` splits out
   by Discord's rules, read from its web client, before anything else changes
   the text. Each is then drawn apart, spaced as Discord's client spaces them,
   with its mentions, emoji and spoilers. Code shows as typed, in the system's
   monospace font, without highlighting. Discord shows headings and lists only
-  in messages from 22 March 2023; Yapfast shows them in older ones too. Rules
+  in messages from 22 March 2023; Static shows them in older ones too. Rules
   (`---`) and lines under a line (`===`), which Discord doesn't have, show as
   typed. Embeds' descriptions and field values, pinned messages and search
   results show blocks too, a found message's up to 8 lines each. A reply's
   quote of the message above shows it on one line.
 - Spoilers, `||like this||`, show under an opaque cover that a click lifts.
-  The cover is drawn by Yapfast's patched Slint text renderer over a link to
+  The cover is drawn by Static's patched Slint text renderer over a link to
   `yapfast:spoiler/{item}/{n}`; see [building](../building.md). A spoiler in a reply
   or a notification reads "(spoiler)". Attachments named `SPOILER_...` or
   flagged as spoilers, and pictures linked inside a spoiler, show blurred with
-  a "Spoiler" label until clicked. Revealing lasts while Yapfast runs. The eye
+  a "Spoiler" label until clicked. Revealing lasts while Static runs. The eye
   on a file waiting in the composer marks it as a spoiler, which blurs its
-  thumbnail; Yapfast uploads it as `SPOILER_` and its name, as Discord's client
+  thumbnail; Static uploads it as `SPOILER_` and its name, as Discord's client
   does. Matrix has no spoiler for a file, so its rooms don't offer the eye.
 - Custom emoji show as pictures: in messages, as reactions and in the emoji
   picker, which lists them by server after the frequently used ones, the open
-  server's first. In messages Yapfast draws them as text: each emoji whose
+  server's first. In messages Static draws them as text: each emoji whose
   picture arrived gets a code point in the Supplementary Private Use Area B,
   and each batch of them a colour bitmap (CBDT) font made on the fly, which
   text falls back to after Satoshi, so they wrap and select like letters.
@@ -354,7 +354,7 @@ an error.
   many of the server's members are online and whether Discover lists it, so
   the card shows "3,999 Online" beside "Discoverable Server". It is asked
   for once for each server and kept; until it answers the count is left out,
-  and the note follows whether Yapfast has the server as a Community. An
+  and the note follows whether Static has the server as a Community. An
   emoji of a server that can't be reached, one this account never joined or
   one that's gone, draws no server: its card says it is from a server that is
   either invite-only or unavailable, as Discord's does. The card
@@ -384,7 +384,7 @@ an error.
   ThorVG's parser, whatever their bytes.
 - Messages from people this account blocked show collapsed as "Blocked
   message", which "Show it" opens, and they don't notify or show typing.
-  Yapfast learns the blocked from READY's relationships (type 2) and keeps them
+  Static learns the blocked from READY's relationships (type 2) and keeps them
   current from RELATIONSHIP_ADD and RELATIONSHIP_REMOVE.
 - A reply's quoted line jumps to the original and highlights it for a
   moment, as described under [jumping to a message](#jumping-to-a-message).
@@ -415,14 +415,14 @@ an error.
   notify unless muted; message requests and spam don't. Apps' answers to
   slash commands and context menu commands notify as people's messages do;
   joins, pins and call notices don't. Nothing notifies while the account's
-  status is Do Not Disturb. They show while Yapfast
+  status is Do Not Disturb. They show while Static
   isn't in front, titled with who wrote where, and clicking one opens the
   conversation. On Linux they go to the freedesktop notification service.
-  Each also plays Yapfast's message sound, or its mention sound, unless it's in
+  Each also plays Static's message sound, or its mention sound, unless it's in
   the conversation in front; see [voice](../voice.md#sounds).
 - Mentions in messages are links on a light fill, in the role's colour or the
   person's name colour, as Discord shows them. A person's opens their profile
-  card beside the mention, and a role's lists the members Yapfast has seen with it (from member lists, messages
+  card beside the mention, and a role's lists the members Static has seen with it (from member lists, messages
   and member requests), each opening their card in turn.
 - Typing `@` suggests who to mention: the channel's listed members, those who
   wrote lately, and server members a search by name finds (the gateway's
@@ -441,9 +441,9 @@ an error.
   last said so or until their message arrives. Writing tells Discord Alice is
   typing, at most every eight seconds, unless a setting turns it off.
 - Clicking the account's avatar or name, bottom left, opens a menu of Online,
-  Idle, Do Not Disturb and Invisible, as in Discord. Yapfast saves the choice in
+  Idle, Do Not Disturb and Invisible, as in Discord. Static saves the choice in
   the settings below and sends it with opcode 3. Do Not Disturb holds back
-  Yapfast's message notifications. Closing Yapfast takes the person offline, like
+  Static's message notifications. Closing Static takes the person offline, like
   closing the Discord app.
 - The same menu ends with Edit Profile, which opens the [main profile's
   editor](people.md#editing-ones-main-profile), as Edit profile in My account does.
@@ -452,10 +452,10 @@ an error.
   picker, words, and when it clears (never, 30 minutes, an hour, four hours,
   or at midnight). Discord keeps it in the account's settings, a protobuf
   (`PreloadedUserSettings`, field 11), which arrive in READY as
-  `user_settings_proto` and change in USER_SETTINGS_PROTO_UPDATE. Yapfast reads
+  `user_settings_proto` and change in USER_SETTINGS_PROTO_UPDATE. Static reads
   only the status and custom status from it, and changes either with `PATCH
   /users/@me/settings-proto/1`, whose body sets nothing else. Each session
-  shows the status to others itself, so Yapfast sends it with opcode 3 once
+  shows the status to others itself, so Static sends it with opcode 3 once
   connected, whenever the settings change, and clears it when it ends. A
   custom emoji in a status needs Nitro.
 
@@ -464,7 +464,7 @@ an error.
 The GIF button left of the emoji button, or Ctrl+G, opens a picker with two
 tabs, GIFs and Emoji, as Discord's does; Ctrl+E opens it on Emoji. The two
 share the window: its left edge drags it wider, and each tab fits what it shows
-to that width. Discord finds GIFs through Klipy, and Yapfast asks Discord as
+to that width. Discord finds GIFs through Klipy, and Static asks Discord as
 its desktop client does:
 
 - The home is `GET /gifs/trending?media_format=tinywebp&locale=en-US`:
@@ -479,7 +479,7 @@ its desktop client does:
   buttons under the results ("Your perfect GIF is in another castle").
 - A click sends the GIF's page URL as a message, keeping a reply that was
   being written, and a search's pick is reported with `POST /gifs/select`
-  `{id, q}`. Discord unfurls the URL into a gifv embed, whose picture Yapfast
+  `{id, q}`. Discord unfurls the URL into a gifv embed, whose picture Static
   plays. Shift and a click puts the URL in the message instead.
 - A favourite's thumbnail is kept in `discord-gifs/`: a video, or a file up to
   256 KiB, as it came, and any other as a VP9 WebM at the tile's width, which
@@ -530,7 +530,7 @@ its desktop client does:
   `/attachments/` or `/ephemeral-attachments/` loses its `ex`, `is` and
   `hm`, the signature that expires; any other stays as it is.
 - Favourites show at once, without waiting on Discord or the GIF providers.
-  Yapfast keeps the list on disk, shows it when the picker opens and replaces
+  Static keeps the list on disk, shows it when the picker opens and replaces
   it when Discord answers; a star used meanwhile shows at once and is
   applied to Discord's list once it comes, so a change made on another
   device stays. Each favourite shown gets a thumbnail in `discord-gifs/`,
@@ -540,7 +540,7 @@ its desktop client does:
   - The picture itself, when it's a video or no larger than 64 KB, which
     keeps a small GIF's transparency.
   - Otherwise a VP9 WebM of it at the tiles' width, made once, off the UI
-    thread, with the VP9 encoder already in Yapfast's libwebrtc. It's about
+    thread, with the VP9 encoder already in Static's libwebrtc. It's about
     a fifth of an animated WebP at the same quality, and a fifth of its
     decoding work. A transparent GIF goes over the panel's tone, as VP9
     keeps no transparency.
@@ -551,22 +551,22 @@ its desktop client does:
 ## Jumping to a message
 
 A reply's quote, a pin, a search result and the bar over the "New" divider
-jump to a message. A loaded one scrolls into view. Otherwise Yapfast asks for
+jump to a message. A loaded one scrolls into view. Otherwise Static asks for
 `GET /channels/{id}/messages?around={id}&limit=50`, as Discord's client does,
 and the messages around it show in place of the timeline: a window of older
 messages, with "You're viewing older messages" and "Jump to present" in a bar
 over its end. Discord answers around a snowflake even when no message has it,
-so a deleted message's place shows, and Yapfast says it couldn't find the
+so a deleted message's place shows, and Static says it couldn't find the
 message. A jump into another channel opens that channel at the message.
 
 Scrolling down the window loads the 50 `after` its newest message, and up,
 the 50 `before` its oldest, a page at a time. Discord sends at most half a
-page from before the snowflake, and as its client does, Yapfast takes fewer
+page from before the snowflake, and as its client does, Static takes fewer
 than that, less one (under 24), as the channel's start, so a window around
 the first unread message of a new channel asks for nothing before it.
 Otherwise it learns where the channel starts from a page before. It learns
 that the window reached the newest message from a short page after, or once
-it reaches the newest messages Yapfast kept.
+it reaches the newest messages Static kept.
 
 While the window shows, the channel's newest messages wait beside it, at
 most 200 as a closed channel keeps, and follow new messages, edits,
@@ -598,7 +598,7 @@ Each forward is `POST /channels/{target}/messages` with no content and a
 `message_reference` of type 1 (FORWARD) naming the original's message,
 channel and server, with `X-Context-Properties` of `{"location":
 "forwarding"}`, as Discord's client sends it. Discord copies the original
-into the new message's `message_snapshots`, which Yapfast shows under
+into the new message's `message_snapshots`, which Static shows under
 "Forwarded". Discord takes no text with a forward (error 160011), so the
 message added goes after it as one of its own, with the same location, to
 each conversation the forward reached. A slowmode channel this account
@@ -613,7 +613,7 @@ forward again. In a server, the account needs Read Message History in the
 channel, and the server mustn't list `FORWARDING_DISABLED` among its
 features. Targets are the DMs, group DMs, channels and threads this account
 may send in, but not forums, whose posts start with a title, nor Matrix
-rooms. Once each conversation answers, Yapfast says "Message forwarded.",
+rooms. Once each conversation answers, Static says "Message forwarded.",
 or opens the dialog again with those it failed in chosen, the message
 added kept, and Discord's reason, so Send retries them. If the forward went
 but the message added didn't, a notice says where.
@@ -631,9 +631,9 @@ to date by USER_SETTINGS_PROTO_UPDATE. It maps each channel's id to how
 often it was used and the times of the last ten uses. A use counts 100 on
 its day, 70 a day later, 50 at two or three days, 30 up to a week, then 10; a
 place's frecency is its uses in all times that sum, over the number of
-recent uses. Each conversation opened in Yapfast counts as a use, added
+recent uses. Each conversation opened in Static counts as a use, added
 again to each count that comes, as Discord's client does until it saves
-its own. Yapfast doesn't save them.
+its own. Static doesn't save them.
 
 A search lists every place whose name matches, ranked as Discord's search
 ranks them. A channel or group DM scores 10 for its whole name, 7 for its
@@ -644,10 +644,10 @@ letters in order. Each score is raised by up to double for a place used
 most, and a person's by 0.2 more for a friend and 0.1 for the DM. `@`
 searches people only, `#` channels only. Choosing a place clears the
 search. Discord's search also finds people with no DM yet and opens one
-to forward to; Yapfast lists only DMs that exist.
+to forward to; Static lists only DMs that exist.
 
 Discord's client also greys out a channel where the original's files,
-embeds or stickers couldn't be posted, and an age-restricted one. Yapfast
+embeds or stickers couldn't be posted, and an age-restricted one. Static
 lists those, and Discord's refusal shows when the forward fails there.
 Mentions and custom emoji in the message added go as typed.
 
@@ -656,13 +656,13 @@ Mentions and custom emoji in the message added go as typed.
 Discord keeps the account's notification settings per server, and one set
 for DMs: READY lists them in `user_guild_settings`, and
 USER_GUILD_SETTINGS_UPDATE replaces a server's
-(`yapfast_discord::notifications`). Each holds the server's mute, with
+(`static_discord::notifications`). Each holds the server's mute, with
 `mute_config`'s `end_time` when it ends, its level (every message, mentions
 only, nothing, or the server's own default, `default_message_notifications`),
 whether @everyone and @here, and role mentions, call on the account, whether
 muted channels hide, and `channel_overrides`: each channel's and
 category's own mute and level, where 3 means the category's or server's.
-Yapfast publishes each server's settings with the server, shared between
+Static publishes each server's settings with the server, shared between
 snapshots until Discord changes them, and marks each channel muted when it
 or its category is. A muted channel shows faint, as a muted DM does, and a
 server set to hide muted channels leaves them out of the channel list, but
@@ -698,7 +698,7 @@ Discord's do, built alike in `src/ui/menus.rs` (`Notify`):
 - Right-clicking a category's heading, or the Menu key on it, offers "Mute
   category" or "Unmute category" and "Notification settings", for the
   category's own override; a muted category's channels show muted. The
-  heading names its first channel, and Yapfast finds the channel's category
+  heading names its first channel, and Static finds the channel's category
   (`Application::category_of`); an empty category's heading names the
   category itself.
 

@@ -79,7 +79,7 @@ def dependency_notices(metadata, package, licenses, skia_archive, skia_source, w
         if license_file(path) or path.name == "README.md":
             shutil.copy2(path, font_notices / path.name)
     for item in sorted(metadata["packages"], key=lambda value: (value["name"], value["version"])):
-        if item["name"] == "yapfast":
+        if item["name"] == "static":
             continue
         directory = Path(item["manifest_path"]).parent
         target = licenses / (item["name"] + "-" + item["version"])
@@ -112,10 +112,10 @@ def dependency_notices(metadata, package, licenses, skia_archive, skia_source, w
             shutil.copy2(notice, destination)
     shutil.copy2(webrtc / "LICENSE.md", licenses / "libwebrtc-LICENSE.md")
     # Twemoji's pictures, which the picker's and reactions' emoji are drawn from:
-    # CC-BY 4.0, which asks for the attribution its README.yapfast.md carries.
+    # CC-BY 4.0, which asks for the attribution its README.static.md carries.
     twemoji = ROOT / "vendor" / "twemoji"
     twemoji_licenses = []
-    for name in ["LICENSE-GRAPHICS", "LICENSE", "README.md", "README.yapfast.md"]:
+    for name in ["LICENSE-GRAPHICS", "LICENSE", "README.md", "README.static.md"]:
         target = licenses / ("twemoji-" + name)
         shutil.copy2(twemoji / name, target)
         twemoji_licenses.append(target.relative_to(package).as_posix())

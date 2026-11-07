@@ -1,7 +1,7 @@
-diff --git a/crates/yapfast-discord/src/api.rs b/crates/yapfast-discord/src/api.rs
+diff --git a/crates/static-discord/src/api.rs b/crates/static-discord/src/api.rs
 index 9f479df..2f856bb 100644
---- a/crates/yapfast-discord/src/api.rs
-+++ b/crates/yapfast-discord/src/api.rs
+--- a/crates/static-discord/src/api.rs
++++ b/crates/static-discord/src/api.rs
 @@ -259,6 +259,14 @@ pub fn may_work_later(error: &anyhow::Error) -> bool {
      }
  }
@@ -83,10 +83,10 @@ index 9f479df..2f856bb 100644
      pub async fn profile(&self, user: &str, guild: Option<&str>) -> Result<Value> {
          let mut path = format!(
              "/users/{user}/profile?with_mutual_guilds=true&with_mutual_friends=true&with_mutual_friends_count=false"
-diff --git a/crates/yapfast-discord/src/lib.rs b/crates/yapfast-discord/src/lib.rs
+diff --git a/crates/static-discord/src/lib.rs b/crates/static-discord/src/lib.rs
 index 85d0a3d..2e6a606 100644
---- a/crates/yapfast-discord/src/lib.rs
-+++ b/crates/yapfast-discord/src/lib.rs
+--- a/crates/static-discord/src/lib.rs
++++ b/crates/static-discord/src/lib.rs
 @@ -44,6 +44,7 @@ pub mod server_settings;
  pub mod service;
  pub mod settings;
@@ -95,10 +95,10 @@ index 85d0a3d..2e6a606 100644
  pub mod stream;
  pub mod stream_connection;
  pub mod token;
-diff --git a/crates/yapfast-discord/src/service/session.rs b/crates/yapfast-discord/src/service/session.rs
+diff --git a/crates/static-discord/src/service/session.rs b/crates/static-discord/src/service/session.rs
 index a7c0594..bea305b 100644
---- a/crates/yapfast-discord/src/service/session.rs
-+++ b/crates/yapfast-discord/src/service/session.rs
+--- a/crates/static-discord/src/service/session.rs
++++ b/crates/static-discord/src/service/session.rs
 @@ -237,8 +237,10 @@ async fn connected_session(
      tracker.beside(shared.beside.as_ref().map(|(_, thread)| thread.as_str()));
      shared.snapshots.send_replace(Arc::new(tracker.snapshot()));
@@ -139,11 +139,11 @@ index a7c0594..bea305b 100644
          if presence != self.shared.presence {
              self.gateway.update_presence(presence.clone()).await?;
              self.shared
-diff --git a/crates/yapfast-discord/src/spotify_presence.rs b/crates/yapfast-discord/src/spotify_presence.rs
+diff --git a/crates/static-discord/src/spotify_presence.rs b/crates/static-discord/src/spotify_presence.rs
 new file mode 100644
 index 0000000..a1315b8
 --- /dev/null
-+++ b/crates/yapfast-discord/src/spotify_presence.rs
++++ b/crates/static-discord/src/spotify_presence.rs
 @@ -0,0 +1,206 @@
 +//! The song this account plays on Spotify, shown as Discord's own client
 +//! shows it: Discord lends the connected Spotify account's token, Spotify

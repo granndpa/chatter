@@ -35,7 +35,7 @@ for Steam. Live authorize URLs could not be inspected without authentication.
 
 Finish login in the browser, then use Refresh. A browser already signed into
 the correct Discord account can finish itself. If it cannot, paste the complete
-`https://discord.com/connections/{type}?…` redirect URL into Yapfast and choose
+`https://discord.com/connections/{type}?…` redirect URL into Static and choose
 Finish connection. Discord's error page preserves the query, so its
 `/connections/{type}/error?…` URL is also accepted. The URL is masked, never
 saved or logged, and cleared from the input on submission. It must match the
@@ -44,7 +44,7 @@ Duplicate parameters, other hosts, fragments and provider errors are rejected.
 
 Live provider logins have not been exercised by the implementation's tests.
 Some providers may require additional two-way linking or a continuation.
-Yapfast does not try to invent those steps. A browser may consume the code or
+Static does not try to invent those steps. A browser may consume the code or
 replace its URL with a success page before it can be pasted; Refresh first,
 then start another login if necessary. Bluesky's handle prompt, domain
 verification, and Authorized Apps are outside this page.
@@ -73,8 +73,8 @@ take effect only in the next process, after this process's workers stop.
 
 ## Checks
 
-`cargo test -p yapfast-discord` covers settings and redirect validation.
-`cargo test -p yapfast-core connections` covers pending requests, confirmation
+`cargo test -p static-discord` covers settings and redirect validation.
+`cargo test -p static-core connections` covers pending requests, confirmation
 and stale responses. `manages_connected_accounts` in `tests/fake_server.rs`
 checks the service's request bodies against `testing/fake_discord.ts`; run it
 with Bun on PATH and `--ignored`. The fake records requests at

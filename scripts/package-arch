@@ -15,16 +15,16 @@ if (($#)); then
 else
   # The AppImage of Cargo.toml's version, which scripts/set-version sets.
   current=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1)
-  appimage=target/dist/linux/Yapfast-$current-x86_64.AppImage
+  appimage=target/dist/linux/Static-$current-x86_64.AppImage
 fi
 if [[ ! -f $appimage ]]; then
   echo "scripts/package-arch: no $appimage; run scripts/build-appimage first" >&2
   exit 2
 fi
 name=$(basename "$appimage")
-version=${name#Yapfast-}
+version=${name#Static-}
 version=${version%-x86_64.AppImage}
-if [[ $name != "Yapfast-$version-x86_64.AppImage" ]]; then
+if [[ $name != "Static-$version-x86_64.AppImage" ]]; then
   echo "scripts/package-arch: $name isn't named as the release's AppImage" >&2
   exit 2
 fi
@@ -32,7 +32,7 @@ fi
 # SemVer sorts the nightly; 0.2.0.nightly.20261020.5 would come after 0.2.0.
 pkgver=${version/-/}
 output=$(cd "$(dirname "$appimage")" && pwd)
-package=yapfast-$pkgver-1-x86_64.pkg.tar.zst
+package=static-$pkgver-1-x86_64.pkg.tar.zst
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
@@ -56,7 +56,7 @@ docker run --rm -v "$work:/build" -w /build \
       makepkg --noconfirm
     namcap "$PACKAGE"
     pacman -U --noconfirm "$PACKAGE" >/dev/null
-    yapfast --smoke-test
+    static --smoke-test
   '
 mv "$work/$package" "$output/"
 hashes=$output/SHA256SUMS.txt

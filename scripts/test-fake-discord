@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Runs crates/yapfast-discord/tests/fake_server.rs, then yapfast-core's ignored
+# Runs crates/static-discord/tests/fake_server.rs, then static-core's ignored
 # discord_text tests, against testing/fake_discord.ts, then
-# crates/yapfast-discord/tests/fake_env.rs against it with an environment.
+# crates/static-discord/tests/fake_env.rs against it with an environment.
 # Usage: scripts/test-fake-discord [FILTER…], test names or parts of them
 # (`scripts/test-fake-discord forum`), passed to each test binary.
 # Each fake_server.rs test starts a fake of its own, logging to
 # target/fake-discord-TEST.log; `grep -n '^async fn'
-# crates/yapfast-discord/tests/fake_server.rs` lists them. cargo nextest
+# crates/static-discord/tests/fake_server.rs` lists them. cargo nextest
 # runs them side by side, eight at a time (.config/nextest.toml); without
 # it, cargo test runs them one after another.
 # For the discord_text tests it starts one fake, waits until it answers,
@@ -59,16 +59,16 @@ start_fake() {
 }
 
 if command -v cargo-nextest >/dev/null; then
-  cargo nextest run --locked --cargo-profile fast -p yapfast-discord --test fake_server \
+  cargo nextest run --locked --cargo-profile fast -p static-discord --test fake_server \
     --run-ignored only --no-fail-fast "$@"
 else
-  cargo test --locked --profile fast -p yapfast-discord --test fake_server -- --ignored "$@"
+  cargo test --locked --profile fast -p static-discord --test fake_server -- --ignored "$@"
 fi
 # The shared core's Discord side, against a fake of its own.
 start_fake target/fake-discord.log
 YAPFAST_DISCORD_TEST_SERVER=$server \
-  cargo test --locked --profile fast -p yapfast-core discord_text::tests -- --ignored "$@"
+  cargo test --locked --profile fast -p static-core discord_text::tests -- --ignored "$@"
 # The example environment, in a fake of its own.
 start_fake target/fake-discord-env.log --env testing/envs/example.json
 YAPFAST_DISCORD_TEST_SERVER=$server \
-  cargo test --locked --profile fast -p yapfast-discord --test fake_env -- --ignored "$@"
+  cargo test --locked --profile fast -p static-discord --test fake_env -- --ignored "$@"

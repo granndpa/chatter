@@ -35,11 +35,11 @@ if not source_sha256:
 key: str = '30669978c3f39a73e8a7-' + suffix
 package: str = 'skia-binaries-' + key + '.tar.gz'
 old_symbol: str = 'jpeg_natural_order'
-new_symbol: str = 'yapfast_skia_jpeg_natural_order'
+new_symbol: str = 'static_skia_jpeg_natural_order'
 target: Path = Path(os.environ['YAPFAST_SKIA_OUTPUT'])
 archive_path: Path = target / package
 upstream_path: Path = target / 'upstream' / package
-stamp_path: Path = target / 'yapfast-skia-native.json'
+stamp_path: Path = target / 'static-skia-native.json'
 script_sha256: str = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 objcopy: str | None = os.environ.get('YAPFAST_SKIA_OBJCOPY') or shutil.which('llvm-objcopy')
 if not objcopy:

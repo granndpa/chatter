@@ -1,4 +1,4 @@
-# Yapfast's Discord-only build, as the releases ship it, for the flake at the
+# Static's Discord-only build, as the releases ship it, for the flake at the
 # repository's root. `pkgs` carries rust-overlay, for the pinned toolchain.
 { pkgs }:
 let
@@ -22,7 +22,7 @@ let
     };
 in
 rustPlatform.buildRustPackage {
-  pname = "yapfast";
+  pname = "static";
   inherit ((lib.importTOML ../Cargo.toml).package) version;
   # Only what the build reads, so a change to the docs or tests rebuilds nothing.
   src = lib.fileset.toSource {
@@ -77,15 +77,15 @@ rustPlatform.buildRustPackage {
     install -Dm644 packaging/linux/${id}.metainfo.xml -t "$out/share/metainfo"
     # The GPU, audio and screen capture libraries are loaded at runtime, and
     # NixOS keeps the GPU driver's in /run/opengl-driver.
-    wrapProgram "$out/bin/yapfast" \
+    wrapProgram "$out/bin/static" \
       --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath native.runtimeLibraries} \
       --suffix LD_LIBRARY_PATH : /run/opengl-driver/lib
   '';
   meta = {
     description = "Native Discord client that stays light on memory";
-    homepage = "https://github.com/yapfast/yapfast";
+    homepage = "https://github.com/yapfast/static-desktop";
     license = lib.licenses.gpl3Plus;
-    mainProgram = "yapfast";
+    mainProgram = "static";
     platforms = [ "x86_64-linux" ];
   };
 }

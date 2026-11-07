@@ -1,4 +1,4 @@
-# Yapfast UI
+# Static UI
 
 The default presentation follows Discord's desktop client more closely. It is a
 presentation layer over the same Slint component tree, adapter and core: no
@@ -8,14 +8,14 @@ comparison. Saved appearance choices and themes always win over these defaults.
 
 ## Where it lives
 
-`ui/yapfast/style.slint` owns the metrics (`ClientStyle`): 304px navigation
+`ui/static/style.slint` owns the metrics (`ClientStyle`): 304px navigation
 beside the 72px rail, the 58px inset account card, text size, font family and
 settings frame. Small bindings in the shared components read those values.
-`src/ui/yapfast.rs` picks the presentation when the window is created. Newer
+`src/ui/static.rs` picks the presentation when the window is created. Newer
 widgets reach the new look through the same exports, so a merge rarely needs
 more than a metric.
 
-Components, one file each in `ui/yapfast/`: `window-bar` (the
+Components, one file each in `ui/static/`: `window-bar` (the
 32px integrated Windows caption bar, with the same minimize, maximize, close,
 drag and double-click actions), `dm-heading` (the Direct Messages heading with
 add-friend and new-message actions), `account-popover` (status, activity, Edit
@@ -48,4 +48,4 @@ does not fetch yet.
 
 `src/ui/tests.rs` covers the new components' actions (caption buttons, DM
 heading, account popover, settings navigation, pinned Home, typography) and has
-a server-rail scroll benchmark (`yapfast_server_rail_scroll_snapshot_benchmark`).
+a server-rail scroll benchmark (`static_server_rail_scroll_snapshot_benchmark`).

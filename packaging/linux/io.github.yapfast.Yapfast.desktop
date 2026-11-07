@@ -1,9 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=Yapfast
+Name=Static
 GenericName=Chat
 Comment=Chat and voice for Matrix and Discord
-Exec=yapfast --open-link %u
+Exec=static --open-link %u
 Icon=io.github.yapfast.Yapfast
 Terminal=false
 Categories=Network;InstantMessaging;Chat;

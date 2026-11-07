@@ -398,11 +398,11 @@ mod linux {
             std::env::var_os("XDG_RUNTIME_DIR").unwrap_or_else(|| "/missing".into()),
         );
         let private = std::env::var("YAPFAST_FRAMEWORK_ISOLATED_DISPLAY").as_deref() == Ok("1")
-            && std::env::var("WAYLAND_DISPLAY").as_deref() == Ok("wayland-yapfast-frameworks")
+            && std::env::var("WAYLAND_DISPLAY").as_deref() == Ok("wayland-static-frameworks")
             && runtime
                 .file_name()
                 .and_then(|name| name.to_str())
-                .is_some_and(|name| name.starts_with("yapfast-framework-display-"));
+                .is_some_and(|name| name.starts_with("static-framework-display-"));
         if private {
             Ok(())
         } else {

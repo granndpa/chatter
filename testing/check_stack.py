@@ -64,7 +64,7 @@ def check():
 
         alice = sessions[0]
         room = require(*request(HOMESERVER, "POST", "/_matrix/client/v3/createRoom", {
-            "name": "Yapfast backend check",
+            "name": "Static backend check",
             "preset": "private_chat",
             "initial_state": [{
                 "type": "m.room.encryption",
