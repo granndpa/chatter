@@ -61,6 +61,7 @@ pub(super) async fn run(
     mut shared: Shared,
 ) {
     let snapshots = shared.snapshots.clone();
+    let mut auth_rejected = shared.api.auth_rejected();
     let mut reconnects = Reconnects::default();
     // With the build number kept from the last start, the web client's page
     // loads beside connecting, rather than before it.
@@ -88,6 +89,13 @@ pub(super) async fn run(
         };
         let connected = tokio::select! {
             connected = connect => connected,
+            changed = auth_rejected.changed() => {
+                if changed.is_ok() && *auth_rejected.borrow_and_update() {
+                    mark_relink_required(&snapshots);
+                    return;
+                }
+                continue;
+            }
             () = snapshots.closed() => return,
         };
         let (error, up) = match connected {
@@ -97,7 +105,17 @@ pub(super) async fn run(
                     relogin(&shared.api, &token).await;
                 }
                 let started = tokio::time::Instant::now();
-                let ended = connected_session(gateway, ready, &mut requests, &mut shared).await;
+                let ended = tokio::select! {
+                    ended = connected_session(gateway, ready, &mut requests, &mut shared) => ended,
+                    changed = auth_rejected.changed() => {
+                        if changed.is_ok() && *auth_rejected.borrow_and_update() {
+                            shared.lists.disconnected();
+                            mark_relink_required(&snapshots);
+                            return;
+                        }
+                        continue;
+                    }
+                };
                 shared.lists.disconnected();
                 match ended {
                     Ended::Dropped => return,
@@ -107,6 +125,9 @@ pub(super) async fn run(
             Err(error) => (error, None),
         };
         tracing::warn!(%error, "Discord connection ended");
+        let relink = error
+            .downcast_ref::<Closed>()
+            .is_some_and(|closed| closed.code == 4004);
         let stopped = if error.downcast_ref::<Closed>().is_some_and(Closed::is_final) {
             Some("Discord refused the saved login. Link your Discord account again.")
         } else if error.downcast_ref::<TooManyIdentifies>().is_some() {
@@ -119,7 +140,11 @@ pub(super) async fn run(
         if let Some(reason) = stopped {
             snapshots.send_modify(|snapshot| {
                 let snapshot = Arc::make_mut(snapshot);
-                snapshot.status = Status::Offline(reason.into());
+                snapshot.status = if relink {
+                    Status::RelinkRequired
+                } else {
+                    Status::Offline(reason.into())
+                };
                 snapshot.voice.clear();
             });
             // Keep answering until Static drops the handles.
@@ -145,6 +170,14 @@ pub(super) async fn run(
             }
         }
     }
+}
+
+fn mark_relink_required(snapshots: &watch::Sender<Arc<Snapshot>>) {
+    snapshots.send_modify(|snapshot| {
+        let snapshot = Arc::make_mut(snapshot);
+        snapshot.status = Status::RelinkRequired;
+        snapshot.voice.clear();
+    });
 }
 
 /// Discord refreshed the login in READY, and the one Static identified with

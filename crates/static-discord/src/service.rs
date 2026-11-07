@@ -50,6 +50,8 @@ pub enum Status {
     #[default]
     Connecting,
     Online,
+    /// Discord rejected this login, so the person must link the account again.
+    RelinkRequired,
     /// Disconnected, with a reason a person can act on.
     Offline(String),
 }

@@ -277,6 +277,7 @@ pub struct Api {
     base: String,
     limits: Limits,
     refusals: Refusals,
+    auth_rejected: tokio::sync::watch::Sender<bool>,
     /// Downloads going at once, so opening the emoji picker or a busy channel
     /// spreads its pictures out rather than asking for hundreds together.
     downloads: tokio::sync::Semaphore,
@@ -306,6 +307,7 @@ impl Api {
             Some(server) => format!("{server}/api/v9"),
             None => API.to_owned(),
         };
+        let (auth_rejected, _) = tokio::sync::watch::channel(false);
         Ok(Self {
             spotify_changed: tokio::sync::watch::channel(()).0,
             http,
@@ -313,6 +315,7 @@ impl Api {
             base,
             limits: Limits::default(),
             refusals: Refusals::default(),
+            auth_rejected,
             downloads: tokio::sync::Semaphore::new(DOWNLOADS),
             stall: STALL,
         })
@@ -394,6 +397,11 @@ impl Api {
             .token
             .write()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = token.to_owned();
+    }
+
+    /// Watches for Discord refusing the saved login, rather than one request.
+    pub(crate) fn auth_rejected(&self) -> tokio::sync::watch::Receiver<bool> {
+        self.auth_rejected.subscribe()
     }
 
     /// Trades a remote login's ticket for the login, encrypted with the key
@@ -2320,6 +2328,7 @@ impl Api {
                 if body["code"] == 0 {
                     tracing::warn!("Discord refused the login; Static stops asking");
                     self.refusals.unauthorized();
+                    self.auth_rejected.send_replace(true);
                 }
                 return Err(refusal(status, &body));
             }

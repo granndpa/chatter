@@ -496,9 +496,9 @@ impl Adapter {
             .filter(|request| request.incoming && !request.spam)
             .count() as u64;
         window.set_dms_badge(count_badge(dm_mentions + incoming));
-        window.set_discord_linked(
-            state.discord_linked || state.servers.iter().any(|server| server.discord),
-        );
+        // A cached server list can outlive the login which loaded it. It must
+        // not hide the sign-in controls when Discord rejects that login.
+        window.set_discord_linked(state.discord_linked);
         window.set_discord_build(cfg!(feature = "discord"));
         window.set_matrix_build(cfg!(feature = "matrix"));
         // Without Matrix, the account's dot is its Discord status.

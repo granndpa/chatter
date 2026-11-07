@@ -44,7 +44,8 @@ pub enum Route {
 /// The route a Discord link names, when Static can open it itself.
 ///
 /// This takes Discord's web links, `discord://-/...` app links, and the
-/// same paths under `yapfast://` for a caller handing a link to Static.
+/// same paths under `static://` or the older `yapfast://` scheme for a caller
+/// handing a link to Static.
 /// It deliberately leaves pages Static has no screen for, such as the
 /// shop and server templates, for their own handling or the browser.
 pub fn parse(link: &str) -> Option<Route> {
@@ -101,7 +102,7 @@ fn route(url: &Url) -> Option<Route> {
             }
             from_segments(&segments)
         }
-        "discord" | "static" => {
+        "discord" | "static" | "yapfast" => {
             match url.host_str() {
                 Some("-") | None => {}
                 Some(host) => segments.insert(0, host),

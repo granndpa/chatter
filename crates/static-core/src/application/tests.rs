@@ -4662,6 +4662,24 @@ fn links_discord_by_qr_code_and_unlinks_it() {
 
 #[test]
 #[cfg(feature = "discord")]
+fn rejected_discord_login_allows_relinking_without_unlinking() {
+    use static_discord::service::{Snapshot, Status};
+
+    let mut app = Application::default();
+    app.apply(discord_event(Snapshot {
+        status: Status::RelinkRequired,
+        ..Default::default()
+    }));
+
+    assert!(!app.state.discord_linked);
+    assert!(matches!(
+        app.dispatch(Action::LinkDiscord).as_slice(),
+        [Effect::LinkDiscord]
+    ));
+}
+
+#[test]
+#[cfg(feature = "discord")]
 fn links_discord_by_token() {
     use crate::discord_link::Progress;
     let mut app = Application::default();

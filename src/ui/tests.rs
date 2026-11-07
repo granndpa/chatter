@@ -4432,6 +4432,27 @@ fn discord_server_window_changed(
 
 #[test]
 #[cfg(feature = "discord")]
+fn a_stale_server_cache_does_not_hide_discord_relinking() {
+    let (window, adapter, _directory) = discord_server_window();
+    {
+        let mut adapter = adapter.borrow_mut();
+        assert!(
+            adapter
+                .app
+                .state
+                .servers
+                .iter()
+                .any(|server| server.discord)
+        );
+        adapter.app.state.discord_linked = false;
+        adapter.refresh(&window);
+    }
+    assert!(!window.get_discord_linked());
+    window.hide().unwrap();
+}
+
+#[test]
+#[cfg(feature = "discord")]
 fn a_discord_servers_menus_show_and_change_its_notifications() {
     use static_core::chat::{Muting, NotificationChange, NotifyLevel};
     let (window, adapter, _directory) = discord_server_window();

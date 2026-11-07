@@ -421,10 +421,14 @@ impl Application {
             self.state.account_status = Some(match &snapshot.status {
                 Status::Online => "Online".into(),
                 Status::Connecting => "Connecting to Discord...".into(),
+                Status::RelinkRequired => {
+                    "Discord rejected the saved login. Link your account again.".into()
+                }
                 Status::Offline(reason) => reason.clone(),
             });
         }
-        self.state.discord_linked = true;
+        self.state.discord_linked =
+            snapshot.status != static_discord::service::Status::RelinkRequired;
         self.state.discord_user = snapshot.user_id.clone();
         self.state.discord_presence =
             Some(snapshot.presence.clone()).filter(|presence| !presence.is_empty());

@@ -153,6 +153,9 @@ async fn online(discord: &Discord) -> Result<Arc<Snapshot>> {
         let snapshot = snapshots.borrow_and_update().clone();
         match &snapshot.status {
             Status::Online => return Ok(snapshot),
+            Status::RelinkRequired => {
+                bail!("Discord rejected the saved login. Link the account again.")
+            }
             Status::Offline(reason) => bail!("{reason}"),
             Status::Connecting => {}
         }
