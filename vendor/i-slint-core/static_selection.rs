@@ -1,4 +1,4 @@
-// Yapfast: not part of upstream Slint. See docs/building.md in Yapfast.
+// Static: not part of upstream Slint. See docs/building.md in Static.
 
 //! Selecting text across the rows of a list, as a browser selects across a page.
 //!

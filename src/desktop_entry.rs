@@ -17,7 +17,7 @@ use std::{
 use crate::icon::APP_ID;
 
 /// The entry a package installs, whose Exec line names the AppImage instead.
-const ENTRY: &str = include_str!("../packaging/linux/io.github.yapfast.Yapfast.desktop");
+const ENTRY: &str = include_str!("../packaging/linux/io.github.yapfast.Static.desktop");
 const ICON: &[u8] = include_bytes!("../packaging/icon.svg");
 
 /// The AppImage this Static runs from. An AppImage runs from a temporary

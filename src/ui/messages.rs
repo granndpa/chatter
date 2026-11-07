@@ -84,7 +84,7 @@ impl Decoration<'_> {
 /// model only where it changed; the rest stay as they are, so the list keeps
 /// their state. Older messages go in above the rows shown, and the list keeps
 /// those where they are on screen, even when it shows the first row; see
-/// `i_slint_core::yapfast_anchor`.
+/// `i_slint_core::static_anchor`.
 pub(super) fn show_timeline(
     model: &VecModel<MessageRow>,
     rows: &mut Vec<MessageRow>,
@@ -183,7 +183,7 @@ pub(super) fn show_timeline(
             .any(|message| message.id == first.id)
     });
     if older {
-        i_slint_core::yapfast_anchor::hold(update);
+        i_slint_core::static_anchor::hold(update);
     } else {
         update();
     }

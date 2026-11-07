@@ -1,4 +1,4 @@
-# Yapfast patches
+# Static patches
 
 This is webrtc-sys 0.3.35 from crates.io under its original Apache-2.0 license.
 Four changes differ from it.
@@ -17,7 +17,7 @@ https://github.com/livekit/rust-sdks/issues/1154
 src/capture.rs and the `CaptureLeveling` class in
 src/peer_connection_factory.cpp hand every call's captured audio, after WebRTC's
 processing, to a processor the application sets with
-`capture::set_capture_processor`. Yapfast levels the voice there. build.rs lists
+`capture::set_capture_processor`. Static levels the voice there. build.rs lists
 the new bridge.
 
 ## Remote track volume
@@ -37,7 +37,7 @@ adapter asks for less, into a buffer from a `VideoFrameBufferPool` of four,
 which WebRTC reuses once the encoder lets go. libwebrtc's Rust
 `NativeVideoSource` keeps its native handle private, so
 `last_video_track_source` returns the source most recently made on the
-calling thread; Yapfast asks for it right after making one. `release_buffers`
+calling thread; Static asks for it right after making one. `release_buffers`
 empties the pool while the camera is off. Both are in
 src/video_track.cpp and include/livekit/video_track.h.
 

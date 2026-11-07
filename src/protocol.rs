@@ -86,7 +86,7 @@ mod windows {
     const LEGACY_SCHEME_COMMAND: &str = r"Software\Classes\yapfast\shell\open\command";
     const LEGACY_SCHEME_ICON: &str = r"Software\Classes\yapfast\DefaultIcon";
     const COMMAND: &str = r"Software\Classes\discord\shell\open\command";
-    const BACKUP: &str = r"Software\Yapfast\DiscordProtocol";
+    const BACKUP: &str = r"Software\Static\DiscordProtocol";
     const PREVIOUS_COMMAND: &str = "PreviousCommand";
     const HAD_COMMAND: &str = "HadCommand";
     const HAD_URL_PROTOCOL: &str = "HadUrlProtocol";

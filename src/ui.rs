@@ -680,7 +680,7 @@ fn open_from_notification(room: String) {
 /// Sends keys nothing took, such as after a menu closes, to the composer, as Discord does.
 fn type_anywhere(window: &StaticWindow) {
     let window = window.as_weak();
-    i_slint_core::yapfast_typing::on_unclaimed(move |text| {
+    i_slint_core::static_typing::on_unclaimed(move |text| {
         let Some(window) = window.upgrade() else {
             return false;
         };
@@ -706,7 +706,7 @@ fn type_anywhere(window: &StaticWindow) {
 /// view, which the list no longer shows.
 fn copy_whole_messages(window: &StaticWindow) {
     let window = window.as_weak();
-    i_slint_core::yapfast_selection::set_row_text(move |row| {
+    i_slint_core::static_selection::set_row_text(move |row| {
         Some(message_text(
             &window.upgrade()?.get_messages().row_data(row)?,
         ))
@@ -716,7 +716,7 @@ fn copy_whole_messages(window: &StaticWindow) {
 /// Marks where a middle click started scrolling, until the scroll ends.
 fn mark_autoscrolls(window: &StaticWindow) {
     let window = window.as_weak();
-    i_slint_core::yapfast_autoscroll::on_marker(move |scrolled, marker| {
+    i_slint_core::static_autoscroll::on_marker(move |scrolled, marker| {
         let Some(window) = window.upgrade() else {
             return;
         };
@@ -737,7 +737,7 @@ fn mark_autoscrolls(window: &StaticWindow) {
 /// A message as a selection covering it copies it, reading as its row shows it: texts beside
 /// each other joined by a space, others by line breaks, and each picture as `[Picture]`.
 fn message_text(row: &MessageRow) -> String {
-    let plain = i_slint_core::yapfast_selection::plain;
+    let plain = i_slint_core::static_selection::plain;
     let mut lines = Vec::new();
     if row.first {
         lines.push(format!(
@@ -1189,7 +1189,7 @@ fn show_motion(window: &StaticWindow) {
     window.global::<Motion>().set_playing(playing);
     // Animated emoji hold still with everything else, at once rather than at
     // the next refresh.
-    i_slint_core::yapfast_emoji::set_playing(playing);
+    i_slint_core::static_emoji::set_playing(playing);
 }
 
 /// Where a setting's value is among its choices.
@@ -1735,7 +1735,7 @@ struct Adapter {
     /// Where the `@` of the word being mentioned is in the composer text.
     mention_at: Option<usize>,
     /// What the composer's mentions were last coloured for.
-    mentions_marked: [Option<refresh::MentionsMarked>; i_slint_core::yapfast_marks::SLOTS],
+    mentions_marked: [Option<refresh::MentionsMarked>; i_slint_core::static_marks::SLOTS],
     /// Suggestions for the `@` here were closed with Escape; they stay closed until
     /// the cursor leaves the word.
     mention_dismissed: Option<usize>,

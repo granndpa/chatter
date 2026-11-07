@@ -67,13 +67,13 @@ pub mod string;
 pub mod styled_text;
 #[cfg(test)]
 mod testing;
-// Yapfast: see the modules.
-pub mod yapfast_anchor;
-pub mod yapfast_autoscroll;
-pub mod yapfast_emoji;
-pub mod yapfast_marks;
-pub mod yapfast_selection;
-pub mod yapfast_typing;
+// Static: see the modules.
+pub mod static_anchor;
+pub mod static_autoscroll;
+pub mod static_emoji;
+pub mod static_marks;
+pub mod static_selection;
+pub mod static_typing;
 pub mod textlayout;
 pub mod timers;
 pub mod translations;

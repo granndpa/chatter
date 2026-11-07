@@ -2948,7 +2948,7 @@ impl Adapter {
             draft: draft.to_owned(),
             sources,
         };
-        i_slint_core::yapfast_marks::mark(
+        i_slint_core::static_marks::mark(
             slot,
             marked.draft.as_str().into(),
             marks.into_iter().map(|(range, color)| {

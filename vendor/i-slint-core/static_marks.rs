@@ -1,4 +1,4 @@
-// Yapfast: not part of upstream Slint. See docs/building.md in Yapfast.
+// Static: not part of upstream Slint. See docs/building.md in Static.
 
 //! Colouring parts of a `TextInput`'s text, as the composer shows the people its message
 //! mentions: each part in its colour on a translucent pill of it, as a `StyledText` draws a

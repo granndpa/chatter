@@ -1,9 +1,9 @@
-// Yapfast: not part of upstream Slint. See docs/building.md in Yapfast.
+// Static: not part of upstream Slint. See docs/building.md in Static.
 
 //! Animated emoji: the frames a glyph draws in place of its still, and the clock
 //! they all share.
 //!
-//! Yapfast draws emoji as glyphs in a colour bitmap font it makes at runtime, so
+//! Static draws emoji as glyphs in a colour bitmap font it makes at runtime, so
 //! an animated one is a still frame of its animation. Here the animation's
 //! frames stand in for that glyph at draw time: the text, its wrapping, its
 //! selection and its caret are untouched, and nothing is shaped again for a
@@ -31,8 +31,8 @@ use crate::Property;
 use crate::graphics::Image;
 
 /// The emoji font's glyph box, in ems, and how much of it stands above the
-/// baseline: Yapfast makes its emoji fonts 136 pixels of 100 per em, with the
-/// bitmap's top 102 above the baseline. See `src/emoji_font.rs` in Yapfast.
+/// baseline: Static makes its emoji fonts 136 pixels of 100 per em, with the
+/// bitmap's top 102 above the baseline. See `src/emoji_font.rs` in Static.
 pub const EMOJI_EM: f32 = 1.36;
 pub const EMOJI_TOP_EM: f32 = 1.02;
 

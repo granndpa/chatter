@@ -1,4 +1,4 @@
-// Yapfast: not part of upstream Slint. See docs/building.md in Yapfast.
+// Static: not part of upstream Slint. See docs/building.md in Static.
 
 //! Keeping a list's rows where they are on screen while rows go in above them, as a chat's
 //! timeline does when older messages load.

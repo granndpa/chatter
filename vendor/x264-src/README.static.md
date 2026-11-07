@@ -1,4 +1,4 @@
-# x264 for Yapfast
+# x264 for Static
 
 `x264/` is x264 at commit 373697b467f7cd0af88f1e9e32d4f10540df4687
 (2025-01-03, core 164) from https://code.videolan.org/videolan/x264, under its

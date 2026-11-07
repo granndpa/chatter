@@ -1,4 +1,4 @@
-// Yapfast: not part of upstream Slint. See docs/building.md in Yapfast.
+// Static: not part of upstream Slint. See docs/building.md in Static.
 
 //! Keys nothing took, as after a menu closes: the app may act on them, as Discord's window sends
 //! typing anywhere to its composer and takes Escape from anywhere.

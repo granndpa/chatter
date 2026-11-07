@@ -1,4 +1,4 @@
-# Yapfast's native audio and join cancellation patch
+# Static's native audio and join cancellation patch
 
 Source: `element-hq/matrix-rust-rtc` at
 `5831af899f1e1744c21332613cdc9578a98c604f`, crate `matrix-rtc-livekit`.
@@ -16,7 +16,7 @@ The local changes support native device tracks and cancellable joins:
   cancellation it drops connection work, removes any published Matrix membership,
   and waits for bounded cleanup before returning. The existing join API remains
   available.
-- `Call::reassert_local_key_index` exposes the connection method above. Yapfast
+- `Call::reassert_local_key_index` exposes the connection method above. Static
   calls it on LiveKit's `LocalTrackRepublished` event.
 
 Without this, unmuting for the first time after a key rotation publishes a cryptor

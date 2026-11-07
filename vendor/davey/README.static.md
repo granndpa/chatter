@@ -1,4 +1,4 @@
-# Yapfast stream group fix
+# Static stream group fix
 
 This is davey 0.1.4 from crates.io under its original MIT license
 (LICENSE, as the crate's manifest declares; the published crate ships no
@@ -6,12 +6,12 @@ licence file).
 
 davey names a session's MLS group after the voice channel it's given, and
 the only way to change it, `reinit`, clears the session's storage. A Go Live
-stream's group isn't its voice channel's, and Yapfast learns the real id only
+stream's group isn't its voice channel's, and Static learns the real id only
 from the voice server's first proposals or commit. By then it has sent a key
 package, and clearing storage throws away that package's private keys, so the
 welcome built from it fails with `NoMatchingKeyPackage`.
 
-Changes, marked `Yapfast:` in the source:
+Changes, marked `Static:` in the source:
 
 - `DaveSession::set_channel_id` changes the group id and keeps the signing key
   and stored key packages. A pending group starts again under the new id; a

@@ -612,7 +612,7 @@ fn the_thread_beside_suggests_mentions_and_emoji_above_its_composer() {
     assert_eq!(adapter.borrow().app.state.aside_draft(), "hey @Carol ");
     assert_eq!(adapter.borrow().app.state.draft(), "");
     // It's marked as the channel's composer marks its own.
-    let marks = i_slint_core::yapfast_marks::marks_of("hey @Carol ").expect("marked");
+    let marks = i_slint_core::static_marks::marks_of("hey @Carol ").expect("marked");
     assert_eq!(marks[0].0, 4..10);
     // `:name` too.
     window.invoke_aside_composer_caret("hey @Carol :pizz".into(), 16);
@@ -1444,7 +1444,7 @@ fn an_emoji_card_says_what_the_emoji_is() {
 /// registry's, which this crate can reach and its own tests cannot run.
 #[test]
 fn an_animated_emoji_draws_a_frame_only_while_playing() {
-    use i_slint_core::yapfast_emoji as registry;
+    use i_slint_core::static_emoji as registry;
     let (glyph, key) = ('\u{10ffe0}', "test-animation:1");
     let frame =
         || slint::Image::from_rgba8(slint::SharedPixelBuffer::<slint::Rgba8Pixel>::new(2, 2));
@@ -1553,7 +1553,7 @@ fn a_right_click_on_a_link_gives_its_menu_the_address() {
             .window()
             .dispatch_event(WindowEvent::PointerReleased { position, button });
         let at = |x: f32| {
-            i_slint_core::yapfast_selection::pressed_link_at(
+            i_slint_core::static_selection::pressed_link_at(
                 i_slint_core::lengths::LogicalPoint::new(x, y as f32),
             )
         };
@@ -1908,11 +1908,11 @@ fn a_server_members_menu_follows_permissions_and_ticks_roles() {
     window.invoke_choose_menu("3".into(), true, "mention".into());
     assert_eq!(adapter.borrow().app.state.draft(), "@Cara ");
     // The composer colours it as the message will show it.
-    let marks = i_slint_core::yapfast_marks::marks_of("@Cara ").expect("the mention is marked");
+    let marks = i_slint_core::static_marks::marks_of("@Cara ").expect("the mention is marked");
     assert_eq!(marks.len(), 1);
     assert_eq!(marks[0].0, 0..5);
     window.invoke_draft_edited("@Carab".into());
-    assert_eq!(i_slint_core::yapfast_marks::marks_of("@Carab"), None);
+    assert_eq!(i_slint_core::static_marks::marks_of("@Carab"), None);
 }
 
 #[test]
@@ -2192,7 +2192,7 @@ fn a_window_made_again_shows_what_the_last_one_did() {
             window.get_sidebar_title(),
             window.get_filter_placeholder(),
             window.get_has_topic(),
-            i_slint_core::yapfast_selection::plain(&window.get_room_topic()),
+            i_slint_core::static_selection::plain(&window.get_room_topic()),
         )
     };
     let before = shown(&window);
@@ -6979,7 +6979,7 @@ fn headings_in_fenced_code_stay_as_typed() {
     let levels: Vec<_> = blocks.iter().map(|block| block.level).collect();
     assert_eq!(levels, [5, 2]);
     assert_eq!(
-        i_slint_core::yapfast_selection::plain(&blocks[0].text),
+        i_slint_core::static_selection::plain(&blocks[0].text),
         "# not a heading"
     );
 }
@@ -7006,7 +7006,7 @@ fn a_message_shows_its_headings_quotes_and_code_apart() {
             (
                 block.level,
                 block.quoted,
-                i_slint_core::yapfast_selection::plain(&block.text),
+                i_slint_core::static_selection::plain(&block.text),
             )
         })
         .collect();
@@ -7039,7 +7039,7 @@ fn text_alone_shows_as_one() {
     i_slint_backend_testing::init_no_event_loop();
     let row = message_row_plain(&formatted("plain **text**\n- and a list"));
     assert_eq!(row.blocks.row_count(), 0);
-    assert!(i_slint_core::yapfast_selection::plain(&row.styled).starts_with("plain text\n"));
+    assert!(i_slint_core::static_selection::plain(&row.styled).starts_with("plain text\n"));
 }
 
 #[test]
@@ -7049,7 +7049,7 @@ fn text_beside_a_heading_keeps_its_formatting_and_blank_lines() {
     let plain: Vec<_> = row
         .blocks
         .iter()
-        .map(|block| i_slint_core::yapfast_selection::plain(&block.text))
+        .map(|block| i_slint_core::static_selection::plain(&block.text))
         .collect();
     assert_eq!(plain, ["Title", "\u{a0}\nbold\n---"]);
 }
@@ -7063,7 +7063,7 @@ fn html_in_a_block_shows_as_typed() {
     let row = message_row_plain(&formatted(body));
     let last = row.blocks.iter().last().unwrap();
     assert_eq!(
-        i_slint_core::yapfast_selection::plain(&last.text),
+        i_slint_core::static_selection::plain(&last.text),
         "<font color=\"#ff0000\">red</font>"
     );
 }
@@ -7083,7 +7083,7 @@ fn a_mention_in_a_quote_still_links() {
     let quote = |row: &MessageRow| row.blocks.row_data(1).unwrap().text;
     assert!(quote(&plain) != quote(&mentioned));
     assert_eq!(
-        i_slint_core::yapfast_selection::plain(&quote(&mentioned)),
+        i_slint_core::static_selection::plain(&quote(&mentioned)),
         "and @Bob"
     );
 }
@@ -7144,7 +7144,7 @@ fn an_embed_shows_headings_and_code_in_its_description_and_fields() {
         .collect();
     assert_eq!(fields[0].value_blocks.row_count(), 0);
     assert_eq!(
-        i_slint_core::yapfast_selection::plain(&fields[0].value),
+        i_slint_core::static_selection::plain(&fields[0].value),
         "just text"
     );
     assert!(fields[1].value_blocks.row_data(0).unwrap().quoted);
@@ -7166,7 +7166,7 @@ fn a_found_message_shows_its_blocks_with_spoilers_hidden() {
     let plain: Vec<_> = row
         .blocks
         .iter()
-        .map(|block| i_slint_core::yapfast_selection::plain(&block.text))
+        .map(|block| i_slint_core::static_selection::plain(&block.text))
         .collect();
     assert_eq!(plain, ["Plans", "meet at (spoiler)"]);
 }

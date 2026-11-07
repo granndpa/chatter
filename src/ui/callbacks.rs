@@ -220,7 +220,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
     window
         .global::<EmojiAnimations>()
         .on_frame(|key, _revision| {
-            i_slint_core::yapfast_emoji::frame_of_key(key.as_str()).unwrap_or_default()
+            i_slint_core::static_emoji::frame_of_key(key.as_str()).unwrap_or_default()
         });
     window.global::<PictureStore>().on_request(move |url| {
         if url.is_empty() {
@@ -1311,7 +1311,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
         // An emoji in a message's text opens its card, below it.
         if let Some(target) = emoji_text::target(&link) {
             let Some(window) = weak.upgrade() else { return };
-            if let Some(rect) = i_slint_core::yapfast_selection::clicked_link() {
+            if let Some(rect) = i_slint_core::static_selection::clicked_link() {
                 window.invoke_anchor_link(
                     rect.origin.x,
                     rect.origin.y,
@@ -1340,7 +1340,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
             .map(|user| mention::Target::User(user.to_owned()));
         if let Some(target) = author.or_else(|| mention::target(&link)) {
             let Some(window) = weak.upgrade() else { return };
-            if let Some(rect) = i_slint_core::yapfast_selection::clicked_link() {
+            if let Some(rect) = i_slint_core::static_selection::clicked_link() {
                 window.invoke_anchor_link(
                     rect.origin.x,
                     rect.origin.y,
@@ -1716,13 +1716,13 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
         }
     });
     window.on_selection_at(|x, y| {
-        i_slint_core::yapfast_selection::copied_at(i_slint_core::lengths::LogicalPoint::new(x, y))
+        i_slint_core::static_selection::copied_at(i_slint_core::lengths::LogicalPoint::new(x, y))
             .unwrap_or_default()
             .into()
     });
     window.on_link_at(|x, y| {
         let point = i_slint_core::lengths::LogicalPoint::new(x, y);
-        i_slint_core::yapfast_selection::pressed_link_at(point)
+        i_slint_core::static_selection::pressed_link_at(point)
             .as_deref()
             .and_then(web_address)
             .unwrap_or_default()
@@ -3036,7 +3036,7 @@ fn discord_link_action(window: &StaticWindow, route: discord::DiscordRoute) -> A
             item: format!("d:{message}"),
         },
         discord::DiscordRoute::User { user } => {
-            if let Some(rect) = i_slint_core::yapfast_selection::clicked_link() {
+            if let Some(rect) = i_slint_core::static_selection::clicked_link() {
                 window.invoke_anchor_link(
                     rect.origin.x,
                     rect.origin.y,

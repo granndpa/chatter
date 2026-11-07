@@ -336,7 +336,7 @@ impl Animations {
             // The font may have been made after the frames were kept, or made
             // again since, so run of text that draws this emoji is named here.
             if let Some(glyph) = glyph {
-                i_slint_core::yapfast_emoji::set_glyph(&key, glyph);
+                i_slint_core::static_emoji::set_glyph(&key, glyph);
             }
             if self.cache.get(&key).is_some()
                 || self.cache.is_still(&key)
@@ -430,11 +430,11 @@ impl Animations {
                 buffers.push(buffer);
             }
             let frames = Rc::new(Frames::new(buffers, &decoded.delays));
-            let animation = Rc::new(i_slint_core::yapfast_emoji::Animation::new(
+            let animation = Rc::new(i_slint_core::static_emoji::Animation::new(
                 frames.images().to_vec(),
                 frames.delays(),
             ));
-            i_slint_core::yapfast_emoji::insert(&decoded.key, decoded.glyph, animation);
+            i_slint_core::static_emoji::insert(&decoded.key, decoded.glyph, animation);
             self.cache.insert(decoded.key, decoded.glyph, frames);
             self.cache.evict();
         }
@@ -448,7 +448,7 @@ impl Animations {
         self.drain();
         window
             .global::<EmojiAnimations>()
-            .set_revision(i_slint_core::yapfast_emoji::revision() as i32);
+            .set_revision(i_slint_core::static_emoji::revision() as i32);
         window.window().request_redraw();
     }
 
@@ -461,11 +461,11 @@ impl Animations {
         playing: bool,
         adapter: std::rc::Weak<RefCell<Adapter>>,
     ) {
-        i_slint_core::yapfast_emoji::set_playing(playing);
+        i_slint_core::static_emoji::set_playing(playing);
         self.side = frame_side(window.window().scale_factor());
         let waiting = !self.decoding.is_empty()
             || self.queue.len() > 0
-            || !i_slint_core::yapfast_emoji::is_empty();
+            || !i_slint_core::static_emoji::is_empty();
         if !waiting {
             self.timer.stop();
             self.interval = 0;
@@ -474,7 +474,7 @@ impl Animations {
         // A frame no faster than 16ms and no slower than 50 keeps the clock off
         // a busy loop while still following a slow animation's own pace; with
         // nothing registered yet, it only looks for what arrives.
-        let delay = i_slint_core::yapfast_emoji::shortest_delay().unwrap_or(30);
+        let delay = i_slint_core::static_emoji::shortest_delay().unwrap_or(30);
         let interval = u64::from(delay.clamp(16, 50));
         if self.timer.running() && self.interval == interval {
             return;
@@ -490,7 +490,7 @@ impl Animations {
             move || {
                 let now = std::time::Instant::now();
                 let delta = now.saturating_duration_since(clock.replace(now));
-                i_slint_core::yapfast_emoji::advance(delta);
+                i_slint_core::static_emoji::advance(delta);
                 let (Some(adapter), Some(window)) = (adapter.upgrade(), weak.upgrade()) else {
                     return;
                 };
@@ -568,16 +568,16 @@ fn frames_reach_the_registry() {
     // The worker decodes on its own thread; the tick waits for it the same way.
     for _ in 0..200 {
         animations.drain();
-        if i_slint_core::yapfast_emoji::frame_of_glyph(glyph).is_some() {
+        if i_slint_core::static_emoji::frame_of_glyph(glyph).is_some() {
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(10));
     }
     assert!(
-        i_slint_core::yapfast_emoji::frame_of_glyph(glyph).is_some(),
+        i_slint_core::static_emoji::frame_of_glyph(glyph).is_some(),
         "the frames reached the registry"
     );
-    i_slint_core::yapfast_emoji::remove(key);
+    i_slint_core::static_emoji::remove(key);
 }
 
 #[cfg(test)]

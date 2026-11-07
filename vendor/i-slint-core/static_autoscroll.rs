@@ -1,4 +1,4 @@
-// Yapfast: not part of upstream Slint. See docs/building.md in Yapfast.
+// Static: not part of upstream Slint. See docs/building.md in Static.
 
 //! Autoscroll: a middle click in something that scrolls scrolls it towards the pointer, faster
 //! the farther the pointer is from where it clicked, as browsers do.
