@@ -7938,7 +7938,7 @@ fn static_account_popover_copies_its_id_and_opens_settings_without_changing_stat
     let status_changes = Rc::new(Cell::new(0));
     let seen = status_changes.clone();
     window.on_set_status(move |_| seen.set(seen.get() + 1));
-    for (x, y) in [(100., 722.), (160., 600.), (100., 722.), (160., 652.)] {
+    for (x, y) in [(100., 722.), (160., 564.), (100., 722.), (160., 652.)] {
         let position = slint::LogicalPosition::new(x, y);
         window.window().dispatch_event(WindowEvent::PointerPressed {
             position,
