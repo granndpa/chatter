@@ -73,6 +73,10 @@ pub(super) async fn run(
         tokio::spawn(async move { api.learn_build_number().await });
     }
     loop {
+        if *auth_rejected.borrow_and_update() {
+            mark_relink_required(&snapshots);
+            return;
+        }
         snapshots.send_modify(|snapshot| Arc::make_mut(snapshot).status = Status::Connecting);
         let connect = async {
             // Without one kept, the page goes first, so the first identify
@@ -163,6 +167,12 @@ pub(super) async fn run(
         loop {
             tokio::select! {
                 () = &mut wait => break,
+                changed = auth_rejected.changed() => {
+                    if changed.is_ok() && *auth_rejected.borrow_and_update() {
+                        mark_relink_required(&snapshots);
+                        return;
+                    }
+                }
                 request = requests.recv() => match request {
                     Some(request) => refuse(request, &mut shared),
                     None => return,
