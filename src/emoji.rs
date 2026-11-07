@@ -1,15 +1,15 @@
 //! Emoji: the color font for reactions and message text, and the picker's grid.
 //!
 //! A Linux system can have several fonts named "Noto Color Emoji": the bitmap
-//! (CBDT) build Yapfast is designed and tested with, and the COLRv1 build, the
-//! only one Fedora installs. Fontconfig may prefer either. Yapfast registers an
+//! (CBDT) build Static is designed and tested with, and the COLRv1 build, the
+//! only one Fedora installs. Fontconfig may prefer either. Static registers an
 //! installed emoji font under its own family name and uses that one: a bitmap
 //! font if there is one, a COLR font otherwise.
 //!
 //! On Windows, text falls back to fonts by script, and emoji, most symbols and
 //! the styled letters of Unicode's mathematical alphabets that names use, such
 //! as 𝓯𝓪𝓷𝓬𝔂, are all of the "Common" script, which no font is picked for. So
-//! Yapfast puts the fonts Windows ships for them in the fallback itself.
+//! Static puts the fonts Windows ships for them in the fallback itself.
 
 use std::sync::{Arc, OnceLock};
 
@@ -17,13 +17,13 @@ use slint::{
     Model, ModelRc, SharedString, VecModel,
     fontique_012::{fontique, shared_collection},
 };
-use yapfast_core::chat::EmojiSet;
-use yapfast_ui::{EmojiCell, EmojiRow, EmojiSection};
+use static_core::chat::EmojiSet;
+use static_ui::{EmojiCell, EmojiRow, EmojiSection};
 
 use crate::custom_emoji;
 
-/// The family name Yapfast gives the bitmap emoji font it registers.
-const REGISTERED: &str = "Yapfast Color Emoji";
+/// The family name Static gives the bitmap emoji font it registers.
+const REGISTERED: &str = "Static Color Emoji";
 
 /// The emoji font family to request. Call after selecting the Slint backend.
 pub fn family() -> &'static str {
@@ -58,7 +58,7 @@ pub fn columns(width: f32) -> usize {
     (((width - BESIDE) / CELL).floor() as usize).max(1)
 }
 
-/// Windows 11 and the Noto Color Emoji builds Yapfast is tested with draw Unicode
+/// Windows 11 and the Noto Color Emoji builds Static is tested with draw Unicode
 /// 15.0; newer emoji would show as empty boxes.
 const NEWEST: emojis::UnicodeVersion = emojis::UnicodeVersion::new(15, 0);
 
@@ -165,12 +165,12 @@ fn with_picture(shown: EmojiCell) -> Option<EmojiCell> {
 }
 
 /// A custom emoji's reaction key, Discord's `name:id`.
-pub fn custom_key(emoji: &yapfast_core::chat::CustomEmoji) -> String {
+pub fn custom_key(emoji: &static_core::chat::CustomEmoji) -> String {
     format!("{}:{}", emoji.text.trim_matches(':'), emoji.id)
 }
 
 /// What an emoji puts in the composer: the emoji itself, or a custom emoji's
-/// `:name:`, which goes out in Discord's form; see `yapfast_core::chat::wire_emoji`.
+/// `:name:`, which goes out in Discord's form; see `static_core::chat::wire_emoji`.
 pub fn composer_text(key: &str) -> String {
     match key.split_once(':') {
         Some((name, _)) => format!(":{name}:"),
@@ -418,7 +418,7 @@ fn register_color_font() -> bool {
         .filter(|name| name.to_lowercase().contains("emoji"))
         .map(str::to_owned)
         .collect();
-    // Noto Color Emoji first, as the font Yapfast is designed and tested with.
+    // Noto Color Emoji first, as the font Static is designed and tested with.
     names.sort_by_key(|name| name != "Noto Color Emoji");
     let mut layered = None;
     for name in &names {
@@ -433,7 +433,7 @@ fn register_color_font() -> bool {
                 continue;
             };
             // SAFETY: font files are installed read-only and not modified while
-            // Yapfast runs; the map is shared with the font collection for the
+            // Static runs; the map is shared with the font collection for the
             // process's lifetime.
             let Ok(data) = (unsafe { memmap2::Mmap::map(&file) }) else {
                 continue;
@@ -561,7 +561,7 @@ mod tests {
             id: "90".into(),
             server: "Games".into(),
             icon: None,
-            emoji: vec![yapfast_core::chat::CustomEmoji {
+            emoji: vec![static_core::chat::CustomEmoji {
                 text: ":gg:".into(),
                 id: "77".into(),
                 animated: false,
@@ -574,10 +574,10 @@ mod tests {
         let sections = VecModel::from(sections);
         let cells = model.row_data(1).unwrap().cells;
         assert_eq!(cells.row_data(0).unwrap().picture.size().width, 0);
-        let picture = yapfast_core::chat::Picture {
+        let picture = static_core::chat::Picture {
             width: 2,
             height: 2,
-            rgba: yapfast_core::chat::Pixels::new(2, 2, [255, 0, 0, 255].repeat(4)),
+            rgba: static_core::chat::Pixels::new(2, 2, [255, 0, 0, 255].repeat(4)),
             ..Default::default()
         };
         assert!(custom_emoji::add_images([("77", &picture)]));
@@ -601,14 +601,14 @@ mod tests {
             server: "Games".into(),
             icon: None,
             emoji: vec![
-                yapfast_core::chat::CustomEmoji {
+                static_core::chat::CustomEmoji {
                     text: ":mine:".into(),
                     id: "1".into(),
                     animated: false,
                     usable: true,
                     picture: String::new(),
                 },
-                yapfast_core::chat::CustomEmoji {
+                static_core::chat::CustomEmoji {
                     text: ":theirs:".into(),
                     id: "2".into(),
                     animated: true,
@@ -683,7 +683,7 @@ mod tests {
             id: "90".into(),
             server: "Games".into(),
             icon: None,
-            emoji: vec![yapfast_core::chat::CustomEmoji {
+            emoji: vec![static_core::chat::CustomEmoji {
                 text: ":pog:".into(),
                 id: "5".into(),
                 animated: false,
@@ -726,7 +726,7 @@ mod tests {
             id: "90".into(),
             server: "Games".into(),
             icon: None,
-            emoji: vec![yapfast_core::chat::CustomEmoji {
+            emoji: vec![static_core::chat::CustomEmoji {
                 text: ":thunk:".into(),
                 id: "5".into(),
                 animated: false,

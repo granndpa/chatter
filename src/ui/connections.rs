@@ -2,9 +2,9 @@
 //! until Discord answers, so refreshes never overwrite a pending switch.
 
 use super::*;
-use yapfast_core::application::ConnectionInput;
+use static_core::application::ConnectionInput;
 
-pub(super) fn bind(window: &YapfastWindow, adapter: &Rc<RefCell<Adapter>>) {
+pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
     let state = adapter.clone();
     let weak = window.as_weak();
     window.on_connections_action(move |what, kind, id, shown| {
@@ -30,7 +30,7 @@ pub(super) fn bind(window: &YapfastWindow, adapter: &Rc<RefCell<Adapter>>) {
 }
 
 impl Adapter {
-    pub(super) fn show_connections(&mut self, window: &YapfastWindow) {
+    pub(super) fn show_connections(&mut self, window: &StaticWindow) {
         let page = &self.app.state.connections;
         window.set_connections_online(
             self.app.state.discord_linked

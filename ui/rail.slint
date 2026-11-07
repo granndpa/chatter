@@ -1,5 +1,5 @@
-import { DmHeading } from "yapfast/dm-heading.slint";
-import { ClientStyle } from "yapfast/style.slint";
+import { DmHeading } from "static/dm-heading.slint";
+import { ClientStyle } from "static/style.slint";
 import { ListView } from "scrollview.slint";
 import { Theme, Tip, Middle, Label } from "theme.slint";
 import { Avatar, PictureStore, StatusText, VoiceSpot } from "controls.slint";
@@ -882,7 +882,7 @@ export component ServerRail inherits Rectangle {
         padding-top: ClientStyle.enabled ? 0px : 12px; padding-bottom: 12px; spacing: 8px;
         RailItem {
             // The app's logo, as Discord puts its own here.
-            icon: @image-url("icons/logo.svg"); icon-color: Theme.accent; icon-size: ClientStyle.enabled ? 24px : 32px;
+            icon: @image-url("icons/static.svg"); icon-color: #ffffff; icon-size: ClientStyle.enabled ? 24px : 32px;
             label: "Direct messages" + (root.dms-badge != "" ? ", " + root.dms-badge + " waiting" : root.dms-unread ? ", unread" : "");
             tip: "Direct messages";
             selected: root.dms-selected; unread: root.dms-unread; badge: root.dms-badge;
@@ -1278,7 +1278,7 @@ export component RoomList inherits Rectangle {
                     }
                 }
                 // Discord reports who is in every voice channel; Matrix
-                // only shows the call Yapfast is in, below.
+                // only shows the call Static is in, below.
                 if room.voice && room.id != root.voice-channel && room.people.length > 0: VerticalLayout {
                     padding-left: 32px; padding-bottom: 4px; spacing: 0px;
                     for person in room.people: Rectangle {

@@ -1,10 +1,10 @@
-//! Desktop entries on Linux: the one that starts Yapfast at sign-in
+//! Desktop entries on Linux: the one that starts Static at sign-in
 //! (`crate::autostart`), and the one an AppImage installs for itself.
 //!
 //! Desktops find a window's icon through the desktop entry its app ID names.
 //! On Wayland that's the only place they look, so without an entry the
 //! taskbar and title bar show a generic icon. A package installs the entry and
-//! the icon; an AppImage installs nothing, so Yapfast run from one writes both
+//! the icon; an AppImage installs nothing, so Static run from one writes both
 //! to the person's data folder before it opens its window, which also puts it
 //! in the app menu. The entry runs the AppImage where it is now, and its
 //! TryExec hides the entry once the AppImage is deleted.
@@ -20,16 +20,16 @@ use crate::icon::APP_ID;
 const ENTRY: &str = include_str!("../packaging/linux/io.github.yapfast.Yapfast.desktop");
 const ICON: &[u8] = include_bytes!("../packaging/icon.svg");
 
-/// The AppImage this Yapfast runs from. An AppImage runs from a temporary
+/// The AppImage this Static runs from. An AppImage runs from a temporary
 /// mount, APPDIR, and names its file in APPIMAGE. Programs it starts inherit
-/// both, so they're Yapfast's only when Yapfast runs from inside that mount.
+/// both, so they're Static's only when Static runs from inside that mount.
 pub fn appimage(exe: &Path) -> Option<PathBuf> {
     let mount = std::env::var_os("APPDIR")?;
     let image = std::env::var_os("APPIMAGE")?;
     exe.starts_with(mount).then(|| PathBuf::from(image))
 }
 
-/// Puts Yapfast's entry and icon in the person's data folder when it runs
+/// Puts Static's entry and icon in the person's data folder when it runs
 /// from an AppImage, unless a package or an AppImage manager already did.
 pub fn install() {
     let Some(image) = std::env::current_exe().ok().and_then(|exe| appimage(&exe)) else {
@@ -39,9 +39,9 @@ pub fn install() {
         return;
     };
     match install_in(&data, &data_dirs(), &image) {
-        Ok(true) => tracing::info!(appimage = %image.display(), "added Yapfast to the app menu"),
+        Ok(true) => tracing::info!(appimage = %image.display(), "added Static to the app menu"),
         Ok(false) => {}
-        Err(error) => tracing::warn!(%error, "could not add Yapfast to the app menu"),
+        Err(error) => tracing::warn!(%error, "could not add Static to the app menu"),
     }
 }
 
@@ -85,13 +85,13 @@ pub(crate) fn install_in(data: &Path, system: &[PathBuf], image: &Path) -> io::R
 fn entry(image: &str) -> String {
     let tried = image.replace('\\', "\\\\");
     ENTRY.replace(
-        "\nExec=yapfast --open-link %u\n",
+        "\nExec=static --open-link %u\n",
         &format!("\nTryExec={tried}\nExec={} --open-link %u\n", quoted(image)),
     )
 }
 
 /// Whether an AppImage manager, such as Gear Lever or AppImageLauncher, gave
-/// this AppImage an entry of its own, which Yapfast's would show twice.
+/// this AppImage an entry of its own, which Static's would show twice.
 fn managed(applications: &Path, ours: &str, image: &str) -> io::Result<bool> {
     let entries = match std::fs::read_dir(applications) {
         Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(false),
@@ -173,7 +173,7 @@ pub(crate) fn quoted(argument: &str) -> String {
 mod tests {
     use super::*;
 
-    const IMAGE: &str = "/home/a/Apps/Yapfast 0.4.AppImage";
+    const IMAGE: &str = "/home/a/Apps/Static 0.4.AppImage";
 
     fn entry_in(data: &Path) -> String {
         std::fs::read_to_string(data.join(format!("applications/{APP_ID}.desktop"))).unwrap()
@@ -203,7 +203,7 @@ mod tests {
     #[test]
     fn a_moved_appimage_updates_its_entry() {
         let data = tempfile::tempdir().unwrap();
-        install_in(data.path(), &[], Path::new("/tmp/Yapfast.AppImage")).unwrap();
+        install_in(data.path(), &[], Path::new("/tmp/Static.AppImage")).unwrap();
         assert!(install_in(data.path(), &[], Path::new(IMAGE)).unwrap());
         assert!(entry_in(data.path()).contains(&format!("\nExec=\"{IMAGE}\" --open-link %u\n")));
     }
@@ -217,7 +217,7 @@ mod tests {
         let system = [system.path().to_owned()];
         assert!(!install_in(data.path(), &system, Path::new(IMAGE)).unwrap());
 
-        let gear_lever = data.path().join("applications/yapfast.desktop");
+        let gear_lever = data.path().join("applications/static.desktop");
         write(
             &gear_lever,
             format!("[Desktop Entry]\nExec=\"{IMAGE}\"\n").as_bytes(),

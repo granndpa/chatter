@@ -3,7 +3,7 @@
 
 use super::*;
 
-pub(super) fn bind(window: &YapfastWindow, adapter: &Rc<RefCell<Adapter>>) {
+pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
     let state = adapter.clone();
     let weak = window.as_weak();
     window.on_show_game_toggled(move |shown| {
@@ -79,7 +79,7 @@ pub(super) fn bind(window: &YapfastWindow, adapter: &Rc<RefCell<Adapter>>) {
 }
 
 /// Saves the custom games and shows them, and detection takes them.
-fn changed(adapter: &mut Adapter, window: Option<YapfastWindow>) {
+fn changed(adapter: &mut Adapter, window: Option<StaticWindow>) {
     adapter.layout.write(&adapter.root);
     if let Some(window) = window {
         adapter.layout.apply_custom_games(&window);

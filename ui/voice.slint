@@ -522,7 +522,7 @@ export component JoinVoice inherits VerticalLayout {
     }
     Text { text: root.room-name; color: Theme.text; font-size: 26px; font-weight: 900; horizontal-alignment: center; overflow: elide; }
     Text { text: root.voice-description; color: Theme.secondary; horizontal-alignment: center; wrap: word-wrap; }
-    if !root.preview && !root.call-encrypted: Text { text: "This channel is unencrypted. Yapfast only joins encrypted voice channels."; color: Theme.accent; font-size: 15px; horizontal-alignment: center; wrap: word-wrap; }
+    if !root.preview && !root.call-encrypted: Text { text: "This channel is unencrypted. Static only joins encrypted voice channels."; color: Theme.accent; font-size: 15px; horizontal-alignment: center; wrap: word-wrap; }
     HorizontalLayout {
         alignment: center; padding-top: 6px;
         ActionButton { min-height: 42px; text: root.voice-active ? "Switch voice channel" : "Join voice"; primary: true; enabled: root.can-join; clicked => { root.join-voice(); } }
@@ -1211,7 +1211,7 @@ component ScreenCard inherits Rectangle {
     }
 }
 
-// Going live: what to share, where Yapfast lists it, and the resolution, frame
+// Going live: what to share, where Static lists it, and the resolution, frame
 // rate and quality to share it at; or while sharing, what to share instead.
 export component ShareMenu inherits Rectangle {
     /// The screens, then the windows, then the cameras, to share; a pick

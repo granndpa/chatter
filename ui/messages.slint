@@ -1,4 +1,4 @@
-import { ClientStyle } from "yapfast/style.slint";
+import { ClientStyle } from "static/style.slint";
 import { ListView } from "scrollview.slint";
 import { Theme, Tip, ReactionHover, Middle, Label } from "theme.slint";
 import { ActionButton, IconButton, Avatar, Picture, PictureStore, EmojiAnimations, Skeleton, SpoilerCover, MenuItem, TextField, ContextMenu, MenuRow } from "controls.slint";
@@ -421,14 +421,14 @@ export struct EmbedCard {
     video: bool,
 }
 /// A Discord app's button. Only a link's is `enabled`: the others would ask
-/// the app, which Yapfast can't yet.
+/// the app, which Static can't yet.
 export enum CardButtonStyle { primary, secondary, success, danger, link }
 export struct CardButton { label: string, style: CardButtonStyle, url: string, enabled: bool }
 export enum CardRowKind { text, media, separator, buttons, select, unknown }
 /// A row of a Discord app's card, of one `kind`, with the fields it uses:
 /// text and what a section shows beside it; pictures in a gallery and file
 /// cards; a gap, `large`, with or without a `divider`; buttons; or a menu
-/// by what it shows, which doesn't open; or a note that Yapfast can't show
+/// by what it shows, which doesn't open; or a note that Static can't show
 /// some components.
 export struct CardRow {
     kind: CardRowKind,
@@ -619,8 +619,8 @@ export struct MessageRow {
     /// the "New" divider goes above it.
     unread-start: bool,
     /// Calls on this account: it mentions it or a group it's in, or, while
-    /// it's new, replies to its message. The row is tinted marigold with a
-    /// marigold edge.
+    /// it's new, replies to its message. The row is tinted mint with a
+    /// mint edge.
     highlighted: bool,
     /// The body, and the author and time as selectable text: a selection runs across messages
     /// through all three. A body of nothing but emoji shows them large.
@@ -847,8 +847,8 @@ export component EmojiPicker inherits Rectangle {
     in-out property <string> emoji-query;
     in-out property <EmojiCell> emoji-hover;
     in property <string> emoji-font;
-    /// What the emoji is for: a message's item, "yapfast:status" for the custom
-    /// status, or "yapfast:composer" for the message being written.
+    /// What the emoji is for: a message's item, "static:status" for the custom
+    /// status, or "static:composer" for the message being written.
     in property <string> react-item;
     callback emoji-search(string);
     callback pick(EmojiCell);
@@ -944,7 +944,7 @@ export component EmojiPicker inherits Rectangle {
                                     // Its own `name:id`, which its animation is registered under; a
                                     // Unicode emoji's shortcode has none, and keeps its still.
                                     animation-key: cell.key;
-                                    verb: root.react-item == "yapfast:status" ? "Choose" : root.react-item == "yapfast:composer" ? "Insert" : "React with";
+                                    verb: root.react-item == "static:status" ? "Choose" : root.react-item == "static:composer" ? "Insert" : "React with";
                                     hovered => { root.emoji-hover = cell; }
                                     clicked => { root.pick(cell); }
                                     locked => { root.unlock-nitro(); }
@@ -968,8 +968,8 @@ export component EmojiPicker inherits Rectangle {
                     }
                     Text {
                         text: root.emoji-hover.glyph != "" ? root.emoji-hover.name
-                            : root.react-item == "yapfast:status" ? "Pick an emoji for your status."
-                            : root.react-item == "yapfast:composer" ? "Pick an emoji for your message." : "Pick an emoji to react with.";
+                            : root.react-item == "static:status" ? "Pick an emoji for your status."
+                            : root.react-item == "static:composer" ? "Pick an emoji for your message." : "Pick an emoji to react with.";
                         color: root.emoji-hover.glyph != "" ? Theme.text : Theme.muted; font-size: 15px;
                         font-weight: root.emoji-hover.glyph != "" ? 700 : 400;
                         vertical-alignment: center; overflow: elide; horizontal-stretch: 1;
@@ -1449,7 +1449,7 @@ export component EmbedView inherits HorizontalLayout {
 }
 
 // A Discord app's button. A link's opens its page; the others show what the
-// app offers, but would ask the app, which Yapfast can't yet.
+// app offers, but would ask the app, which Static can't yet.
 component CardButtonView inherits ActionButton {
     in property <CardButton> button;
     callback open-link(string);
@@ -1570,7 +1570,7 @@ export component CardView inherits HorizontalLayout {
                     border-width: 1px; border-color: Theme.accent; border-radius: 12px;
                     HorizontalLayout {
                         padding: 16px;
-                        Text { text: "Yapfast can't show this part of the message yet."; color: Theme.secondary; font-size: 14px; wrap: word-wrap; }
+                        Text { text: "Static can't show this part of the message yet."; color: Theme.secondary; font-size: 14px; wrap: word-wrap; }
                     }
                 }
             }

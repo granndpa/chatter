@@ -1,9 +1,9 @@
 use super::*;
 
 // Keep the coordinate and appearance regressions in the classic mode.
-// The Yapfast tests below exercise the new defaults separately.
-fn classic_window() -> YapfastWindow {
-    let window = YapfastWindow::new().unwrap();
+// The Static tests below exercise the new defaults separately.
+fn classic_window() -> StaticWindow {
+    let window = StaticWindow::new().unwrap();
     window.global::<ClientStyle>().set_enabled(false);
     window
 }
@@ -22,7 +22,7 @@ fn a_server_without_a_picture_shows_its_initials_in_capitals() {
 
 #[test]
 fn a_notice_is_a_group_of_its_own_with_an_icon() {
-    use yapfast_core::chat::{Notice, NoticeKind};
+    use static_core::chat::{Notice, NoticeKind};
     let said = ChatMessage {
         item: "d:4".into(),
         author: "Alice".into(),
@@ -63,7 +63,7 @@ fn statuses_show_their_custom_emoji_as_pictures() {
     assert_eq!((words.as_str(), emoji.as_str()), ("☕ brb", ""));
 
     // The account's own status.
-    let mut status = yapfast_core::chat::CustomStatus {
+    let mut status = static_core::chat::CustomStatus {
         text: "Shipping it".into(),
         emoji: Some("pog".into()),
         emoji_id: Some("5".into()),
@@ -87,11 +87,11 @@ fn equal_lists_stay_so_rows_count_as_unchanged() {
     assert_eq!(changed.row_data(1), Some(3));
 
     // A profile built again from the same view isn't set again.
-    let view = yapfast_core::application::ProfileView {
-        profile: yapfast_core::chat::Profile {
+    let view = static_core::application::ProfileView {
+        profile: static_core::chat::Profile {
             id: "@sam:test".into(),
             name: "Sam".into(),
-            servers: vec![yapfast_core::chat::ProfileServer {
+            servers: vec![static_core::chat::ProfileServer {
                 id: "s".into(),
                 name: "Server".into(),
                 icon: None,
@@ -108,7 +108,7 @@ fn equal_lists_stay_so_rows_count_as_unchanged() {
         },
         ..Default::default()
     };
-    let state = yapfast_core::application::AppState::default();
+    let state = static_core::application::AppState::default();
     let mut pictures = HashMap::new();
     let shown = profile_data(&mut pictures, &state, &view);
     let again = profile_data(&mut pictures, &state, &view);
@@ -245,7 +245,7 @@ fn the_composers_menu_cuts_copies_and_pastes_through_the_application() {
 }
 
 /// Presses and lets go of a key, as typed.
-fn tap(window: &YapfastWindow, text: SharedString) {
+fn tap(window: &StaticWindow, text: SharedString) {
     use slint::platform::WindowEvent;
     window
         .window()
@@ -260,7 +260,7 @@ fn escape_in_the_composer_cancels_a_reply_and_keeps_the_draft() {
     use slint::platform::Key;
     i_slint_backend_testing::init_no_event_loop();
     let directory = tempfile::tempdir().unwrap();
-    let window = YapfastWindow::new().unwrap();
+    let window = StaticWindow::new().unwrap();
     let adapter = Adapter::new(
         Arc::new(BackgroundRuntime::new().unwrap()),
         directory.path().into(),
@@ -489,11 +489,11 @@ fn files_dropped_on_the_thread_beside_go_with_its_message() {
     let (window, adapter, folder) = discord_server_window_changed(0, |server, _| {
         server
             .threads
-            .push(yapfast_core::yapfast_discord::ready::Channel {
+            .push(static_core::static_discord::ready::Channel {
                 id: "30".into(),
                 name: "Plans".into(),
                 parent: Some("11".into()),
-                thread: Some(Box::new(yapfast_core::yapfast_discord::ready::Thread {
+                thread: Some(Box::new(static_core::static_discord::ready::Thread {
                     joined: true,
                     ..Default::default()
                 })),
@@ -552,15 +552,15 @@ fn files_dropped_on_the_thread_beside_go_with_its_message() {
 #[test]
 #[cfg(feature = "discord")]
 fn the_thread_beside_suggests_mentions_and_emoji_above_its_composer() {
-    use yapfast_core::chat::{ChatMember, Role};
+    use static_core::chat::{ChatMember, Role};
     let (window, adapter, _folder) = discord_server_window_changed(0, |server, _| {
         server
             .threads
-            .push(yapfast_core::yapfast_discord::ready::Channel {
+            .push(static_core::static_discord::ready::Channel {
                 id: "30".into(),
                 name: "Plans".into(),
                 parent: Some("11".into()),
-                thread: Some(Box::new(yapfast_core::yapfast_discord::ready::Thread {
+                thread: Some(Box::new(static_core::static_discord::ready::Thread {
                     joined: true,
                     ..Default::default()
                 })),
@@ -682,23 +682,23 @@ fn preferences_set_the_clock_text_size_previews_and_unmuting() {
     let message = ChatMessage {
         timestamp: 1_791_329_400,
         time: "23:30".into(),
-        embeds: vec![yapfast_core::chat::Embed::default()],
+        embeds: vec![static_core::chat::Embed::default()],
         ..Default::default()
     };
     // Missing preferences take their defaults: 24 hours, default text, previews.
     let defaults: Layout = serde_json::from_str("{}").unwrap();
     assert_eq!(
         defaults.noise_suppression,
-        yapfast_core::noise::Suppressor::DeepFilterNet
+        static_core::noise::Suppressor::DeepFilterNet
     );
     let row = defaults.restyle(&message, message_row(&message, &HashSet::new()));
     // A message from another day shows its date before its time, but beside
     // a grouped message only the time.
-    let now = yapfast_core::clock::now_ms() / 1000;
-    let time = yapfast_core::clock::time_on(message.timestamp, false);
+    let now = static_core::clock::now_ms() / 1000;
+    let time = static_core::clock::time_on(message.timestamp, false);
     assert_eq!(
         row.time,
-        yapfast_core::clock::sent(message.timestamp, now, false, false)
+        static_core::clock::sent(message.timestamp, now, false, false)
     );
     assert!(row.time.contains('/') && row.time.ends_with(&format!(" {time}")));
     assert_eq!(row.short_time, time);
@@ -708,16 +708,16 @@ fn preferences_set_the_clock_text_size_previews_and_unmuting() {
         text_size: Some(2),
         link_previews: Some(false),
         unmute_on_join: Some(true),
-        noise_suppression: yapfast_core::noise::Suppressor::RNNoise,
-        noise_strength: yapfast_core::noise::Strength::Light,
+        noise_suppression: static_core::noise::Suppressor::RNNoise,
+        noise_strength: static_core::noise::Strength::Light,
         input_sensitivity: Some(-45),
         reduce_room_echo: true,
         ..Default::default()
     };
     let row = layout.restyle(&message, message_row(&message, &HashSet::new()));
-    let time = yapfast_core::clock::time_on(message.timestamp, true);
+    let time = static_core::clock::time_on(message.timestamp, true);
     assert!(time.ends_with(" AM") || time.ends_with(" PM"));
-    let sent = yapfast_core::clock::sent(message.timestamp, now, true, false);
+    let sent = static_core::clock::sent(message.timestamp, now, true, false);
     assert!(sent.ends_with(&time));
     assert_eq!(row.time, sent);
     assert_eq!(row.time_styled, slint::StyledText::from_plain_text(&sent));
@@ -729,7 +729,7 @@ fn preferences_set_the_clock_text_size_previews_and_unmuting() {
         "A card, hidden while link previews are off."
     );
     let titled = ChatMessage {
-        embeds: vec![yapfast_core::chat::Embed {
+        embeds: vec![static_core::chat::Embed {
             title: "Server status".into(),
             ..Default::default()
         }],
@@ -759,8 +759,8 @@ fn preferences_set_the_clock_text_size_previews_and_unmuting() {
     assert_eq!(window.get_noise_suppression(), 1);
     assert_eq!(window.get_noise_strength(), 2);
     assert_eq!(
-        yapfast_core::noise::chosen(),
-        yapfast_core::noise::Suppressor::RNNoise
+        static_core::noise::chosen(),
+        static_core::noise::Suppressor::RNNoise
     );
     let saved = serde_json::to_value(&layout).unwrap();
     assert_eq!(saved["noise_suppression"], "rnnoise");
@@ -774,11 +774,8 @@ fn preferences_set_the_clock_text_size_previews_and_unmuting() {
     };
     assert_eq!(out_of_range.sensitivity(), 0);
     // The third choice is Off; an index out of range is the default.
-    assert_eq!(
-        chosen(&SUPPRESSORS, 2),
-        yapfast_core::noise::Suppressor::Off
-    );
-    assert_eq!(chosen(&STRENGTHS, -1), yapfast_core::noise::Strength::Full);
+    assert_eq!(chosen(&SUPPRESSORS, 2), static_core::noise::Suppressor::Off);
+    assert_eq!(chosen(&STRENGTHS, -1), static_core::noise::Strength::Full);
     assert_eq!(window.get_message_font_size(), 18.);
     // Joining a call turns the microphone on once it connects.
     let unmuted = Rc::new(Cell::new(false));
@@ -820,13 +817,13 @@ fn push_to_talk_keeps_its_mode_key_and_release_delay() {
     assert_eq!(window.get_input_mode(), 1);
     assert_eq!(window.get_talk_key(), "V");
     assert_eq!(window.get_talk_delay(), 2000);
-    assert!(yapfast_core::push_to_talk::on());
+    assert!(static_core::push_to_talk::on());
     let saved = serde_json::to_value(&layout).unwrap();
     assert_eq!(saved["input_mode"], "push_to_talk");
     assert_eq!(saved["push_to_talk_key"]["scancode"], 47);
     assert_eq!(saved["push_to_talk_key"]["trigger"], "v");
     defaults.apply(&window);
-    assert!(!yapfast_core::push_to_talk::on());
+    assert!(!static_core::push_to_talk::on());
     assert_eq!(window.get_talk_key(), "");
 }
 
@@ -1000,8 +997,8 @@ fn call_volumes_play_while_dragged_and_are_remembered() {
     window.set_microphone_volume(200);
     window.set_speaker_volume(50);
     window.invoke_call_volumes_changed();
-    assert!((yapfast_core::volume::microphone() - 1.995).abs() < 1e-3);
-    assert!((yapfast_core::volume::speakers() - 0.143).abs() < 1e-3);
+    assert!((static_core::volume::microphone() - 1.995).abs() < 1e-3);
+    assert!((static_core::volume::speakers() - 0.143).abs() < 1e-3);
     assert_eq!(
         Layout::read(directory.path()).microphone_volume,
         None,
@@ -1013,8 +1010,8 @@ fn call_volumes_play_while_dragged_and_are_remembered() {
     assert_eq!(read.speaker_volume, Some(50));
     let defaults: Layout = serde_json::from_str("{}").unwrap();
     defaults.apply(&window);
-    assert_eq!(yapfast_core::volume::microphone(), 1.0);
-    assert_eq!(yapfast_core::volume::speakers(), 1.0);
+    assert_eq!(static_core::volume::microphone(), 1.0);
+    assert_eq!(static_core::volume::speakers(), 1.0);
     read.apply(&window);
     assert_eq!(window.get_microphone_volume(), 200);
     assert_eq!(window.get_speaker_volume(), 50);
@@ -1083,12 +1080,12 @@ fn embed_fields_share_rows_three_inline_at_a_time() {
 }
 
 /// A window showing one styled message from Sam, with the composer.
-fn one_message(body: &str) -> YapfastWindow {
+fn one_message(body: &str) -> StaticWindow {
     messages(&[("Sam", body)])
 }
 
 /// A window showing styled messages, each starting a group, with the composer.
-fn messages(lines: &[(&str, &str)]) -> YapfastWindow {
+fn messages(lines: &[(&str, &str)]) -> StaticWindow {
     showing(
         lines
             .iter()
@@ -1118,7 +1115,7 @@ fn init_backend() {
 
 /// A window showing these messages, each starting a group and sent at 19:2 and its
 /// index, with the composer.
-fn showing(chat: Vec<ChatMessage>) -> YapfastWindow {
+fn showing(chat: Vec<ChatMessage>) -> StaticWindow {
     init_backend();
     let window = classic_window();
     copy_whole_messages(&window);
@@ -1153,7 +1150,7 @@ fn showing(chat: Vec<ChatMessage>) -> YapfastWindow {
     window
 }
 
-fn settle(window: &YapfastWindow) {
+fn settle(window: &StaticWindow) {
     for _ in 0..5 {
         slint::platform::update_timers_and_animations();
         let _ = window.invoke_timeline_extent();
@@ -1165,7 +1162,7 @@ fn settle(window: &YapfastWindow) {
 /// until a copy changes the clipboard, which it returns. The first drag to start on a
 /// message starts at the end of the lowest, so it selects up to the end of that message.
 /// The list returns to the newest message before each.
-fn copy_upwards(window: &YapfastWindow, wheel: usize) -> Option<String> {
+fn copy_upwards(window: &StaticWindow, wheel: usize) -> Option<String> {
     use slint::platform::{Key, PointerEventButton, WindowEvent};
     let dispatch = |event| window.window().dispatch_event(event);
     let at = |x, y| slint::LogicalPosition::new(x, y);
@@ -1240,7 +1237,7 @@ fn a_selection_runs_across_messages_with_their_names_and_times() {
 
 #[test]
 fn pictures_on_their_way_hold_their_place_as_skeletons() {
-    let attachment = |name: &str, preview_failed| yapfast_core::chat::Attachment {
+    let attachment = |name: &str, preview_failed| static_core::chat::Attachment {
         name: name.into(),
         size: Some(1000),
         image: true,
@@ -1276,14 +1273,14 @@ fn a_selection_copies_the_pictures_it_runs_through() {
     let picture = Arc::new(Picture {
         width: 40,
         height: 30,
-        rgba: yapfast_core::chat::Pixels::new(40, 30, vec![128; 40 * 30 * 4]),
+        rgba: static_core::chat::Pixels::new(40, 30, vec![128; 40 * 30 * 4]),
         ..Default::default()
     });
     let window = showing(vec![
         ChatMessage {
             author: "Sam".into(),
             body: "Look at this.".into(),
-            attachments: vec![yapfast_core::chat::Attachment {
+            attachments: vec![static_core::chat::Attachment {
                 name: "cat.png".into(),
                 size: None,
                 image: true,
@@ -1329,7 +1326,7 @@ fn a_selection_keeps_the_messages_it_scrolls_past() {
 #[test]
 fn a_click_on_a_link_in_selectable_text_opens_it() {
     use slint::platform::{PointerEventButton, WindowEvent};
-    let window = one_message("See https://example.com/yapfast");
+    let window = one_message("See https://example.com/static");
     let opened = Rc::new(RefCell::new(Vec::<String>::new()));
     let record = opened.clone();
     window.on_open_link(move |link| record.borrow_mut().push(link.into()));
@@ -1349,14 +1346,14 @@ fn a_click_on_a_link_in_selectable_text_opens_it() {
     assert!(
         opened
             .iter()
-            .all(|link| link == "https://example.com/yapfast")
+            .all(|link| link == "https://example.com/static")
     );
 }
 
 #[test]
 fn a_link_showing_other_text_asks_before_it_opens() {
     use slint::platform::{PointerEventButton, WindowEvent};
-    let window = one_message("See [example.com/yapfast](https://evil.example/yapfast)");
+    let window = one_message("See [example.com/static](https://evil.example/static)");
     let opened = Rc::new(RefCell::new(Vec::<String>::new()));
     let record = opened.clone();
     window.on_open_link(move |link| record.borrow_mut().push(link.into()));
@@ -1371,11 +1368,11 @@ fn a_link_showing_other_text_asks_before_it_opens() {
             .dispatch_event(WindowEvent::PointerReleased { position, button });
     }
     let opened = opened.borrow();
-    assert!(!opened.is_empty(), "a click on the link reaches Yapfast");
+    assert!(!opened.is_empty(), "a click on the link reaches Static");
     assert!(
         opened
             .iter()
-            .all(|link| link == "yapfast:leave/https://evil.example/yapfast"),
+            .all(|link| link == "yapfast:leave/https://evil.example/static"),
         "{opened:?}"
     );
 }
@@ -1413,7 +1410,7 @@ fn a_click_on_an_emoji_in_a_message_reaches_its_card() {
 #[test]
 fn an_emoji_card_says_what_the_emoji_is() {
     let mut pictures = HashMap::new();
-    let state = yapfast_core::application::AppState::default();
+    let state = static_core::application::AppState::default();
     let default = emoji_card(
         &emoji_text::Target::Unicode("😭".to_owned()),
         None,
@@ -1474,8 +1471,8 @@ fn an_animated_emoji_draws_a_frame_only_while_playing() {
 #[test]
 fn an_emoji_card_says_how_many_of_its_servers_members_are_online() {
     let mut pictures = HashMap::new();
-    let mut state = yapfast_core::application::AppState::default();
-    let server = yapfast_core::chat::ChatServer {
+    let mut state = static_core::application::AppState::default();
+    let server = static_core::chat::ChatServer {
         id: "discord:10".into(),
         name: "Equicord".into(),
         channels: Vec::new(),
@@ -1490,7 +1487,7 @@ fn an_emoji_card_says_how_many_of_its_servers_members_are_online() {
         ..Default::default()
     };
     let target = emoji_text::Target::Custom("42".to_owned());
-    // Before Discord answers, the note follows the features Yapfast has.
+    // Before Discord answers, the note follows the features Static has.
     let known = emoji_card(&target, Some(&server), &state, &mut pictures);
     assert_eq!(known.server_online, "", "nothing said yet");
     assert_eq!(known.server_note, "Discoverable Server");
@@ -1500,7 +1497,7 @@ fn an_emoji_card_says_how_many_of_its_servers_members_are_online() {
     );
     state.server_previews.insert(
         server.id.clone(),
-        yapfast_core::chat::ServerPreview {
+        static_core::chat::ServerPreview {
             online: Some(3999),
             discoverable: true,
         },
@@ -1512,10 +1509,10 @@ fn an_emoji_card_says_how_many_of_its_servers_members_are_online() {
     );
     assert_eq!(answered.server_note, "Discoverable Server");
     // A server Discover doesn't list shows its count alone, whatever feature
-    // Yapfast knew of it.
+    // Static knew of it.
     state.server_previews.insert(
         server.id.clone(),
-        yapfast_core::chat::ServerPreview {
+        static_core::chat::ServerPreview {
             online: Some(12),
             discoverable: false,
         },
@@ -1544,7 +1541,7 @@ fn an_emoji_card_says_how_many_of_its_servers_members_are_online() {
 #[test]
 fn a_right_click_on_a_link_gives_its_menu_the_address() {
     use slint::platform::{PointerEventButton, WindowEvent};
-    let window = one_message("See [example.com/yapfast](https://evil.example/yapfast)");
+    let window = one_message("See [example.com/static](https://evil.example/static)");
     let button = PointerEventButton::Right;
     let mut found = 0;
     for y in (100..700).step_by(4) {
@@ -1561,15 +1558,15 @@ fn a_right_click_on_a_link_gives_its_menu_the_address() {
             )
         };
         if let Some(link) = at(440.) {
-            assert_eq!(link, "yapfast:leave/https://evil.example/yapfast");
+            assert_eq!(link, "yapfast:leave/https://evil.example/static");
             assert_eq!(at(460.), None, "only where the press was");
             found += 1;
         }
     }
     assert!(found > 0, "a right press on the link records it");
     assert_eq!(
-        callbacks::web_address("yapfast:leave/https://evil.example/yapfast"),
-        Some("https://evil.example/yapfast")
+        callbacks::web_address("yapfast:leave/https://evil.example/static"),
+        Some("https://evil.example/static")
     );
     assert_eq!(
         callbacks::web_address("https://example.com/a"),
@@ -1708,7 +1705,7 @@ fn menus_list_their_choices_and_carry_them_out() {
     .unwrap();
     bind_callbacks(&window, &adapter);
     window.invoke_explore_preview();
-    let texts = |window: &YapfastWindow| -> Vec<String> {
+    let texts = |window: &StaticWindow| -> Vec<String> {
         window
             .get_menu_rows()
             .iter()
@@ -1772,7 +1769,7 @@ fn a_server_members_menu_follows_permissions_and_ticks_roles() {
     .unwrap();
     bind_callbacks(&window, &adapter);
     // Alice is Staff, below Leads; Dave, her friend, is below her.
-    adapter.borrow_mut().app = yapfast_core::application::member_server(&["30"]);
+    adapter.borrow_mut().app = static_core::application::member_server(&["30"]);
     window.invoke_prepare_menu("4".into(), true);
     let rows: Vec<MenuRow> = window.get_menu_rows().iter().collect();
     let texts: Vec<&str> = rows.iter().map(|row| row.text.as_str()).collect();
@@ -1931,8 +1928,8 @@ fn invite_to_server_lists_the_servers_in_a_submenu() {
     )
     .unwrap();
     bind_callbacks(&window, &adapter);
-    let mut app = yapfast_core::application::member_server(&["30"]);
-    yapfast_core::application::with_clubs(&mut app);
+    let mut app = static_core::application::member_server(&["30"]);
+    static_core::application::with_clubs(&mut app);
     adapter.borrow_mut().app = app;
     window.invoke_prepare_menu("4".into(), true);
     let rows: Vec<MenuRow> = window.get_menu_rows().iter().collect();
@@ -1959,7 +1956,7 @@ fn invite_to_server_lists_the_servers_in_a_submenu() {
 
 #[test]
 fn an_event_shows_when_it_runs_and_where() {
-    use yapfast_core::{application::EventDialog, chat::EventPreview, clock};
+    use static_core::{application::EventDialog, chat::EventPreview, clock};
     i_slint_backend_testing::init_no_event_loop();
     let directory = tempfile::tempdir().unwrap();
     let window = classic_window();
@@ -2046,7 +2043,7 @@ fn menus_give_each_row_its_own_submenu_and_tick_checkboxes() {
     assert_eq!(menus::toggle(&window, "hide-muted"), Some(true));
     assert!(window.get_menu_rows().row_data(3).unwrap().checked);
     assert_eq!(menus::toggle(&window, "suppress-roles"), Some(true));
-    let ticked = |window: &YapfastWindow| {
+    let ticked = |window: &StaticWindow| {
         window
             .get_menu_submenus()
             .row_data(2)
@@ -2181,7 +2178,7 @@ fn a_window_made_again_shows_what_the_last_one_did() {
     adapter
         .borrow_mut()
         .action(&window, Action::SelectRoom("general".into()));
-    let topic = Arc::new(yapfast_core::chat::Topic {
+    let topic = Arc::new(static_core::chat::Topic {
         body: "Plans for the weekend".into(),
         ..Default::default()
     });
@@ -2190,7 +2187,7 @@ fn a_window_made_again_shows_what_the_last_one_did() {
         topic: Some(topic),
     });
     adapter.borrow_mut().refresh(&window);
-    let shown = |window: &YapfastWindow| {
+    let shown = |window: &StaticWindow| {
         (
             window.get_sidebar_title(),
             window.get_filter_placeholder(),
@@ -3264,7 +3261,7 @@ fn collapsed_categories_keep_the_open_unread_and_occupied_channels() {
             ("b", "", true, false),
             ("c", "", true, false),
             ("e", "VOICE", true, true),
-            // The voice channel Yapfast is in stays.
+            // The voice channel Static is in stays.
             ("f", "", true, false),
             ("g", "OTHER", false, false),
             ("h", "", false, false),
@@ -3670,7 +3667,7 @@ fn an_unread_dm_shows_on_the_rail_above_the_servers_and_opens() {
     .unwrap();
     bind_callbacks(&window, &adapter);
     adapter.borrow_mut().action(&window, Action::Preview);
-    let rail = |window: &YapfastWindow| -> Vec<(String, bool, bool)> {
+    let rail = |window: &StaticWindow| -> Vec<(String, bool, bool)> {
         window
             .get_servers()
             .iter()
@@ -3710,13 +3707,13 @@ fn an_unread_dm_shows_on_the_rail_above_the_servers_and_opens() {
 
 #[test]
 fn a_folder_on_the_rail_holds_its_servers_until_opened() {
-    let folder = yapfast_core::chat::ServerFolder {
+    let folder = static_core::chat::ServerFolder {
         id: "discord-folder:7".into(),
         name: None,
         color: Some(0xff0000),
     };
-    let server = |id: &str, folder: Option<&yapfast_core::chat::ServerFolder>| {
-        yapfast_core::chat::ChatServer {
+    let server = |id: &str, folder: Option<&static_core::chat::ServerFolder>| {
+        static_core::chat::ChatServer {
             id: id.into(),
             name: id.into(),
             channels: vec![],
@@ -3847,7 +3844,7 @@ fn a_right_click_on_a_folder_asks_for_its_menu() {
 #[cfg(feature = "discord")]
 #[test]
 fn a_profile_shows_activities_as_discord_cards() {
-    let activities = yapfast_discord::activity::activities(&serde_json::json!([
+    let activities = static_discord::activity::activities(&serde_json::json!([
         {"type": 2, "name": "Spotify", "details": "Weightless", "state": "Marconi Union",
          "sync_id": "6kkwzB6hXLIONkEk9JciA6",
          "timestamps": {"start": 1_700_000_000_000_u64, "end": 1_700_000_480_000_u64},
@@ -3878,7 +3875,7 @@ fn a_profile_shows_activities_as_discord_cards() {
 
 #[test]
 fn friends_in_a_servers_voice_channel_show_where() {
-    use yapfast_core::chat::{ChatRoom, ChatServer, VoicePerson};
+    use static_core::chat::{ChatRoom, ChatServer, VoicePerson};
     let person = |id: &str| VoicePerson {
         id: id.into(),
         name: id.into(),
@@ -3966,13 +3963,13 @@ fn friends_in_a_servers_voice_channel_show_where() {
 
 #[test]
 fn a_call_shows_on_its_servers_icon_and_its_closed_folder() {
-    let folder = yapfast_core::chat::ServerFolder {
+    let folder = static_core::chat::ServerFolder {
         id: "discord-folder:7".into(),
         name: None,
         color: None,
     };
-    let server = |id: &str, channel: &str, folder: Option<&yapfast_core::chat::ServerFolder>| {
-        yapfast_core::chat::ChatServer {
+    let server = |id: &str, channel: &str, folder: Option<&static_core::chat::ServerFolder>| {
+        static_core::chat::ChatServer {
             id: id.into(),
             name: id.into(),
             channels: vec![channel.into()],
@@ -4006,7 +4003,7 @@ fn a_call_shows_on_its_servers_icon_and_its_closed_folder() {
     // A voice channel chosen but not joined yet shows nothing.
     state.voice.room = Some("bravo-lounge".into());
     assert_eq!(calls(&state, &[]), none);
-    state.voice.phase = yapfast_core::voice::Phase::Connected;
+    state.voice.phase = static_core::voice::Phase::Connected;
     assert_eq!(
         calls(&state, &[]),
         [("Alpha".into(), false), ("discord-folder:7".into(), true)]
@@ -4041,7 +4038,7 @@ fn closing_the_viewer_lets_go_of_its_picture() {
     let mut adapter = adapter.borrow_mut();
     adapter.app.state.messages = Arc::new(vec![Arc::new(ChatMessage {
         item: "i0".into(),
-        attachments: vec![yapfast_core::chat::Attachment {
+        attachments: vec![static_core::chat::Attachment {
             name: "a.png".into(),
             size: None,
             image: true,
@@ -4049,11 +4046,11 @@ fn closing_the_viewer_lets_go_of_its_picture() {
             preview: Some(Arc::new(Picture {
                 width: 40,
                 height: 30,
-                rgba: yapfast_core::chat::Pixels::new(40, 30, vec![128; 40 * 30 * 4]),
+                rgba: static_core::chat::Pixels::new(40, 30, vec![128; 40 * 30 * 4]),
                 ..Default::default()
             })),
             preview_failed: false,
-            placement: yapfast_core::chat::Placement::Message,
+            placement: static_core::chat::Placement::Message,
             gif: None,
             spoiler: false,
             video: false,
@@ -4061,7 +4058,7 @@ fn closing_the_viewer_lets_go_of_its_picture() {
         }],
         ..Default::default()
     })]);
-    adapter.app.state.viewer = Some(yapfast_core::application::Viewer {
+    adapter.app.state.viewer = Some(static_core::application::Viewer {
         item: "i0".into(),
         index: 0,
         pictures: HashMap::new(),
@@ -4086,14 +4083,14 @@ fn a_pictures_menu_links_to_it_when_it_has_an_address() {
     )
     .unwrap();
     bind_callbacks(&window, &adapter);
-    let file = |url: Option<&str>| yapfast_core::chat::Attachment {
+    let file = |url: Option<&str>| static_core::chat::Attachment {
         name: "a.png".into(),
         size: None,
         image: true,
         dimensions: None,
         preview: None,
         preview_failed: false,
-        placement: yapfast_core::chat::Placement::Message,
+        placement: static_core::chat::Placement::Message,
         gif: None,
         spoiler: false,
         video: false,
@@ -4117,10 +4114,10 @@ fn a_pictures_menu_links_to_it_when_it_has_an_address() {
 /// it, muted with its own level; Alice is "1".
 #[cfg(feature = "discord")]
 fn discord_server_adapter(
-    window: &YapfastWindow,
+    window: &StaticWindow,
     directory: &std::path::Path,
 ) -> Rc<RefCell<Adapter>> {
-    use yapfast_discord::{
+    use static_discord::{
         marked::{ChannelMarks, MarkedServer, ServerMarks},
         notifications::{Level, Mute, Notifications as Settings, Override},
         ready,
@@ -4174,7 +4171,7 @@ fn discord_server_adapter(
     adapter
         .borrow_mut()
         .app
-        .apply(yapfast_core::chat::Event::Discord(Arc::new(Snapshot {
+        .apply(static_core::chat::Event::Discord(Arc::new(Snapshot {
             status: Status::Online,
             user_id: Some("1".into()),
             servers: vec![server],
@@ -4190,7 +4187,7 @@ fn the_bell_and_channel_menus_offer_the_same_notification_choices() {
     let directory = tempfile::tempdir().unwrap();
     let window = classic_window();
     let adapter = discord_server_adapter(&window, directory.path());
-    let rows = |window: &YapfastWindow| -> Vec<(String, String, bool)> {
+    let rows = |window: &StaticWindow| -> Vec<(String, String, bool)> {
         window
             .get_menu_rows()
             .iter()
@@ -4214,7 +4211,7 @@ fn the_bell_and_channel_menus_offer_the_same_notification_choices() {
     let submenus = window.get_menu_submenus();
     assert_eq!(
         submenus.row_data(0).unwrap().row_count(),
-        yapfast_core::application::MUTE_TIMES.len()
+        static_core::application::MUTE_TIMES.len()
     );
     // Clicked itself, the row mutes until it's turned back on, as Discord's
     // does; the times are its submenu's.
@@ -4265,7 +4262,7 @@ fn the_bell_and_channel_menus_offer_the_same_notification_choices() {
     );
 
     // What each choice changes.
-    use yapfast_core::chat::{Muting, NotificationChange, NotifyLevel};
+    use static_core::chat::{Muting, NotificationChange, NotifyLevel};
     let adapter = adapter.borrow();
     let general = menus::Notify::of(&adapter, "discord:10:11").unwrap();
     assert_eq!(
@@ -4295,7 +4292,7 @@ fn the_bell_and_channel_menus_offer_the_same_notification_choices() {
 #[test]
 #[cfg(feature = "discord")]
 fn a_server_search_names_the_server_and_heads_results_with_their_channels() {
-    use yapfast_core::chat::{Event, SearchHit};
+    use static_core::chat::{Event, SearchHit};
     i_slint_backend_testing::init_no_event_loop();
     let directory = tempfile::tempdir().unwrap();
     let window = classic_window();
@@ -4352,7 +4349,7 @@ fn a_server_search_names_the_server_and_heads_results_with_their_channels() {
 /// Her settings for the server hide muted channels and suppress role
 /// mentions; #general mentions her.
 #[cfg(feature = "discord")]
-fn discord_server_window() -> (YapfastWindow, Rc<RefCell<Adapter>>, tempfile::TempDir) {
+fn discord_server_window() -> (StaticWindow, Rc<RefCell<Adapter>>, tempfile::TempDir) {
     discord_server_window_granting(0)
 }
 
@@ -4361,7 +4358,7 @@ fn discord_server_window() -> (YapfastWindow, Rc<RefCell<Adapter>>, tempfile::Te
 #[cfg(feature = "discord")]
 fn discord_server_window_granting(
     extra: u64,
-) -> (YapfastWindow, Rc<RefCell<Adapter>>, tempfile::TempDir) {
+) -> (StaticWindow, Rc<RefCell<Adapter>>, tempfile::TempDir) {
     discord_server_window_changed(extra, |_, _| {})
 }
 
@@ -4370,11 +4367,11 @@ fn discord_server_window_granting(
 fn discord_server_window_changed(
     extra: u64,
     change: impl FnOnce(
-        &mut yapfast_core::yapfast_discord::ready::Server,
-        &mut yapfast_core::yapfast_discord::marked::ServerMarks,
+        &mut static_core::static_discord::ready::Server,
+        &mut static_core::static_discord::marked::ServerMarks,
     ),
-) -> (YapfastWindow, Rc<RefCell<Adapter>>, tempfile::TempDir) {
-    use yapfast_core::yapfast_discord::{
+) -> (StaticWindow, Rc<RefCell<Adapter>>, tempfile::TempDir) {
+    use static_core::static_discord::{
         marked::{MarkedServer, ServerMarks},
         notifications::Notifications,
         ready::{self, permission},
@@ -4436,7 +4433,7 @@ fn discord_server_window_changed(
 #[test]
 #[cfg(feature = "discord")]
 fn a_discord_servers_menus_show_and_change_its_notifications() {
-    use yapfast_core::chat::{Muting, NotificationChange, NotifyLevel};
+    use static_core::chat::{Muting, NotificationChange, NotifyLevel};
     let (window, adapter, _directory) = discord_server_window();
     let texts = |rows: ModelRc<MenuRow>| -> Vec<String> {
         rows.iter().map(|row| row.text.to_string()).collect()
@@ -4453,7 +4450,8 @@ fn a_discord_servers_menus_show_and_change_its_notifications() {
             "Edit server profile",
             "Leave server",
             "Copy link",
-            "Copy ID"
+            "Copy ID",
+            "Create Folder"
         ]
     );
     let notifications = rows.row_data(2).unwrap();
@@ -4496,7 +4494,8 @@ fn a_discord_servers_menus_show_and_change_its_notifications() {
             "Notification settings",
             "Edit server profile",
             "Hide muted channels",
-            "Leave server"
+            "Leave server",
+            "Create Folder"
         ]
     );
     assert_eq!(window.get_header_server(), "", "until the server is open");
@@ -4609,7 +4608,7 @@ fn categories_of_the_same_name_head_and_fold_their_own_channels() {
 #[test]
 #[cfg(feature = "discord")]
 fn pinned_channels_leave_their_categories_for_the_top() {
-    use yapfast_core::yapfast_discord::notifications::{Notifications, Override};
+    use static_core::static_discord::notifications::{Notifications, Override};
     let (window, adapter, _directory) = discord_server_window_changed(0, |_, marks| {
         let mut settings = Notifications::clone(&marks.notifications);
         settings.overrides.insert(
@@ -4674,7 +4673,7 @@ fn pinned_channels_leave_their_categories_for_the_top() {
 #[test]
 #[cfg(feature = "discord")]
 fn a_community_server_lists_the_channels_followed_and_offers_following() {
-    use yapfast_core::yapfast_discord::notifications::Notifications;
+    use static_core::static_discord::notifications::Notifications;
     let (window, adapter, _directory) = discord_server_window_changed(0, |server, marks| {
         let mut settings = Notifications::clone(&marks.notifications);
         settings.flags = 1 << 14;
@@ -4743,7 +4742,7 @@ fn browse_channels_opens_from_a_community_servers_list_and_searches() {
     assert!(!window.get_browse_open());
     window.invoke_open_browse();
     assert!(window.get_browse_open());
-    let rows = |window: &YapfastWindow| -> Vec<(String, String, bool, bool)> {
+    let rows = |window: &StaticWindow| -> Vec<(String, String, bool, bool)> {
         window
             .get_browse_rows()
             .iter()
@@ -4816,12 +4815,12 @@ fn empty_categories_go_where_discords_order_puts_them() {
 #[cfg(feature = "discord")]
 fn the_invite_dialog_shows_its_link_and_how_long_it_lasts() {
     let (window, adapter, _directory) = discord_server_window();
-    let show = |invite: yapfast_core::application::InviteDialog| {
+    let show = |invite: static_core::application::InviteDialog| {
         let mut adapter = adapter.borrow_mut();
         adapter.app.state.invite = Some(invite);
         adapter.refresh(&window);
     };
-    let invite = yapfast_core::application::InviteDialog {
+    let invite = static_core::application::InviteDialog {
         server: "Test".into(),
         room: "discord:10:14".into(),
         channel: "Lounge".into(),
@@ -4846,7 +4845,7 @@ fn the_invite_dialog_shows_its_link_and_how_long_it_lasts() {
 
     // Choosing others stays while the dialog is open.
     window.set_invite_age(6);
-    show(yapfast_core::application::InviteDialog {
+    show(static_core::application::InviteDialog {
         link: Some("https://discord.gg/abc".into()),
         making: false,
         ..invite.clone()
@@ -4859,7 +4858,7 @@ fn the_invite_dialog_shows_its_link_and_how_long_it_lasts() {
     );
     assert_eq!(window.get_invite_age(), 6);
 
-    show(yapfast_core::application::InviteDialog {
+    show(static_core::application::InviteDialog {
         max_age: 0,
         max_uses: 1,
         channel: "general".into(),
@@ -4878,10 +4877,10 @@ fn the_invite_dialog_shows_its_link_and_how_long_it_lasts() {
 #[test]
 #[cfg(feature = "discord")]
 fn channel_menus_and_their_dialog_make_change_and_delete_channels() {
-    use yapfast_core::{
+    use static_core::{
         application::{ChannelAsk, ChannelDialog},
         chat::{ChannelKind, ChannelSettings},
-        yapfast_discord::ready::permission,
+        static_discord::ready::permission,
     };
     let (window, adapter, _directory) = discord_server_window_granting(permission::MANAGE_CHANNELS);
     let texts = |rows: ModelRc<MenuRow>| -> Vec<String> {
@@ -4970,7 +4969,7 @@ fn channel_menus_and_their_dialog_make_change_and_delete_channels() {
 #[cfg(feature = "discord")]
 fn channel_settings_cover_the_window_with_overview_and_permissions() {
     use slint::Model;
-    use yapfast_core::yapfast_discord::ready::permission;
+    use static_core::static_discord::ready::permission;
     let (window, adapter, _directory) =
         discord_server_window_granting(permission::MANAGE_CHANNELS | permission::MANAGE_ROLES);
     window.invoke_prepare_menu("discord:10:11".into(), false);
@@ -5090,7 +5089,7 @@ fn leaving_a_server_asks_first_in_red() {
 #[test]
 #[cfg(feature = "discord")]
 fn leaving_a_group_dm_asks_first_and_offers_to_tell_no_one() {
-    use yapfast_core::yapfast_discord::service::{Conversation, Snapshot, Status};
+    use static_core::static_discord::service::{Conversation, Snapshot, Status};
     let (window, adapter, _directory) = discord_server_window();
     adapter
         .borrow_mut()
@@ -5134,7 +5133,7 @@ fn leaving_a_group_dm_asks_first_and_offers_to_tell_no_one() {
 #[test]
 #[cfg(feature = "discord")]
 fn edit_server_profile_opens_the_per_server_profile_editor() {
-    use yapfast_core::yapfast_discord::ready::permission;
+    use static_core::static_discord::ready::permission;
     let (window, adapter, _directory) = discord_server_window_granting(permission::CHANGE_NICKNAME);
     window.invoke_prepare_menu("header:discord:10".into(), false);
     let texts: Vec<String> = window
@@ -5157,9 +5156,9 @@ fn edit_server_profile_opens_the_per_server_profile_editor() {
         let mut adapter = adapter.borrow_mut();
         adapter.app.apply(Event::OwnProfile {
             server: Some("discord:10".into()),
-            result: Ok(yapfast_core::chat::OwnProfile {
+            result: Ok(static_core::chat::OwnProfile {
                 pronouns: "she/her".into(),
-                fallback: yapfast_core::chat::Profile {
+                fallback: static_core::chat::Profile {
                     name: "Alice".into(),
                     handle: "alice".into(),
                     bio: "Main bio".into(),
@@ -5203,12 +5202,12 @@ fn edit_server_profile_opens_the_per_server_profile_editor() {
 #[cfg(feature = "discord")]
 fn server_settings_open_from_the_menu_and_hold_their_changes_until_saved() {
     use slint::Model;
-    use yapfast_core::{
+    use static_core::{
         chat::{ServerProfile, ServerSettingsPage, SettingsSection},
-        yapfast_discord::ready::permission,
+        static_discord::ready::permission,
     };
     let (window, adapter, _directory) = discord_server_window_granting(permission::MANAGE_GUILD);
-    let texts = |window: &YapfastWindow| -> Vec<String> {
+    let texts = |window: &StaticWindow| -> Vec<String> {
         window
             .get_menu_rows()
             .iter()
@@ -5289,9 +5288,9 @@ fn server_settings_open_from_the_menu_and_hold_their_changes_until_saved() {
 #[cfg(feature = "discord")]
 fn engagement_and_boost_perks_show_their_choices_and_locks() {
     use slint::Model;
-    use yapfast_core::{
+    use static_core::{
         chat::{GuildSettings, ServerSettingsPage, SettingsSection},
-        yapfast_discord::ready::permission,
+        static_discord::ready::permission,
     };
     let (window, adapter, _directory) = discord_server_window_granting(permission::MANAGE_GUILD);
     let names = |list: ModelRc<SharedString>| -> Vec<String> {
@@ -5367,9 +5366,9 @@ fn engagement_and_boost_perks_show_their_choices_and_locks() {
 #[test]
 fn moderation_shows_safety_setup_and_bans_as_discords_pages_do() {
     use slint::Model;
-    use yapfast_core::{
+    use static_core::{
         chat::{Ban, GuildSettings, RoleMember, ServerSettingsPage, SettingsSection},
-        yapfast_discord::ready::permission,
+        static_discord::ready::permission,
     };
     let (window, adapter, _directory) =
         discord_server_window_granting(permission::BAN_MEMBERS | permission::MANAGE_GUILD);
@@ -5490,9 +5489,9 @@ fn moderation_shows_safety_setup_and_bans_as_discords_pages_do() {
 #[test]
 fn audit_log_shows_rows_that_open_their_numbered_lines() {
     use slint::Model;
-    use yapfast_core::{
+    use static_core::{
         chat::{AuditEntry, AuditLog, AuditUser, ServerSettingsPage, SettingsSection},
-        yapfast_discord::ready::permission,
+        static_discord::ready::permission,
     };
     let (window, adapter, _directory) = discord_server_window_granting(permission::VIEW_AUDIT_LOG);
     window.invoke_prepare_menu("header:discord:10".into(), false);
@@ -5505,7 +5504,7 @@ fn audit_log_shows_rows_that_open_their_numbered_lines() {
         .collect();
     assert_eq!(rows, ["MODERATION", "Audit Log", "Bans"]);
     // A kick an hour ago, with its reason, and an unban without lines.
-    let now = yapfast_core::clock::now_ms();
+    let now = static_core::clock::now_ms();
     let id = |ago_ms: u64| (((now - ago_ms) - 1_420_070_400_000) << 22).to_string();
     let entry = |id: String, action: u16, reason: Option<&str>| AuditEntry {
         id,
@@ -5582,12 +5581,12 @@ fn audit_log_shows_rows_that_open_their_numbered_lines() {
 #[test]
 fn members_and_invites_list_as_discords_pages_do() {
     use slint::Model;
-    use yapfast_core::{
+    use static_core::{
         chat::{
             GuildSettings, JoinMethod, ListedMember, RoleMember, ServerInvite, ServerSettingsPage,
             SettingsSection,
         },
-        yapfast_discord::ready::permission,
+        static_discord::ready::permission,
     };
     let (window, adapter, _directory) = discord_server_window_changed(
         permission::KICK_MEMBERS | permission::MANAGE_GUILD | permission::CREATE_INSTANT_INVITE,
@@ -5619,7 +5618,7 @@ fn members_and_invites_list_as_discords_pages_do() {
     // Members: a moderator joined three days ago, timed out, and someone
     // whose join Discord doesn't know.
     window.invoke_server_settings_section(7);
-    let now = yapfast_core::clock::now_ms();
+    let now = static_core::clock::now_ms();
     let member = |id: &str, name: &str, roles: &[&str], joined_by| ListedMember {
         person: RoleMember {
             id: id.into(),
@@ -5795,12 +5794,12 @@ fn delete_server_ends_the_owners_sidebar_and_asks_for_the_name() {
 #[test]
 fn emoji_and_stickers_show_as_discords_pages_do() {
     use slint::Model;
-    use yapfast_core::{
+    use static_core::{
         chat::{
             GuildSettings, RoleMember, ServerEmoji, ServerSettingsPage, ServerSticker,
             SettingsSection, StickerForm,
         },
-        yapfast_discord::ready::permission,
+        static_discord::ready::permission,
     };
     let (window, adapter, _directory) =
         discord_server_window_changed(permission::CREATE_GUILD_EXPRESSIONS, |_, _| {});
@@ -5938,9 +5937,9 @@ fn emoji_and_stickers_show_as_discords_pages_do() {
 #[cfg(feature = "discord")]
 fn roles_lock_what_ranks_above_her_and_the_permissions_she_lacks() {
     use slint::Model;
-    use yapfast_core::{
+    use static_core::{
         chat::{RoleDetail, ServerRoles, ServerSettingsPage, SettingsSection},
-        yapfast_discord::ready::permission,
+        static_discord::ready::permission,
     };
     // She holds Staff, which may kick.
     let (window, adapter, _directory) =
@@ -6037,7 +6036,7 @@ fn roles_lock_what_ranks_above_her_and_the_permissions_she_lacks() {
 #[cfg(feature = "discord")]
 fn the_two_factor_prompt_offers_discords_methods() {
     use slint::Model;
-    use yapfast_core::chat::MfaMethod;
+    use static_core::chat::MfaMethod;
     let (window, adapter, _directory) = discord_server_window_granting(0);
     {
         let mut adapter = adapter.borrow_mut();
@@ -6087,10 +6086,10 @@ fn edit_profile_opens_the_main_profile_editor() {
         let mut adapter = adapter.borrow_mut();
         adapter.app.apply(Event::OwnProfile {
             server: None,
-            result: Ok(yapfast_core::chat::OwnProfile {
+            result: Ok(static_core::chat::OwnProfile {
                 name: "Alice".into(),
                 accent: Some(0x112233),
-                fallback: yapfast_core::chat::Profile {
+                fallback: static_core::chat::Profile {
                     name: "alice".into(),
                     handle: "alice".into(),
                     ..Default::default()
@@ -6159,15 +6158,15 @@ fn a_theme_paints_the_window_and_the_mentions_in_its_rows() {
     let window = classic_window();
     assert_eq!(
         theme::Theme::shown(&window),
-        theme::YAP,
-        "the Slint defaults are Yap's, for the first frame"
+        theme::STATIC_THEME,
+        "the Slint defaults are Static's, for the first frame"
     );
     let message = ChatMessage {
         body: "hi @Bob".into(),
         formatted: true,
-        mentions: vec![yapfast_core::mention::Mentioned {
+        mentions: vec![static_core::mention::Mentioned {
             text: "@Bob".into(),
-            target: yapfast_core::mention::Target::User("2".into()),
+            target: static_core::mention::Target::User("2".into()),
             color: None,
             at: vec![3],
         }],
@@ -6178,13 +6177,13 @@ fn a_theme_paints_the_window_and_the_mentions_in_its_rows() {
         dark: false,
         chat: slint::Color::from_rgb_u8(0xfa, 0xf8, 0xf5),
         link: slint::Color::from_rgb_u8(0x1a, 0x5f, 0xb4),
-        ..theme::YAP
+        ..theme::STATIC_THEME
     };
     assert!(light.apply(&window), "mentions change colour");
     assert_eq!(theme::Theme::shown(&window), light);
     assert!(message_row_plain(&message).styled != yap_row.styled);
     assert!(!light.apply(&window), "nothing to build again");
-    assert!(theme::YAP.apply(&window));
+    assert!(theme::STATIC_THEME.apply(&window));
     assert!(message_row_plain(&message).styled == yap_row.styled);
 }
 
@@ -6217,8 +6216,8 @@ fn a_chosen_theme_is_kept_and_survives_a_window_made_again() {
     assert_eq!(theme::Theme::shown(&again), nord);
     assert_eq!(again.get_theme_id(), "nord");
 
-    // An id Yapfast doesn't know changes nothing, and a stored one it no longer
-    // has shows Yap.
+    // An id Static doesn't know changes nothing, and a stored one it no longer
+    // has shows Static.
     again.invoke_choose_theme("missing".into());
     assert_eq!(theme::Theme::shown(&again), nord);
     let fresh = classic_window();
@@ -6227,7 +6226,7 @@ fn a_chosen_theme_is_kept_and_survives_a_window_made_again() {
         ..Default::default()
     }
     .apply(&fresh);
-    assert_eq!(theme::Theme::shown(&fresh), theme::YAP);
+    assert_eq!(theme::Theme::shown(&fresh), theme::STATIC_THEME);
     assert_eq!(fresh.get_theme_id(), "yap");
 }
 
@@ -6241,7 +6240,11 @@ fn built_in_themes_have_their_own_ids_and_say_whether_they_are_dark() {
             u32::from(chat.red()) + u32::from(chat.green()) + u32::from(chat.blue()) > 3 * 128;
         assert_eq!(built_in.theme.dark, !light, "{}", built_in.name);
     }
-    assert_eq!(theme::BUILT_IN[0].theme, theme::YAP, "Yap comes first");
+    assert_eq!(
+        theme::BUILT_IN[0].theme,
+        theme::STATIC_THEME,
+        "Static comes first"
+    );
 }
 
 #[test]
@@ -6249,14 +6252,17 @@ fn a_colour_is_written_as_slint_writes_one() {
     let parse = |text| theme::parse(text).map(theme::hex);
     assert_eq!(parse("#abc").as_deref(), Some("#aabbcc"));
     assert_eq!(parse(" #A0B1C2 ").as_deref(), Some("#a0b1c2"));
-    assert_eq!(parse("#ffbf4726").as_deref(), Some("#ffbf4726"));
+    assert_eq!(parse("#76e0be26").as_deref(), Some("#76e0be26"));
     assert_eq!(parse("#123456ff").as_deref(), Some("#123456"));
     for wrong in [
         "", "#", "abc", "a0b1c2", "#ab", "#abcd", "#12345", "#1234567", "#ggg", "#+12", "#-12345",
     ] {
         assert_eq!(theme::parse(wrong), None, "{wrong:?}");
     }
-    assert_eq!(theme::parse("#ffbf4726"), Some(theme::YAP.accent_soft));
+    assert_eq!(
+        theme::parse("#76e0be26"),
+        Some(theme::STATIC_THEME.accent_soft)
+    );
 }
 
 #[test]
@@ -6298,10 +6304,10 @@ fn a_custom_theme_keeps_its_colours_by_name_and_falls_back_to_its_base() {
         custom
     );
 
-    // A base Yapfast doesn't know is Yap.
+    // A base Static doesn't know is Static.
     let unknown: theme::Custom =
         serde_json::from_value(serde_json::json!({ "base": "gone" })).unwrap();
-    assert_eq!((unknown.base, unknown.theme), ("yap", theme::YAP));
+    assert_eq!((unknown.base, unknown.theme), ("yap", theme::STATIC_THEME));
 }
 
 #[test]
@@ -6313,7 +6319,7 @@ fn custom_theme_ids_stay_apart_from_built_in_ones_and_each_other() {
         id: id.into(),
         name: id.into(),
         base: "yap",
-        theme: theme::YAP,
+        theme: theme::STATIC_THEME,
     };
     let mut themes = vec![
         custom("custom:2"),
@@ -6447,7 +6453,7 @@ fn a_custom_theme_is_made_edited_and_deleted_in_appearance() {
     window.invoke_cancel_theme();
     assert_eq!(theme::Theme::shown(&window), midnight);
 
-    // Renamed, then deleted while chosen: Yap shows.
+    // Renamed, then deleted while chosen: Static shows.
     window.invoke_edit_theme("custom:1".into());
     window.set_theme_name("Dusk".into());
     window.invoke_save_theme();
@@ -6463,7 +6469,7 @@ fn a_custom_theme_is_made_edited_and_deleted_in_appearance() {
     window.invoke_delete_theme();
     assert!(!window.get_theme_editor());
     assert_eq!(window.get_theme_id(), "yap");
-    assert_eq!(theme::Theme::shown(&window), theme::YAP);
+    assert_eq!(theme::Theme::shown(&window), theme::STATIC_THEME);
     assert_eq!(window.get_themes().row_count(), theme::BUILT_IN.len());
     let layout = Layout::read(directory.path());
     assert_eq!(layout.theme.as_deref(), Some("yap"));
@@ -6498,7 +6504,7 @@ fn a_window_made_again_while_editing_drops_the_edit() {
         "rows lose the edited mention colour"
     );
     assert!(!again.get_theme_editor());
-    assert_eq!(theme::Theme::shown(&again), theme::YAP);
+    assert_eq!(theme::Theme::shown(&again), theme::STATIC_THEME);
     assert_eq!(theme::mention_color(), 0x7cc4ff);
     assert!(Layout::read(directory.path()).custom_themes.is_empty());
 }
@@ -6574,8 +6580,8 @@ fn the_thread_beside_keeps_its_rows_when_a_new_layout_builds_them_again() {
 #[cfg(feature = "discord")]
 #[test]
 fn requests_list_someone_once_with_their_message() {
-    use yapfast_core::chat::{ChatRoom, FriendRequest, RequestPreview};
-    use yapfast_core::network::Network;
+    use static_core::chat::{ChatRoom, FriendRequest, RequestPreview};
+    use static_core::network::Network;
     let request = |id: &str, name: &str, incoming, spam| FriendRequest {
         id: id.into(),
         name: name.into(),
@@ -6698,9 +6704,9 @@ fn join_a_server_shows_the_invites_server_and_a_link_opens_it() {
     assert_eq!(prompt.status, "Looking up the invite...");
 
     let mut adapter = adapter.borrow_mut();
-    adapter.app.state.join = Some(yapfast_core::application::JoinDialog {
+    adapter.app.state.join = Some(static_core::application::JoinDialog {
         code: Some("abc".into()),
-        preview: Some(yapfast_core::chat::InvitePreview {
+        preview: Some(static_core::chat::InvitePreview {
             code: "abc".into(),
             server: "discord:20".into(),
             name: "Builders".into(),
@@ -6741,7 +6747,7 @@ fn a_handed_link_waits_for_the_open_dialog() {
     );
     let shown = query(&adapter);
     assert!(shown.is_some());
-    // Another app hands Yapfast a link to a different application while
+    // Another app hands Static a link to a different application while
     // the dialog is open: an Authorize click is still for the first.
     {
         let mut adapter = adapter.borrow_mut();
@@ -6762,8 +6768,8 @@ fn a_handed_link_waits_for_the_open_dialog() {
 #[test]
 #[cfg(feature = "discord")]
 fn authorizing_an_app_says_what_it_asks_for_and_where_it_goes() {
-    use yapfast_core::application::OAuthDialog;
-    use yapfast_core::chat::{OAuthGuild, OAuthPreview};
+    use static_core::application::OAuthDialog;
+    use static_core::chat::{OAuthGuild, OAuthPreview};
     let (window, adapter, _directory) = discord_server_window();
     adapter.borrow_mut().refresh(&window);
     // A plain bot link is the dialog's, not the browser's.
@@ -6903,7 +6909,7 @@ fn discord_links_open_channels_messages_and_profiles_here() {
 
 #[test]
 fn a_card_of_components_shows_headings_files_and_only_link_buttons_working() {
-    use yapfast_core::chat::{
+    use static_core::chat::{
         Attachment, ButtonStyle, Card, CardButton as Button, CardRow as Row, Placement,
     };
     i_slint_backend_testing::init_no_event_loop();
@@ -7067,9 +7073,9 @@ fn a_mention_in_a_quote_still_links() {
     i_slint_backend_testing::init_no_event_loop();
     let mut message = formatted("# Hi\n> and @Bob");
     let plain = message_row_plain(&message);
-    message.mentions = vec![yapfast_core::mention::Mentioned {
+    message.mentions = vec![static_core::mention::Mentioned {
         text: "@Bob".into(),
-        target: yapfast_core::mention::Target::User("2".into()),
+        target: static_core::mention::Target::User("2".into()),
         color: None,
         at: vec![message.body.find('@').unwrap()],
     }];
@@ -7105,15 +7111,15 @@ fn spoilers_count_on_across_blocks() {
 fn an_embed_shows_headings_and_code_in_its_description_and_fields() {
     i_slint_backend_testing::init_no_event_loop();
     let message = ChatMessage {
-        embeds: vec![yapfast_core::chat::Embed {
+        embeds: vec![static_core::chat::Embed {
             description: "## Status\n```\nall good\n```".into(),
             fields: vec![
-                yapfast_core::chat::EmbedField {
+                static_core::chat::EmbedField {
                     name: "Plain".into(),
                     value: "just **text**".into(),
                     inline: false,
                 },
-                yapfast_core::chat::EmbedField {
+                static_core::chat::EmbedField {
                     name: "Quoted".into(),
                     value: "> said".into(),
                     inline: false,
@@ -7226,7 +7232,7 @@ fn resizing_the_window_carries_the_pickers_room_with_the_composer() {
 fn the_picker_draws_the_emoji_it_shows_as_pictures_of_the_grids_size() {
     i_slint_backend_testing::init_no_event_loop();
     let directory = tempfile::tempdir().unwrap();
-    let window = YapfastWindow::new().unwrap();
+    let window = StaticWindow::new().unwrap();
     let adapter = Adapter::new(
         Arc::new(BackgroundRuntime::new().unwrap()),
         directory.path().into(),
@@ -7266,7 +7272,7 @@ fn the_picker_draws_the_emoji_it_shows_as_pictures_of_the_grids_size() {
 fn resizing_the_grid_fills_the_rows_it_is_scrolled_to() {
     i_slint_backend_testing::init_no_event_loop();
     let directory = tempfile::tempdir().unwrap();
-    let window = YapfastWindow::new().unwrap();
+    let window = StaticWindow::new().unwrap();
     let adapter = Adapter::new(
         Arc::new(BackgroundRuntime::new().unwrap()),
         directory.path().into(),
@@ -7309,7 +7315,7 @@ fn resizing_the_grid_fills_the_rows_it_is_scrolled_to() {
 fn only_the_rows_the_picker_shows_are_drawn() {
     i_slint_backend_testing::init_no_event_loop();
     let directory = tempfile::tempdir().unwrap();
-    let window = YapfastWindow::new().unwrap();
+    let window = StaticWindow::new().unwrap();
     let adapter = Adapter::new(
         Arc::new(BackgroundRuntime::new().unwrap()),
         directory.path().into(),
@@ -7342,7 +7348,7 @@ fn only_the_rows_the_picker_shows_are_drawn() {
 fn rows_far_from_those_the_picker_shows_let_go_of_their_pictures() {
     i_slint_backend_testing::init_no_event_loop();
     let directory = tempfile::tempdir().unwrap();
-    let window = YapfastWindow::new().unwrap();
+    let window = StaticWindow::new().unwrap();
     let adapter = Adapter::new(
         Arc::new(BackgroundRuntime::new().unwrap()),
         directory.path().into(),
@@ -7386,7 +7392,7 @@ fn rows_far_from_those_the_picker_shows_let_go_of_their_pictures() {
 fn a_closed_picker_keeps_no_grid_and_builds_it_as_it_opens() {
     i_slint_backend_testing::init_no_event_loop();
     let directory = tempfile::tempdir().unwrap();
-    let window = YapfastWindow::new().unwrap();
+    let window = StaticWindow::new().unwrap();
     let adapter = Adapter::new(
         Arc::new(BackgroundRuntime::new().unwrap()),
         directory.path().into(),
@@ -7462,7 +7468,7 @@ fn the_picker_asks_for_the_pictures_of_the_custom_emoji_it_shows() {
 #[test]
 fn the_emoji_grid_fits_the_width_the_picker_shows_at() {
     // The widest row of the grid, which is the emoji a row fit.
-    fn widest(window: &YapfastWindow) -> usize {
+    fn widest(window: &StaticWindow) -> usize {
         let rows = window.get_emoji_rows();
         (0..rows.row_count())
             .map(|index| rows.row_data(index).unwrap().cells.row_count())
@@ -7471,7 +7477,7 @@ fn the_emoji_grid_fits_the_width_the_picker_shows_at() {
     }
     i_slint_backend_testing::init_no_event_loop();
     let directory = tempfile::tempdir().unwrap();
-    let window = YapfastWindow::new().unwrap();
+    let window = StaticWindow::new().unwrap();
     let adapter = Adapter::new(
         Arc::new(BackgroundRuntime::new().unwrap()),
         directory.path().into(),
@@ -7654,9 +7660,9 @@ fn dragging_the_pickers_left_edge_widens_it_no_further_than_the_server_list() {
 }
 
 #[test]
-fn yapfast_navigation_matches_the_reference_column_width() {
+fn static_navigation_matches_the_reference_column_width() {
     i_slint_backend_testing::init_no_event_loop();
-    let window = YapfastWindow::new().unwrap();
+    let window = StaticWindow::new().unwrap();
     // The supplied 2560px reference places chat at x=376: 72px rail + 304px list.
     assert_eq!(window.get_sidebar_width(), 304.0);
     assert_eq!(window.get_sidebar_shown(), 304.0);
@@ -7669,9 +7675,9 @@ fn yapfast_navigation_matches_the_reference_column_width() {
 }
 
 #[test]
-fn yapfast_defaults_to_bonfire_and_keeps_saved_appearance_choices() {
+fn static_defaults_to_bonfire_and_keeps_saved_appearance_choices() {
     i_slint_backend_testing::init_no_event_loop();
-    let window = YapfastWindow::new().unwrap();
+    let window = StaticWindow::new().unwrap();
     Layout::default().apply_appearance(&window);
     assert_eq!(window.get_theme_id(), "bonfire");
     assert_eq!(window.get_sidebar_width(), 304.0);
@@ -7687,10 +7693,10 @@ fn yapfast_defaults_to_bonfire_and_keeps_saved_appearance_choices() {
 }
 
 #[test]
-fn yapfast_caption_buttons_keep_the_existing_window_actions() {
+fn static_caption_buttons_keep_the_existing_window_actions() {
     use slint::platform::{PointerEventButton, WindowEvent};
     i_slint_backend_testing::init_no_event_loop();
-    let window = YapfastWindow::new().unwrap();
+    let window = StaticWindow::new().unwrap();
     window.set_own_title_bar(true);
     let actions = Rc::new(RefCell::new(Vec::new()));
     let seen = actions.clone();
@@ -7728,7 +7734,7 @@ fn yapfast_caption_buttons_keep_the_existing_window_actions() {
 }
 
 #[test]
-fn yapfast_inset_account_card_keeps_settings_and_audio_actions_reachable() {
+fn static_inset_account_card_keeps_settings_and_audio_actions_reachable() {
     use slint::platform::{PointerEventButton, WindowEvent};
     let window = one_message("Synthetic message");
     window.global::<ClientStyle>().set_enabled(true);
@@ -7766,7 +7772,7 @@ fn yapfast_inset_account_card_keeps_settings_and_audio_actions_reachable() {
 }
 
 #[test]
-fn yapfast_docked_profile_opens_the_existing_full_profile() {
+fn static_docked_profile_opens_the_existing_full_profile() {
     use slint::platform::{PointerEventButton, WindowEvent};
     let window = one_message("Synthetic message");
     window.global::<ClientStyle>().set_enabled(true);
@@ -7800,7 +7806,7 @@ fn yapfast_docked_profile_opens_the_existing_full_profile() {
 }
 
 #[test]
-fn yapfast_dm_heading_keeps_friend_and_new_message_actions() {
+fn static_dm_heading_keeps_friend_and_new_message_actions() {
     use slint::platform::{PointerEventButton, WindowEvent};
     let window = one_message("Synthetic message");
     window.global::<ClientStyle>().set_enabled(true);
@@ -7846,10 +7852,10 @@ fn yapfast_dm_heading_keeps_friend_and_new_message_actions() {
 }
 
 #[test]
-fn yapfast_settings_navigation_and_header_keep_the_existing_actions() {
+fn static_settings_navigation_and_header_keep_the_existing_actions() {
     use slint::platform::{Key, PointerEventButton, WindowEvent};
     i_slint_backend_testing::init_no_event_loop();
-    let window = YapfastWindow::new().unwrap();
+    let window = StaticWindow::new().unwrap();
     window.set_own_title_bar(true);
     window.set_account_name("Alex".into());
     window.set_account_initial("A".into());
@@ -7919,7 +7925,7 @@ fn yapfast_settings_navigation_and_header_keep_the_existing_actions() {
 }
 
 #[test]
-fn yapfast_account_popover_copies_its_id_and_opens_settings_without_changing_status() {
+fn static_account_popover_copies_its_id_and_opens_settings_without_changing_status() {
     use slint::platform::{PointerEventButton, WindowEvent};
     let window = one_message("Synthetic message");
     window.global::<ClientStyle>().set_enabled(true);
@@ -7960,10 +7966,10 @@ fn yapfast_account_popover_copies_its_id_and_opens_settings_without_changing_sta
 }
 
 #[test]
-fn yapfast_server_rail_keeps_home_pinned_without_a_duplicate_separator() {
+fn static_server_rail_keeps_home_pinned_without_a_duplicate_separator() {
     use slint::platform::{PointerEventButton, WindowEvent};
     i_slint_backend_testing::init_no_event_loop();
-    let window = YapfastWindow::new().unwrap();
+    let window = StaticWindow::new().unwrap();
     window.set_workspace(true);
     let mut rows = vec![ServerRow {
         divider: true,
@@ -8037,9 +8043,9 @@ fn yapfast_server_rail_keeps_home_pinned_without_a_duplicate_separator() {
 }
 
 #[test]
-fn yapfast_typography_is_compact_and_preserves_explicit_text_sizes() {
+fn static_typography_is_compact_and_preserves_explicit_text_sizes() {
     i_slint_backend_testing::init_no_event_loop();
-    let window = yapfast::window().unwrap();
+    let window = static_window::window().unwrap();
     assert_eq!(window.global::<ClientStyle>().get_font_family(), "DM Sans");
     assert_eq!(window.get_message_font_size(), 15.);
     window.set_text_size(0);
@@ -8060,7 +8066,7 @@ fn yapfast_typography_is_compact_and_preserves_explicit_text_sizes() {
 /// renderer: the testing backend here has no option to choose Skia.
 #[test]
 #[ignore = "manual renderer benchmark with the Skia testing feature"]
-fn yapfast_server_rail_scroll_snapshot_benchmark() {
+fn static_server_rail_scroll_snapshot_benchmark() {
     use slint::platform::WindowEvent;
     use std::time::Instant;
     slint::platform::set_platform(Box::new(i_slint_backend_testing::TestingBackend::new(
@@ -8070,7 +8076,7 @@ fn yapfast_server_rail_scroll_snapshot_benchmark() {
         },
     )))
     .unwrap();
-    let window = yapfast::window().unwrap();
+    let window = static_window::window().unwrap();
     Layout::default().apply_appearance(&window);
     let directory = tempfile::tempdir().unwrap();
     let adapter = Adapter::new(

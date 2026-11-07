@@ -1,8 +1,8 @@
 import { ScrollView } from "scrollview.slint";
 import { Theme, Tip, Middle, Label } from "theme.slint";
-import { ClientStyle } from "yapfast/style.slint";
+import { ClientStyle } from "static/style.slint";
 
-// A labelled action. Primary is marigold, danger red, ghost transparent until hovered.
+// A labelled action. Primary is mint, danger red, ghost transparent until hovered.
 export component ActionButton inherits Rectangle {
     in property <string> text;
     in property <string> label: root.text;
@@ -233,7 +233,7 @@ export global PictureStore {
 }
 
 // Animated emoji's frames, drawn in place of a still while they play; see
-// `yapfast_emoji` in the Slint core. `revision` moves with the shared
+// `static_emoji` in the Slint core. `revision` moves with the shared
 // clock, so a tick draws the cells that read it again.
 export global EmojiAnimations {
     in property <int> revision;
@@ -481,7 +481,7 @@ export component CallButton inherits VerticalLayout {
     }
 }
 
-// Whether animations play: only while Yapfast's window has the focus, as in
+// Whether animations play: only while Static's window has the focus, as in
 // Discord, so GIFs on another screen hold still where they are.
 export global Motion {
     in property <bool> playing: true;
@@ -924,7 +924,7 @@ export component DeviceMenu inherits Rectangle {
     }
 }
 
-// How loud something sounds, from 0% to `maximum`: a marigold fill up to the
+// How loud something sounds, from 0% to `maximum`: a mint fill up to the
 // value. Above 100%, as Discord allows for people, a mark shows 100%, and a
 // drag snaps to it nearby. Dragging reports each step through `changed` and the
 // last through `committed`; the arrow keys move 5% at a time. Other amounts

@@ -443,7 +443,7 @@ impl Animations {
     /// Takes what arrived from the decoders, starts what is wanted next, and
     /// draws what shows a frame again. Called each tick and each refresh, so a
     /// decode that finishes is seen at once rather than at the next change.
-    pub(super) fn run(&mut self, window: &YapfastWindow, pictures: &HashMap<String, Arc<Picture>>) {
+    pub(super) fn run(&mut self, window: &StaticWindow, pictures: &HashMap<String, Arc<Picture>>) {
         self.start(pictures);
         self.drain();
         window
@@ -457,7 +457,7 @@ impl Animations {
     /// the clock itself that holds still when playback is off.
     pub(super) fn sync(
         &mut self,
-        window: &YapfastWindow,
+        window: &StaticWindow,
         playing: bool,
         adapter: std::rc::Weak<RefCell<Adapter>>,
     ) {
@@ -537,7 +537,7 @@ fn decode(picture: &Picture, side: u32) -> (Vec<Vec<u8>>, Vec<u32>) {
 
 #[test]
 fn frames_reach_the_registry() {
-    use yapfast_core::chat;
+    use static_core::chat;
     // A GIF of two frames, as a Discord emoji's picture is.
     let mut data = Vec::new();
     {

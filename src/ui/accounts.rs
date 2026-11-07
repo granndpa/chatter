@@ -3,7 +3,7 @@
 
 use super::*;
 
-pub(super) fn bind(window: &YapfastWindow, adapter: &Rc<RefCell<Adapter>>) {
+pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
     let state = adapter.clone();
     let weak = window.as_weak();
     window.on_accounts_action(move |what, slot| {
@@ -12,7 +12,7 @@ pub(super) fn bind(window: &YapfastWindow, adapter: &Rc<RefCell<Adapter>>) {
         };
         #[cfg(feature = "discord")]
         {
-            use yapfast_core::yapfast_discord::accounts;
+            use static_core::static_discord::accounts;
             let adapter = state.borrow();
             if adapter.app.state.preview {
                 return;

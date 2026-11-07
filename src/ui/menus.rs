@@ -1,6 +1,6 @@
 //! The menus a right click opens: what they offer, and the choices made.
 
-use yapfast_core::{
+use static_core::{
     application::{ChannelAsk, MUTE_TIMES, MenuChoice, OwnershipInput, network_id, network_link},
     chat::{
         ChannelKind, MemberChange, Muting, NotificationChange, Notifications, NotifyLevel,
@@ -74,7 +74,7 @@ fn events(adapter: &Adapter, server: &str) -> Menu {
 }
 
 /// What a server's, conversation's or person's menu offers; nothing for one
-/// Yapfast doesn't know.
+/// Static doesn't know.
 pub(super) fn menu(adapter: &Adapter, id: &str, person: bool) -> Menu {
     if id.starts_with("discord-folder:") {
         let disabled = !adapter.app.state.discord_online || adapter.app.state.server_arranging;
@@ -264,8 +264,8 @@ pub(super) fn menu(adapter: &Adapter, id: &str, person: bool) -> Menu {
                     notifications().is_some_and(|known| known.show_all == Some(true))
                 }
                 MenuChoice::HideMuted => notifications().is_some_and(|known| known.hide_muted),
-                MenuChoice::LocalMute => yapfast_core::volume::muted(id),
-                MenuChoice::SoundboardMute => yapfast_core::volume::soundboard_muted(id),
+                MenuChoice::LocalMute => static_core::volume::muted(id),
+                MenuChoice::SoundboardMute => static_core::volume::soundboard_muted(id),
                 MenuChoice::SelfMute => state.voice.muted,
                 MenuChoice::SelfDeafen => state.voice.deafened,
                 MenuChoice::ServerMute => voice_person.is_some_and(|person| person.server_muted),
@@ -774,10 +774,10 @@ fn muted_until(seconds: u64, twelve_hour: bool) -> String {
 
 /// When something ends, a Unix time: the time today, or the day too.
 pub(super) fn until(seconds: u64, twelve_hour: bool) -> String {
-    let now = yapfast_core::clock::now_ms() / 1000;
-    let time = yapfast_core::clock::time_on(seconds, twelve_hour);
-    let on = yapfast_core::clock::day(seconds);
-    if on == yapfast_core::clock::day(now) {
+    let now = static_core::clock::now_ms() / 1000;
+    let time = static_core::clock::time_on(seconds, twelve_hour);
+    let on = static_core::clock::day(seconds);
+    if on == static_core::clock::day(now) {
         time
     } else {
         format!("{on}, {time}")
@@ -805,7 +805,7 @@ fn mute_times() -> Vec<MenuRow> {
 }
 
 /// Shows a menu in the window, its submenus only when a row has one.
-pub(super) fn show(window: &YapfastWindow, (rows, submenus): Menu) {
+pub(super) fn show(window: &StaticWindow, (rows, submenus): Menu) {
     let submenus: Vec<ModelRc<MenuRow>> = if submenus.iter().all(Vec::is_empty) {
         vec![]
     } else {
@@ -827,7 +827,7 @@ pub(super) fn show(window: &YapfastWindow, (rows, submenus): Menu) {
 /// Ticks or unticks the checkbox row `id` in the menu showing, as choosing
 /// it does while the menu stays open; whether it's ticked now, when there
 /// was one.
-pub(super) fn toggle(window: &YapfastWindow, id: &str) -> Option<bool> {
+pub(super) fn toggle(window: &StaticWindow, id: &str) -> Option<bool> {
     let flip = |rows: ModelRc<MenuRow>| {
         let index = rows.iter().position(|row| row.checkbox && row.id == id)?;
         let mut row = rows.row_data(index)?;
@@ -844,7 +844,7 @@ pub(super) fn toggle(window: &YapfastWindow, id: &str) -> Option<bool> {
 /// Carries out the choice a menu reports by its row's id.
 pub(super) fn choose(
     adapter: &mut Adapter,
-    window: &YapfastWindow,
+    window: &StaticWindow,
     target: String,
     person: bool,
     id: &str,
@@ -1073,7 +1073,7 @@ pub(super) fn choose(
         MenuChoice::Roles | MenuChoice::InviteToServer | MenuChoice::MoveTo => None,
         MenuChoice::LocalMute => {
             if let Some(muted) = ticked {
-                yapfast_core::volume::mute(&target, muted);
+                static_core::volume::mute(&target, muted);
                 let people = &mut adapter.layout.muted_people;
                 if muted {
                     people.insert(target.clone());
@@ -1086,7 +1086,7 @@ pub(super) fn choose(
         }
         MenuChoice::SoundboardMute => {
             if let Some(muted) = ticked {
-                yapfast_core::volume::mute_soundboard(&target, muted);
+                static_core::volume::mute_soundboard(&target, muted);
                 let people = &mut adapter.layout.soundboard_muted_people;
                 if muted {
                     people.insert(target.clone());

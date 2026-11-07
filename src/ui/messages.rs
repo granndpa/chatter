@@ -2,7 +2,7 @@
 //! how they group by day and author.
 
 use super::*;
-use yapfast_core::blocks::{Block, Kind};
+use static_core::blocks::{Block, Kind};
 
 /// Links in a notice: to its author, by sender, to the message it tells of,
 /// by item, and to the open channel's pinned messages. Unlike a mention's,
@@ -33,7 +33,7 @@ pub(super) fn continues(before: &ChatMessage, message: &ChatMessage) -> bool {
 
 /// The local calendar date of a timestamp, such as "3 October 2026"; empty when unknown.
 pub(super) fn day(timestamp: u64) -> String {
-    yapfast_core::clock::day(timestamp)
+    static_core::clock::day(timestamp)
 }
 
 /// How a timeline marks its rows beyond what their messages say.
@@ -113,7 +113,7 @@ pub(super) fn show_timeline(
         // A row the backend sent again is the same one.
         let unchanged = !marks.restyle
             && was.is_some_and(|was| Arc::ptr_eq(&shown[was], message) || shown[was] == *message);
-        let date = yapfast_core::clock::date(message.timestamp);
+        let date = static_core::clock::date(message.timestamp);
         let new_day = date.is_some() && (before.is_none() || before_date != date);
         // The author shows again below the "New" divider.
         let unread_start = marks.first_unread == Some(message.item.as_str());
@@ -200,7 +200,7 @@ pub(super) fn markdown(body: &str) -> slint::StyledText {
 /// HTML is escaped, so the only HTML left is the mentions' own. The
 /// mentions are where the body as rendered has them, so this comes before
 /// anything else changes it.
-fn with_mentions(body: &str, mentions: &[yapfast_core::mention::Mentioned]) -> String {
+fn with_mentions(body: &str, mentions: &[static_core::mention::Mentioned]) -> String {
     mention::linked(body, mentions, theme::mention_color())
 }
 
@@ -313,10 +313,10 @@ pub(super) fn escape_markdown(text: &str) -> String {
 /// links to the message and to the pinned messages; then when.
 pub(super) fn notice_text(
     message: &ChatMessage,
-    notice: &yapfast_core::chat::Notice,
+    notice: &static_core::chat::Notice,
     time: &str,
 ) -> slint::StyledText {
-    use yapfast_core::chat::NoticeKind;
+    use static_core::chat::NoticeKind;
     let hex = |rgb: u32| format!("#{:06x}", rgb & 0xff_ffff);
     let strong = |text: &str, rgb: u32, link: Option<&str>| {
         let text = format!("**{}**", escape_markdown(text));
@@ -356,8 +356,8 @@ pub(super) fn notice_text(
 }
 
 /// The icon a notice shows in place of its author's avatar.
-fn notice_icon(notice: Option<&yapfast_core::chat::Notice>) -> &'static str {
-    use yapfast_core::chat::NoticeKind;
+fn notice_icon(notice: Option<&static_core::chat::Notice>) -> &'static str {
+    use static_core::chat::NoticeKind;
     match notice.map(|notice| &notice.kind) {
         None => "",
         Some(NoticeKind::Pinned(_)) => "pin",
@@ -377,11 +377,11 @@ pub(super) fn bold(text: &str) -> slint::StyledText {
 /// An embed's fields in rows: up to three inline fields share one, and any
 /// other field takes a row of its own, as in Discord.
 pub(super) fn field_rows(fields: &[EmbedField]) -> ModelRc<EmbedFieldRow> {
-    let mut rows: Vec<Vec<yapfast_ui::EmbedField>> = Vec::new();
+    let mut rows: Vec<Vec<static_ui::EmbedField>> = Vec::new();
     let mut open = false;
     for field in fields {
         let value_blocks = markdown_blocks(&field.value);
-        let cell = yapfast_ui::EmbedField {
+        let cell = static_ui::EmbedField {
             name: bold(&field.name),
             value: if value_blocks.row_count() > 0 {
                 slint::StyledText::default()
@@ -415,7 +415,7 @@ pub(super) fn plain_with_links(body: &str) -> Option<slint::StyledText> {
 /// for a moment where `lit`, else to the top, as for the first unread message. The
 /// list builds rows as they come into view, so the row settles its place a few times
 /// as those around it measure.
-pub(super) fn show_message(window: &YapfastWindow, index: usize, item: &str, lit: bool) {
+pub(super) fn show_message(window: &StaticWindow, index: usize, item: &str, lit: bool) {
     // At once, so the list stops following the newest message before anything
     // else scrolls it.
     window.invoke_show_message(i32::try_from(index).unwrap_or(i32::MAX), item.into(), lit);
@@ -647,7 +647,7 @@ pub(super) fn message_row_within(
         Delivery::Sent => ("", false, false),
         Delivery::Sending => ("Sending...", false, true),
         Delivery::Waiting => (
-            "Not sent yet. Yapfast sends it when the connection returns.",
+            "Not sent yet. Static sends it when the connection returns.",
             false,
             true,
         ),
@@ -772,7 +772,7 @@ pub(super) fn message_row_within(
             .poll
             .as_ref()
             .map(|poll| {
-                let now = yapfast_core::clock::now_ms() / 1000;
+                let now = static_core::clock::now_ms() / 1000;
                 super::polls::poll_card(&message.item, poll, &message.emoji, revealed, now, true)
             })
             .unwrap_or_default(),
@@ -821,12 +821,12 @@ pub(super) fn message_row_within(
 /// message's attachments by slot.
 fn card_row<'a>(
     message: &'a ChatMessage,
-    row: &yapfast_core::chat::CardRow,
+    row: &static_core::chat::CardRow,
     previews: &dyn Fn(Placement) -> Vec<Preview<'a>>,
     covered: &dyn Fn(usize) -> bool,
     files: &dyn Fn(Placement) -> Vec<FileCell>,
 ) -> CardRow {
-    use yapfast_core::chat::{Beside, CardRow as Row};
+    use static_core::chat::{Beside, CardRow as Row};
     let blocks = |text: &str| {
         ModelRc::new(VecModel::from(text_blocks(&custom_emoji::text(
             text,
@@ -911,10 +911,10 @@ const EMBED_PADDING: i32 = 32;
 const EMBED_THUMBNAIL: i32 = 96;
 
 fn card_button(
-    button: &yapfast_core::chat::CardButton,
-    emoji: &[yapfast_core::chat::CustomEmoji],
+    button: &static_core::chat::CardButton,
+    emoji: &[static_core::chat::CustomEmoji],
 ) -> CardButton {
-    use yapfast_core::chat::ButtonStyle;
+    use static_core::chat::ButtonStyle;
     CardButton {
         label: custom_emoji::text(&button.label, emoji).into(),
         style: match button.style {
@@ -971,7 +971,7 @@ fn body_blocks(
                     .iter()
                     .filter_map(|&at| block.offset(at, mention.text.len()))
                     .collect();
-                (!at.is_empty()).then(|| yapfast_core::mention::Mentioned {
+                (!at.is_empty()).then(|| static_core::mention::Mentioned {
                     at,
                     ..mention.clone()
                 })
@@ -1000,7 +1000,7 @@ fn blocks_of(
     markdown: &str,
     mut prepare: impl FnMut(&Block, &str) -> String,
 ) -> Option<Vec<TextBlock>> {
-    let blocks = yapfast_core::blocks::split(markdown)?;
+    let blocks = static_core::blocks::split(markdown)?;
     // The space above a block and below it, which the next block's takes
     // in, as margins between them do; a first heading's is less.
     let above = |kind: Kind, first: bool| match kind {
@@ -1094,7 +1094,7 @@ pub(super) fn reaction_tip(emoji: &str, names: &[String], count: usize) -> Strin
     format!("{emoji} reacted by {people}")
 }
 
-fn thread_detail(thread: &yapfast_core::chat::ThreadLink) -> String {
+fn thread_detail(thread: &static_core::chat::ThreadLink) -> String {
     let count = match thread.messages {
         None => None,
         Some(0) => Some("No messages yet".to_owned()),
@@ -1134,8 +1134,8 @@ pub(super) fn found_row(message: &ChatMessage, twelve_hour: bool) -> FoundRow {
         plain_with_links(&message.body)
             .unwrap_or_else(|| slint::StyledText::from_plain_text(&message.body))
     };
-    let now = yapfast_core::clock::now_ms() / 1000;
-    let time = yapfast_core::clock::sent(message.timestamp, now, twelve_hour, false);
+    let now = static_core::clock::now_ms() / 1000;
+    let time = static_core::clock::sent(message.timestamp, now, twelve_hour, false);
     let pictures: Vec<Preview<'_>> = message
         .attachments
         .iter()
@@ -1143,7 +1143,7 @@ pub(super) fn found_row(message: &ChatMessage, twelve_hour: bool) -> FoundRow {
         .filter(|(_, attachment)| {
             attachment.placement == Placement::Message && (attachment.image || attachment.video)
         })
-        .take(yapfast_core::chat::FOUND_PICTURES)
+        .take(static_core::chat::FOUND_PICTURES)
         .filter(|(_, attachment)| attachment.preview.is_some() || loading(attachment))
         .map(|(index, attachment)| (index, attachment, attachment.preview.as_ref()))
         .collect();
@@ -1186,7 +1186,7 @@ pub(super) fn found_row(message: &ChatMessage, twelve_hour: bool) -> FoundRow {
             .poll
             .as_ref()
             .map(|poll| {
-                let now = yapfast_core::clock::now_ms() / 1000;
+                let now = static_core::clock::now_ms() / 1000;
                 super::polls::poll_card(
                     &message.item,
                     poll,
@@ -1204,7 +1204,7 @@ pub(super) fn found_row(message: &ChatMessage, twelve_hour: bool) -> FoundRow {
 
 /// A Discord channel's topic, as its header shows it: on one line, or in
 /// full.
-pub(super) fn topic_text(topic: &yapfast_core::chat::Topic, one_line: bool) -> slint::StyledText {
+pub(super) fn topic_text(topic: &static_core::chat::Topic, one_line: bool) -> slint::StyledText {
     let linked = with_mentions(&topic.body, &topic.mentions);
     let body = custom_emoji::text(&linked, &topic.emoji);
     let body = emoji_text::text(&body);
@@ -1234,7 +1234,7 @@ const OTHER_EMOJI: &str = "Invite-Only Server";
 /// and, for one of a server's, the server it is from.
 pub(super) fn emoji_card(
     target: &emoji_text::Target,
-    server: Option<&yapfast_core::chat::ChatServer>,
+    server: Option<&static_core::chat::ChatServer>,
     state: &AppState,
     pictures: &mut HashMap<String, slint::Image>,
 ) -> EmojiCard {
@@ -1272,9 +1272,9 @@ pub(super) fn emoji_card(
         None => Default::default(),
     };
     // What Discord said of the server, which its card's counts and note come
-    // from; before it answers, the note follows the features Yapfast has.
+    // from; before it answers, the note follows the features Static has.
     let preview = server.and_then(|server| state.server_previews.get(&server.id));
-    // Discover lists a server whose preview says so, and Yapfast keeps its own
+    // Discover lists a server whose preview says so, and Static keeps its own
     // word for a Community server either way: a preview that answers without
     // the feature would otherwise take the note away from a server that has it.
     let discoverable = server.is_some_and(|server| server.community)

@@ -1,0 +1,3 @@
+// Static's icon, which Explorer shows for static.exe and its shortcuts, and the
+// window loads by its number (src/icon.rs). scripts/make-windows-icon draws it.
+1 ICON "static.ico"
