@@ -626,6 +626,10 @@ export struct MessageRow {
     /// through all three. A body of nothing but emoji shows them large.
     jumbo: bool,
     styled: styled-text, author-styled: styled-text, time-styled: styled-text, edited: bool, deleted: bool, edit-history: string,
+    /// The exact date and time, with seconds, shown on hovering the time.
+    full-time: string,
+    /// Its English translation and the language it was in, once asked for.
+    translation: string,
     /// A notice in place of a message, such as Discord's that someone pinned
     /// one, by the icon it shows in place of the avatar: "pin", "join",
     /// "thread", "call" or "poll"; empty for a message. Its text has its
@@ -1018,6 +1022,7 @@ export component MessageMenu inherits Rectangle {
     callback start-thread(string);
     callback view-thread(string);
     callback view-reactions(string);
+    callback translate(string);
     callback copy-image(string, int);
     callback save-attachment(string, int);
     callback open-link(string);
@@ -1064,6 +1069,10 @@ export component MessageMenu inherits Rectangle {
         if root.menu-message.can-reply && root.menu-message.thread-room != "": MenuItem {
             text: "View Thread"; icon: @image-url("icons/thread.svg");
             clicked => { root.view-thread(root.menu-message.thread-room); }
+        }
+        if root.menu-message.body != "": MenuItem {
+            text: "Translate"; icon: @image-url("icons/text-select.svg");
+            clicked => { root.translate(root.menu-message.item); }
         }
         if root.menu-message.body != "": MenuItem {
             text: "Copy text"; icon: @image-url("icons/copy.svg");
@@ -1831,6 +1840,8 @@ export component ImageViewer inherits Rectangle {
     background: #000000e6;
     accessible-role: groupbox;
     accessible-label: "Image viewer";
+    changed viewer-item => { viewer-keys.zoomed = false; }
+    changed viewer-index => { viewer-keys.zoomed = false; }
     TouchArea { clicked => { root.close-image(); } }
     viewer-keys := FocusScope {
         init => { self.focus(); }
@@ -1846,13 +1857,46 @@ export component ImageViewer inherits Rectangle {
         property <length> natural-width: max(1, root.viewer-width) * 1px;
         property <length> natural-height: max(1, root.viewer-height) * 1px;
         property <float> scale: min(1, min(self.room-width / self.natural-width, self.room-height / self.natural-height));
-        Picture {
-            width: viewer-keys.natural-width * viewer-keys.scale; height: viewer-keys.natural-height * viewer-keys.scale;
-            x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+        // Zoomed in: full size, or twice the fitted size for a small image.
+        property <bool> zoomed: false;
+        property <float> zoom-scale: max(1, self.scale * 2);
+        property <length> zoom-x;
+        property <length> zoom-y;
+        property <bool> panned;
+        shown-picture := Picture {
+            property <float> shown-scale: viewer-keys.zoomed ? viewer-keys.zoom-scale : viewer-keys.scale;
+            width: viewer-keys.natural-width * self.shown-scale; height: viewer-keys.natural-height * self.shown-scale;
+            x: viewer-keys.zoomed ? viewer-keys.zoom-x : (parent.width - self.width) / 2;
+            y: viewer-keys.zoomed ? viewer-keys.zoom-y : (parent.height - self.height) / 2;
             still: root.viewer-image; frames: root.viewer-frames; delays: root.viewer-delays; image-fit: contain;
             accessible-role: image; accessible-label: root.viewer-name;
             TouchArea {
+                mouse-cursor: viewer-keys.zoomed ? MouseCursor.move : MouseCursor.pointer;
+                moved => {
+                    if viewer-keys.zoomed && self.pressed {
+                        if abs(self.mouse-x - self.pressed-x) > 2px || abs(self.mouse-y - self.pressed-y) > 2px {
+                            viewer-keys.panned = true;
+                        }
+                        viewer-keys.zoom-x += self.mouse-x - self.pressed-x;
+                        viewer-keys.zoom-y += self.mouse-y - self.pressed-y;
+                    }
+                }
+                clicked => {
+                    if viewer-keys.panned {
+                        viewer-keys.panned = false;
+                    } else if viewer-keys.zoomed {
+                        viewer-keys.zoomed = false;
+                    } else {
+                        // The clicked point stays under the pointer.
+                        viewer-keys.zoom-x = shown-picture.x + self.mouse-x - self.mouse-x * viewer-keys.zoom-scale / viewer-keys.scale;
+                        viewer-keys.zoom-y = shown-picture.y + self.mouse-y - self.mouse-y * viewer-keys.zoom-scale / viewer-keys.scale;
+                        viewer-keys.zoomed = true;
+                    }
+                }
                 pointer-event(event) => {
+                    if event.button == PointerEventButton.left && event.kind == PointerEventKind.down {
+                        viewer-keys.panned = false;
+                    }
                     if event.button == PointerEventButton.right && event.kind == PointerEventKind.down {
                         root.menu-link = root.attachment-link(root.viewer-item, root.viewer-index);
                         root.menu-x = self.absolute-position.x + self.mouse-x - root.absolute-position.x;
@@ -2148,7 +2192,17 @@ export component MessageContent inherits VerticalLayout {
                     }
                 }
                 if message.bot: Middle { BotTag { } }
-                StyledText { text: message.time-styled; link-color: Theme.link; default-color: Theme.muted; default-font-size: root.message-font-size - (ClientStyle.enabled ? 4px : 3px); max-lines: 1; vertical-alignment: center; }
+                Rectangle {
+                    width: sent-time.preferred-width; height: sent-time.preferred-height;
+                    sent-time := StyledText { width: parent.width; height: parent.height; text: message.time-styled; link-color: Theme.link; default-color: Theme.muted; default-font-size: root.message-font-size - (ClientStyle.enabled ? 4px : 3px); max-lines: 1; vertical-alignment: center; }
+                    time-hover := TouchArea { }
+                    if time-hover.has-hover && message.full-time != "": Rectangle {
+                        x: 0; y: parent.height + 4px; z: 100;
+                        width: full-time-text.preferred-width + 16px; height: full-time-text.preferred-height + 10px;
+                        background: Theme.raised; border-color: Theme.edge; border-width: 1px; border-radius: 6px;
+                        full-time-text := Text { text: message.full-time; color: Theme.text; font-size: 12px; }
+                    }
+                }
                 Rectangle { horizontal-stretch: 1; }
             }
             // As Discord's client marks a forward, above what it carries.
@@ -2179,6 +2233,7 @@ export component MessageContent inherits VerticalLayout {
             // As MessageLogger shows an edit: what the message said before, small
             // and grey under it, then (edited).
             if message.edit-history != "": Text { text: message.edit-history; color: Theme.muted; font-size: root.message-font-size - 3px; wrap: word-wrap; }
+            if message.translation != "": Text { text: message.translation; color: Theme.muted; font-size: root.message-font-size - 3px; font-italic: true; wrap: word-wrap; }
             if message.edited && !message.deleted: Text { text: "(edited)"; color: Theme.muted; font-size: root.message-font-size - 4px; }
             // Fixed-size children sit beside a spacer, so they do not cap the column's width.
             if message.images.length > 0: MessageGallery {

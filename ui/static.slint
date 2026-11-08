@@ -1271,6 +1271,7 @@ export component StaticWindow inherits Window {
     callback refresh-trust;
     callback retry-sync;
     callback navigate-dms;
+    callback read-all;
     callback navigate-server(string);
     /// A folder on the rail was clicked: open or close it.
     callback toggle-folder(string);
@@ -1405,6 +1406,9 @@ export component StaticWindow inherits Window {
     // Open a message's Reactions window, by item, on a reaction by key, or
     // with none, the one most reacted with.
     callback view-reactions(string, string);
+    callback translate-message(string);
+    /// Discord Tweaks' voice log, one event per line.
+    in property <string> voice-log;
     callback select-reaction(string);
     callback more-reactors;
     callback remove-reactor(string);
@@ -2263,6 +2267,7 @@ export component StaticWindow inherits Window {
             start-thread(item) => { root.new-thread(item, "message"); message-menu.close(); }
             view-thread(room) => { root.open-aside(room); message-menu.close(); }
             view-reactions(item) => { root.view-reactions(item, ""); message-menu.close(); }
+            translate(item) => { root.translate-message(item); message-menu.close(); }
             emoji-font: root.emoji-font; composer-enabled: root.composer-enabled; forward-allowed: root.forward-allowed; preview: root.preview;
             react(item, key) => { root.react(item, key); message-menu.close(); }
             open-picker(item) => { root.open-picker(item); message-menu.close(); }
@@ -2352,6 +2357,7 @@ export component StaticWindow inherits Window {
                         can-arrange: root.may-arrange-servers;
                         arrange(source, target, mode) => { root.arrange-servers(source, target, mode, ""); }
                         navigate-dms => { root.navigate-dms(); }
+                        read-all => { root.read-all(); }
                         navigate-server(id) => { root.navigate-server(id); }
                         toggle-folder(id) => { root.toggle-folder(id); }
                         open-dm(id) => { root.open-conversation(id); }
@@ -2488,6 +2494,7 @@ export component StaticWindow inherits Window {
                 // The dock spans the rail and the sidebar. Its avatar and voice icon sit on the
                 // rail's axis, 36px from the left; names and status start at 64px.
                 if root.voice-visible: VoiceDock {
+                    voice-log: root.voice-log;
                     voice-status: root.voice-status; voice-time: root.voice-time; voice-detail: root.voice-detail; voice-name: root.voice-name;
                     voice-color: root.voice-color;
                     voice-active: root.voice-active; voice-ready: root.voice-ready; voice-leaving: root.voice-leaving;

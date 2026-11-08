@@ -23,6 +23,82 @@ pub(super) const EVENTS: &str = "events:";
 pub(super) const TOOLBAR: &str = "thread-toolbar:";
 pub(super) const SIDEBAR: &str = "thread-sidebar:";
 
+/// A Discord Tweaks row that saves a picture at full size: this, then
+/// `avatar`, `banner`, `icon` or `server-banner`.
+const SAVE_PICTURE: &str = "save-picture:";
+
+/// The pictures a person's or server's menu can save: what each is, its row's
+/// text, and its address.
+fn saveable_pictures(state: &AppState, id: &str, person: bool) -> Vec<(&'static str, &'static str, String)> {
+    let mut found = Vec::new();
+    if person {
+        let profile = state
+            .profile
+            .as_ref()
+            .map(|view| &view.profile)
+            .filter(|profile| profile.id == id);
+        let avatar = state
+            .person(id)
+            .and_then(|person| person.avatar)
+            .or_else(|| profile.and_then(|profile| profile.avatar.clone()));
+        if let Some(avatar) = avatar {
+            found.push(("avatar", "Save Avatar", avatar));
+        }
+        if let Some(banner) = profile.and_then(|profile| profile.banner.clone()) {
+            found.push(("banner", "Save Banner", banner));
+        }
+    } else if let Some(server) = state.servers.iter().find(|server| server.id == id) {
+        if let Some(icon) = &server.icon {
+            found.push(("icon", "Save Server Icon", icon.clone()));
+        }
+        if let Some(banner) = &server.banner {
+            found.push(("server-banner", "Save Server Banner", banner.clone()));
+        }
+    }
+    found
+}
+
+/// A Discord CDN picture's address at its largest, and its file type.
+fn full_size(url: &str) -> (String, &'static str) {
+    let base = url.split('?').next().unwrap_or(url);
+    let file = base.rsplit('/').next().unwrap_or_default();
+    let ext = if file.starts_with("a_") { "gif" } else { "png" };
+    if !base.contains("cdn.discordapp.com") {
+        return (url.to_owned(), ext);
+    }
+    let stem = match file.rsplit_once('.') {
+        Some((name, _)) => &base[..base.len() - file.len() + name.len()],
+        None => base,
+    };
+    (format!("{stem}.{ext}?size=4096"), ext)
+}
+
+/// Asks where to save a picture, then downloads it there.
+fn save_picture(url: &str, name: &str) {
+    let (url, ext) = full_size(url);
+    let name = format!("{name}.{ext}");
+    std::thread::spawn(move || {
+        let Some(path) = rfd::FileDialog::new()
+            .set_title("Save picture")
+            .set_file_name(&name)
+            .save_file()
+        else {
+            return;
+        };
+        let mut curl = std::process::Command::new("curl");
+        curl.args(["-sSfL", "-o"]).arg(&path).arg(&url);
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            // No console window flashes up.
+            curl.creation_flags(0x0800_0000);
+        }
+        if let Err(error) = curl.status() {
+            tracing::warn!(%error, "could not save the picture");
+        }
+    });
+}
+
 /// The thread a header's More menu is about, and where Discord's client says
 /// a choice in it came from.
 fn thread_more(id: &str) -> Option<(&str, &'static str)> {
@@ -357,6 +433,15 @@ pub(super) fn menu(adapter: &Adapter, id: &str, person: bool) -> Menu {
                 ..Default::default()
             });
         }
+    }
+    for (index, (kind, text, _)) in saveable_pictures(state, id, person).into_iter().enumerate() {
+        rows.push(MenuRow {
+            id: format!("{SAVE_PICTURE}{kind}").into(),
+            text: text.into(),
+            separated: index == 0,
+            plain,
+            ..Default::default()
+        });
     }
     let notify = Notify::of(adapter, id);
     if let Some(notify) = &notify {
@@ -930,6 +1015,26 @@ pub(super) fn choose(
                 change,
             },
         );
+        return;
+    }
+    if let Some(kind) = id.strip_prefix(SAVE_PICTURE) {
+        let state = &adapter.app.state;
+        if let Some((_, _, url)) = saveable_pictures(state, &target, person)
+            .into_iter()
+            .find(|(found, _, _)| *found == kind)
+        {
+            let owner = if person {
+                state.person(&target).map(|person| person.name)
+            } else {
+                state.servers.iter().find(|server| server.id == target).map(|server| server.name.clone())
+            };
+            let owner: String = owner
+                .unwrap_or_else(|| "picture".into())
+                .chars()
+                .filter(|c| c.is_alphanumeric() || *c == ' ' || *c == '-' || *c == '_')
+                .collect();
+            save_picture(&url, &format!("{} {kind}", owner.trim()));
+        }
         return;
     }
     let (room, user) = subjects(&adapter.app.state, &target, person);

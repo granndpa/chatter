@@ -39,6 +39,7 @@ mod protocol;
 #[cfg(feature = "desktop")]
 mod push_to_talk;
 #[cfg(feature = "desktop")]
+mod translate;
 mod tray;
 #[cfg(feature = "desktop")]
 mod twemoji;

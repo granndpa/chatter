@@ -877,8 +877,8 @@ pub const PREVIEW_WIDTH: u64 = 550;
 pub const PREVIEW_HEIGHT: u64 = 400;
 
 /// The image viewer's largest size.
-pub const VIEW_WIDTH: u64 = 1920;
-pub const VIEW_HEIGHT: u64 = 1200;
+pub const VIEW_WIDTH: u64 = 4096;
+pub const VIEW_HEIGHT: u64 = 4096;
 
 /// Asks Discord's media proxy for the image fitted into `max_width` by
 /// `max_height` and never enlarged, as the official client does, so a phone

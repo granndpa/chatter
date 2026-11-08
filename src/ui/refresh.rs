@@ -278,8 +278,66 @@ impl Adapter {
         }
     }
 
+    /// Notes who joins, leaves or moves out of the call this account is in,
+    /// for the voice log. A new call starts a new log.
+    fn track_voice_log(&mut self, window: &StaticWindow) {
+        let state = &self.app.state;
+        let room = state.voice.room.clone();
+        let people: Vec<(String, String)> = room
+            .as_ref()
+            .and_then(|room| state.rooms.iter().find(|found| &found.id == room))
+            .map(|found| {
+                found
+                    .people
+                    .iter()
+                    .map(|person| (person.id.clone(), person.name.clone()))
+                    .collect()
+            })
+            .unwrap_or_default();
+        if room == self.voice_room && people == self.voice_people {
+            return;
+        }
+        let now = static_core::clock::time_with(
+            static_core::clock::now_ms() / 1000,
+            self.layout.twelve_hour_clock,
+            true,
+        );
+        if room != self.voice_room {
+            if room.is_some() {
+                self.voice_log.clear();
+                self.voice_log.push(format!("{now}  You joined {}", state.voice.name));
+            } else if self.voice_room.is_some() {
+                self.voice_log.push(format!("{now}  You left"));
+            }
+            self.voice_room = room;
+        } else if !self.voice_people.is_empty() {
+            // The first list after joining is who was there already.
+            for (id, name) in &people {
+                if !self.voice_people.iter().any(|(seen, _)| seen == id) {
+                    self.voice_log.push(format!("{now}  {name} joined"));
+                }
+            }
+            for (id, name) in &self.voice_people {
+                if people.iter().any(|(still, _)| still == id) {
+                    continue;
+                }
+                let moved = state
+                    .rooms
+                    .iter()
+                    .find(|found| found.people.iter().any(|person| &person.id == id));
+                match moved {
+                    Some(found) => self.voice_log.push(format!("{now}  {name} moved to {}", found.name)),
+                    None => self.voice_log.push(format!("{now}  {name} left")),
+                }
+            }
+        }
+        self.voice_people = people;
+        window.set_voice_log(self.voice_log.join("\n").into());
+    }
+
     pub(super) fn refresh(&mut self, window: &StaticWindow) {
         refresh_avatar_sources(&self.app.state);
+        self.track_voice_log(window);
         window
             .global::<PictureStore>()
             .set_revision(self.app.state.picture_changes as i32);
@@ -3232,13 +3290,20 @@ impl Adapter {
                 restyle,
             };
             let layout = &self.layout;
+            let translations = &self.translations;
             show_timeline(
                 &self.models.messages,
                 &mut self.rows,
                 &self.messages,
                 &state.messages,
                 &marks,
-                |message| layout.restyle(message, message_row(message, marks.revealed)),
+                |message| {
+                    let mut row = layout.restyle(message, message_row(message, marks.revealed));
+                    if let Some(translation) = translations.get(&message.item) {
+                        row.translation = translation.as_str().into();
+                    }
+                    row
+                },
             );
             if selection_changed || reset {
                 self.latest_due = false;

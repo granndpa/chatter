@@ -332,6 +332,8 @@ component DockButton inherits Rectangle {
 // the camera and sharing the screen, and while sharing, that it's live,
 // wherever the window is.
 export component VoiceDock inherits Rectangle {
+    /// Who joined, left or moved, one per line.
+    in property <string> voice-log;
     in property <string> voice-status;
     /// How long the call has lasted, as 12:05.
     in property <string> voice-time;
@@ -401,6 +403,10 @@ export component VoiceDock inherits Rectangle {
                 LinkTouch { open(x, y, width, height) => { root.open-call-link(x, y, width, height); } }
             }
             if root.voice-active: IconButton {
+                icon: @image-url("icons/history.svg"); label: "Voice log";
+                clicked => { voice-log-popup.show(); }
+            }
+            if root.voice-active: IconButton {
                 icon: @image-url("icons/phone-off.svg"); label: "Leave voice"; danger: true;
                 enabled: !root.voice-leaving;
                 clicked => { root.leave-voice(); }
@@ -467,6 +473,26 @@ export component VoiceDock inherits Rectangle {
             padding-left: 54px;
             ActionButton { text: "Dismiss"; ghost: true; small: true; clicked => { root.dismiss-voice-error(); } }
             Rectangle { horizontal-stretch: 1; }
+        }
+    }
+    voice-log-popup := PopupWindow {
+        x: 8px; y: -self.height - 8px; width: root.width - 16px; height: 260px;
+        close-policy: close-on-click-outside;
+        Rectangle {
+            background: Theme.raised; border-color: Theme.edge; border-width: 1px; border-radius: 8px;
+            VerticalLayout {
+                padding: 12px; spacing: 8px;
+                Text { text: "Voice Log"; color: Theme.text; font-size: 14px; font-weight: 700; }
+                Flickable {
+                    vertical-stretch: 1;
+                    viewport-height: max(self.height, log-text.preferred-height);
+                    log-text := Text {
+                        width: parent.width;
+                        text: root.voice-log == "" ? "Nobody has joined or left yet." : root.voice-log;
+                        color: root.voice-log == "" ? Theme.muted : Theme.text; font-size: 12px; wrap: word-wrap;
+                    }
+                }
+            }
         }
     }
 }

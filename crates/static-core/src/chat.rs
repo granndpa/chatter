@@ -21,9 +21,9 @@ pub const PREVIEW_HEIGHT: u32 = 400;
 /// most; it names the rest.
 pub const FOUND_PICTURES: usize = 4;
 /// The image viewer shows pictures up to this size, so a full-size photo
-/// costs at most about 9 MiB while it's open.
-pub const VIEW_WIDTH: u32 = 1920;
-pub const VIEW_HEIGHT: u32 = 1200;
+/// costs at most about 64 MiB while it's open.
+pub const VIEW_WIDTH: u32 = 4096;
+pub const VIEW_HEIGHT: u32 = 4096;
 
 /// What someone is doing on Discord: a game, music, a stream or a Hang
 /// status, shared as the gateway parsed it.

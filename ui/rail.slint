@@ -844,6 +844,8 @@ export component ServerRail inherits Rectangle {
     /// Without Matrix every server is Discord's, so names don't say so.
     in property <bool> matrix-build: true;
     callback navigate-dms;
+    /// Mark every server and DM read.
+    callback read-all;
     callback navigate-server(string);
     callback toggle-folder(string);
     in property <bool> can-arrange;
@@ -887,6 +889,19 @@ export component ServerRail inherits Rectangle {
             tip: "Direct messages";
             selected: root.dms-selected; unread: root.dms-unread; badge: root.dms-badge;
             clicked => { root.navigate-dms(); }
+        }
+        // Marks everything read, as Vencord's Read All button does.
+        Rectangle {
+            height: 20px;
+            Rectangle {
+                width: 52px; height: 20px; border-radius: 10px;
+                background: read-all-touch.has-hover ? Theme.active : Theme.raised;
+                Text { text: "Read All"; color: Theme.text; font-size: 10px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
+                read-all-touch := TouchArea {
+                    mouse-cursor: MouseCursor.pointer;
+                    clicked => { root.read-all(); }
+                }
+            }
         }
         if ClientStyle.enabled: Rectangle {
             height: 1px;

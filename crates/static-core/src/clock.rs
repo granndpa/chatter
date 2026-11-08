@@ -81,6 +81,21 @@ pub fn time_with(seconds: u64, twelve_hour: bool, with_seconds: bool) -> String 
     time_in(&Local, seconds, twelve_hour, with_seconds)
 }
 
+/// The exact moment of a Unix time, as a message's time shows it on hover:
+/// `Sunday, 8 November 2026 at 19:51:05`, in the chosen date order.
+pub fn full(seconds: u64, twelve_hour: bool) -> String {
+    if seconds == 0 {
+        return String::new();
+    }
+    let moment = at(&Local, seconds);
+    let day = match format_for(twelve_hour) {
+        DateFormat::MonthDayYear => moment.format("%A, %B %-d, %Y"),
+        DateFormat::DayMonthYear => moment.format("%A, %-d %B %Y"),
+        DateFormat::YearMonthDay => moment.format("%A, %Y-%m-%d"),
+    };
+    format!("{day} at {}", time_with(seconds, twelve_hour, true))
+}
+
 /// The calendar date of a Unix time, such as `3 October 2026`; empty when unknown.
 pub fn day(seconds: u64) -> String {
     if seconds == 0 {

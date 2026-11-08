@@ -166,6 +166,31 @@ pub(super) fn custom_keys_without_pictures(
 
 /// Gives the picker's grid the emoji `query` finds, `columns` to a row, and
 /// fetches the pictures of the custom emoji it shows.
+/// Shows a message's translation under it once Google Translate answers.
+fn wait_for_translation(
+    answer: std::sync::mpsc::Receiver<Result<(String, String), String>>,
+    state: Rc<RefCell<Adapter>>,
+    weak: slint::Weak<StaticWindow>,
+    item: String,
+) {
+    slint::Timer::single_shot(std::time::Duration::from_millis(100), move || {
+        let shown = match answer.try_recv() {
+            Ok(Ok((_, language))) if language == "English" => "Already in English".to_owned(),
+            Ok(Ok((text, language))) => format!("Translated from {language}: {text}"),
+            Ok(Err(error)) => format!("Couldn't translate: {error}"),
+            Err(std::sync::mpsc::TryRecvError::Empty) => {
+                return wait_for_translation(answer, state, weak, item);
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => return,
+        };
+        let Some(window) = weak.upgrade() else { return };
+        let mut adapter = state.borrow_mut();
+        adapter.translations.insert(item, shown);
+        adapter.restyle = true;
+        adapter.refresh(&window);
+    });
+}
+
 fn show_emoji(adapter: &Rc<RefCell<Adapter>>, window: &StaticWindow, query: &str, columns: usize) {
     let mut adapter = adapter.borrow_mut();
     let (rows, sections) = {
@@ -384,6 +409,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
     bind!(on_logout, Action::Logout);
     bind!(on_refresh_trust, Action::RefreshTrust);
     bind!(on_retry_sync, Action::RetrySync);
+    bind!(on_read_all, Action::MarkAllRead);
     bind!(
         on_navigate_dms,
         Action::Navigate(Navigation::DirectMessages)
@@ -1712,6 +1738,26 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
         if let Some(window) = weak.upgrade() {
             adapter.action(&window, Action::FakeDeafen(fake));
         }
+    });
+    let state = adapter.clone();
+    let weak = window.as_weak();
+    window.on_translate_message(move |item| {
+        let item = item.to_string();
+        let body = state
+            .borrow()
+            .app
+            .state
+            .messages
+            .iter()
+            .find(|message| message.item == item)
+            .map(|message| message.body.clone())
+            .filter(|body| !body.trim().is_empty());
+        let Some(body) = body else { return };
+        let (sent, answer) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let _ = sent.send(crate::translate::to_english(&body));
+        });
+        wait_for_translation(answer, state.clone(), weak.clone(), item);
     });
     // The channel's composer and the thread beside's pick files alike.
     let pick = |state: Rc<RefCell<Adapter>>, stage: fn(Vec<PathBuf>) -> Action| {

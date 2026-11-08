@@ -1465,6 +1465,7 @@ impl Layout {
             }
             row.time_styled = slint::StyledText::from_plain_text(&sent);
             row.time = sent.into();
+            row.full_time = static_core::clock::full(message.timestamp, twelve_hour).into();
         }
         if !self.link_previews.unwrap_or(true) {
             row.embeds = ModelRc::default();
@@ -1788,6 +1789,13 @@ struct Adapter {
     /// Spoilers clicked, and what was picked or shown on polls; see
     /// `message_row`.
     revealed: HashSet<String>,
+    /// Messages translated with Discord Tweaks, by item: what shows under each.
+    translations: HashMap<String, String>,
+    /// Discord Tweaks' voice log: the call it follows, who was in it at the
+    /// last look, and what happened, newest last.
+    voice_room: Option<String>,
+    voice_people: Vec<(String, String)>,
+    voice_log: Vec<String>,
     /// The minute the timeline was last checked for a poll's time left, and
     /// for a new day, which moves its messages' times to yesterday.
     clock_minute: u64,
@@ -2035,6 +2043,10 @@ impl Adapter {
                 unread_jumped: 0,
                 latest_due: false,
                 revealed: HashSet::new(),
+                translations: HashMap::new(),
+                voice_room: None,
+                voice_people: Vec::new(),
+                voice_log: Vec::new(),
                 clock_minute: 0,
                 restyle: false,
                 theme_editor: None,

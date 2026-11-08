@@ -696,6 +696,8 @@ pub(super) fn message_row_within(
         notice: notice_icon(message.notice.as_ref()).into(),
         author_styled: bold(&message.author),
         time_styled: slint::StyledText::from_plain_text(&message.time),
+        full_time: SharedString::default(),
+        translation: SharedString::default(),
         edited: message.edited,
         edit_history: message
             .edit_history
