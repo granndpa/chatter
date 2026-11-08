@@ -43,6 +43,14 @@ channel goes away. Opening one whose conversation is gone says so instead.
 ## Servers and navigation
 
 - **Read All** under Direct Messages marks every server and DM read.
+- **Pinned servers and friends:** right-click a server for **Pin Server**, or
+  a Discord friend (or their DM) for **Pin Friend**. Pins sit at the top of the
+  rail, friends with their presence; **Move Pin Up/Down** reorders them and
+  **Unpin** takes them off. A pinned server leaves its folder's list while
+  pinned; the folder itself stays. A friend shows once you have a DM with them.
+- **Updates:** Chatter checks GitHub at start and every 6 hours. With
+  **Update automatically** on (the default), it updates and restarts at start;
+  otherwise a green **Update** button shows at the top.
 - **Show channels you can't access** lists hidden channels, locked.
 
 ## Voice
@@ -62,5 +70,5 @@ channel goes away. Opening one whose conversation is gone says so instead.
 
 Bookmarks, reminders and drafts are JSON files in the data folder, under
 `tweaks/<Discord user id>/`, one folder per account: `bookmarks.json`,
-`reminders.json` and `drafts.json`. They never leave the computer and hold no
+`reminders.json`, `drafts.json` and `pins.json`. They never leave the computer and hold no
 login tokens. Delete the folder to start over.

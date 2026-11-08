@@ -1,10 +1,11 @@
 //! Discord Tweaks' local data: bookmarks (with the Hall of Fame), message
-//! reminders and saved drafts. Each Discord account keeps its own files in
+//! reminders, saved drafts and pinned servers and friends. Each Discord account keeps its own files in
 //! its own folder beside the session, as JSON, and nothing here leaves this
 //! computer.
 
 pub mod bookmarks;
 pub mod drafts;
+pub mod pins;
 pub mod reminders;
 
 use std::{

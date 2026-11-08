@@ -358,7 +358,20 @@ impl Adapter {
         window.set_voice_log(self.voice_log.join("\n").into());
     }
 
+    /// Lays out the rail again, as after pinning or unpinning.
+    pub(super) fn rebuild_rail(&mut self) {
+        let state = &self.app.state;
+        let rooms_by_id: HashMap<&str, &static_core::chat::ChatRoom> = state
+            .rooms
+            .iter()
+            .map(|room| (room.id.as_str(), &**room))
+            .collect();
+        let rail = rail(state, &rooms_by_id, &self.layout.open_folders, &self.tweaks.pins);
+        update_model_by_id(&self.models.servers, rail, |row| row.id.clone());
+    }
+
     pub(super) fn refresh(&mut self, window: &StaticWindow) {
+        super::tweaks::sync_account(self);
         refresh_avatar_sources(&self.app.state);
         self.track_voice_log(window);
         self.drop_dismissed();
@@ -706,7 +719,7 @@ impl Adapter {
             .map(|room| (room.id.as_str(), &**room))
             .collect();
         self.rail_call = call_room(state).map(str::to_owned);
-        let rail = rail(state, &rooms_by_id, &self.layout.open_folders);
+        let rail = rail(state, &rooms_by_id, &self.layout.open_folders, &self.tweaks.pins);
         update_model_by_id(&self.models.servers, rail, |row| row.id.clone());
         let mut listed_text = false;
         let mut listed_voice = false;
@@ -3461,7 +3474,7 @@ impl Adapter {
                 .iter()
                 .map(|room| (room.id.as_str(), &**room))
                 .collect();
-            let rail = rail(state, &rooms_by_id, &self.layout.open_folders);
+            let rail = rail(state, &rooms_by_id, &self.layout.open_folders, &self.tweaks.pins);
             update_model_by_id(&self.models.servers, rail, |row| row.id.clone());
         }
         let timed = matches!(state.voice.phase, Phase::Connected | Phase::Reconnecting)
@@ -4197,13 +4210,58 @@ fn rail(
     state: &AppState,
     rooms_by_id: &HashMap<&str, &static_core::chat::ChatRoom>,
     open_folders: &std::collections::BTreeSet<String>,
+    pins: &static_core::tweaks::pins::Pins,
 ) -> Vec<ServerRow> {
-    let mut rail = unread_dm_rows(state);
+    // Pinned friends with a DM, in their order.
+    let friends: Vec<&static_core::chat::ChatRoom> = pins
+        .friends
+        .iter()
+        .filter_map(|user| {
+            state
+                .rooms
+                .iter()
+                .find(|room| room.direct && room.person.as_deref() == Some(user.as_str()))
+        })
+        .map(|room| &**room)
+        .collect();
+    let mut rail: Vec<ServerRow> = unread_dm_rows(state)
+        .into_iter()
+        .filter(|row| !friends.iter().any(|room| room.id.as_str() == row.id.as_str()))
+        .collect();
+    for room in &friends {
+        let unread = room.unread > 0 || room.mentions > 0;
+        rail.push(ServerRow {
+            id: room.id.as_str().into(),
+            name: room.name.as_str().into(),
+            initial: initial(&room.name),
+            picture_url: room.avatar.as_deref().unwrap_or_default().into(),
+            unread,
+            badge: if unread { count_badge(room.mentions.max(room.unread)) } else { SharedString::default() },
+            discord: room.network == Network::Discord,
+            dm: true,
+            pinned: true,
+            presence: presence_name(room.presence.or(Some(Presence::Offline))).into(),
+            ..Default::default()
+        });
+    }
+    let mut rows = rail_rows(state, rooms_by_id, open_folders);
+    // Pinned servers leave their place, or their open folder, for the top.
+    for id in &pins.servers {
+        let Some(at) = rows.iter().position(|row| !row.folder && row.id.as_str() == id.as_str()) else {
+            continue;
+        };
+        let mut row = rows.remove(at);
+        rows.retain(|other| other.folder || other.id.as_str() != id.as_str());
+        row.nested = false;
+        row.last = false;
+        row.pinned = true;
+        rail.push(row);
+    }
     rail.push(ServerRow {
         divider: true,
         ..Default::default()
     });
-    rail.extend(rail_rows(state, rooms_by_id, open_folders));
+    rail.extend(rows);
     rail
 }
 

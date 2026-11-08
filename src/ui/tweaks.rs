@@ -8,6 +8,7 @@ use static_core::tweaks::{
     self, SavedMessage,
     bookmarks::{self, Bookmarks, Sort},
     drafts::{self, Drafts},
+    pins::{self, Pins},
     reminders::{self, Reminders},
 };
 
@@ -17,7 +18,6 @@ use super::*;
 const TICK: std::time::Duration = std::time::Duration::from_secs(5);
 
 /// The Saved panel's tabs.
-const TAB_BOOKMARKS: i32 = 0;
 const TAB_HALL_OF_FAME: i32 = 2;
 
 #[derive(Default)]
@@ -27,6 +27,8 @@ pub(super) struct Tweaks {
     dir: Option<PathBuf>,
     bookmarks: Bookmarks,
     reminders: Reminders,
+    /// Pinned servers and friends, which the rail shows first.
+    pub(super) pins: Pins,
     /// The drafts as last written to disk.
     drafts: Drafts,
     /// The message the last reminder was about, which clicking its
@@ -46,7 +48,7 @@ fn now() -> u64 {
 
 /// Loads the account's files when the signed-in account changes, and brings
 /// its drafts back.
-fn sync_account(adapter: &mut Adapter) {
+pub(super) fn sync_account(adapter: &mut Adapter) {
     let account = adapter.app.state.discord_user.clone();
     if account == adapter.tweaks.account {
         return;
@@ -57,16 +59,100 @@ fn sync_account(adapter: &mut Adapter) {
     tweaks.dir = dir.clone();
     tweaks.bookmarks = Bookmarks::default();
     tweaks.reminders = Reminders::default();
+    tweaks.pins = Pins::default();
     tweaks.drafts = Drafts::default();
     tweaks.collection.clear();
     if let Some(dir) = dir {
         tweaks.bookmarks = tweaks::load(&dir, bookmarks::FILE);
         tweaks.reminders = tweaks::load(&dir, reminders::FILE);
+        tweaks.pins = tweaks::load(&dir, pins::FILE);
         let saved: Drafts = tweaks::load(&dir, drafts::FILE);
         adapter.app.state.restore_drafts(saved);
         adapter.tweaks.drafts = adapter.app.state.saved_drafts();
         adapter.restyle = true;
     }
+    adapter.rebuild_rail();
+}
+
+/// Pins or unpins a server (`server`) or friend, or moves a pin, from its
+/// menu: `kind` is `server`, `friend`, `up` or `down`.
+pub(super) fn pin(adapter: &mut Adapter, kind: &str, target: &str) {
+    sync_account(adapter);
+    let state = &adapter.app.state;
+    let server = state.servers.iter().any(|server| server.id == target);
+    // A DM on the rail stands for its person.
+    let user = state
+        .rooms
+        .iter()
+        .find(|room| room.id == target && room.direct)
+        .and_then(|room| room.person.clone())
+        .unwrap_or_else(|| target.to_owned());
+    let tweaks = &mut adapter.tweaks;
+    match kind {
+        "server" => {
+            pins::toggle(&mut tweaks.pins.servers, target);
+        }
+        "friend" => {
+            pins::toggle(&mut tweaks.pins.friends, &user);
+        }
+        "up" | "down" => {
+            let by = if kind == "up" { -1 } else { 1 };
+            if server {
+                pins::shift(&mut tweaks.pins.servers, target, by);
+            } else {
+                pins::shift(&mut tweaks.pins.friends, &user, by);
+            }
+        }
+        _ => return,
+    }
+    if let Some(dir) = &tweaks.dir
+        && let Err(error) = tweaks::save(dir, pins::FILE, &tweaks.pins)
+    {
+        tracing::warn!(%error, "could not save pins");
+    }
+    adapter.rebuild_rail();
+}
+
+/// The pin rows a server's, person's or DM's menu offers: their ids and text.
+pub(super) fn pin_rows(adapter: &Adapter, id: &str, person: bool) -> Vec<(String, &'static str)> {
+    let state = &adapter.app.state;
+    let pins = &adapter.tweaks.pins;
+    let mut rows = Vec::new();
+    let (list, pin_text, unpin_text): (&[String], _, _) =
+        if !person && state.servers.iter().any(|server| server.id == id) {
+            (&pins.servers, "Pin Server", "Unpin Server")
+        } else {
+            let user = if person {
+                Some(id.to_owned())
+            } else {
+                state
+                    .rooms
+                    .iter()
+                    .find(|room| room.id == id && room.direct)
+                    .and_then(|room| room.person.clone())
+            };
+            // Only Discord people: their ids are numbers.
+            let Some(user) = user.filter(|user| !user.is_empty() && user.bytes().all(|b| b.is_ascii_digit())) else {
+                return rows;
+            };
+            if adapter.app.state.discord_user.as_deref() == Some(user.as_str()) {
+                return rows;
+            }
+            let pinned = pins.friends.contains(&user);
+            rows.push(("friend".to_owned(), if pinned { "Unpin Friend" } else { "Pin Friend" }));
+            if pinned {
+                rows.push(("up".to_owned(), "Move Pin Up"));
+                rows.push(("down".to_owned(), "Move Pin Down"));
+            }
+            return rows;
+        };
+    let pinned = list.iter().any(|pinned| pinned == id);
+    rows.push(("server".to_owned(), if pinned { unpin_text } else { pin_text }));
+    if pinned {
+        rows.push(("up".to_owned(), "Move Pin Up"));
+        rows.push(("down".to_owned(), "Move Pin Down"));
+    }
+    rows
 }
 
 fn save_bookmarks(adapter: &Adapter) {

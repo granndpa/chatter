@@ -27,6 +27,10 @@ pub(super) const SIDEBAR: &str = "thread-sidebar:";
 /// `avatar`, `banner`, `icon` or `server-banner`.
 const SAVE_PICTURE: &str = "save-picture:";
 
+/// A Discord Tweaks row that pins or moves a pin: this, then `server`,
+/// `friend`, `up` or `down`.
+const PIN: &str = "pin-tweak:";
+
 /// The pictures a person's or server's menu can save: what each is, its row's
 /// text, and its address.
 fn saveable_pictures(state: &AppState, id: &str, person: bool) -> Vec<(&'static str, &'static str, String)> {
@@ -433,6 +437,21 @@ pub(super) fn menu(adapter: &Adapter, id: &str, person: bool) -> Menu {
                 ..Default::default()
             });
         }
+    }
+    // A server header's dropdown keeps to Discord's rows.
+    let tweak_rows = !id_is_header;
+    for (index, (kind, text)) in super::tweaks::pin_rows(adapter, id, person)
+        .into_iter()
+        .filter(|_| tweak_rows)
+        .enumerate()
+    {
+        rows.push(MenuRow {
+            id: format!("{PIN}{kind}").into(),
+            text: text.into(),
+            separated: index == 0,
+            plain,
+            ..Default::default()
+        });
     }
     for (index, (kind, text, _)) in saveable_pictures(state, id, person).into_iter().enumerate() {
         rows.push(MenuRow {
@@ -1015,6 +1034,10 @@ pub(super) fn choose(
                 change,
             },
         );
+        return;
+    }
+    if let Some(kind) = id.strip_prefix(PIN) {
+        super::tweaks::pin(adapter, kind, &target);
         return;
     }
     if let Some(kind) = id.strip_prefix(SAVE_PICTURE) {

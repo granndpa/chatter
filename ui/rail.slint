@@ -32,6 +32,10 @@ export struct ServerRow {
     dm: bool,
     /// The line between those DMs and the servers.
     divider: bool,
+    /// Pinned with Discord Tweaks: shown at the top. A pinned friend's DM
+    /// is `dm`, with their `presence`.
+    pinned: bool,
+    presence: string,
 }
 
 export struct RoomRow {
@@ -970,9 +974,13 @@ export component ServerRail inherits Rectangle {
                     label: server.name + (server.discord && root.matrix-build ? ", Discord" : "")
                         + (server.badge != "" ? ", " + server.badge + " unread" : ", unread");
                     tip: server.discord && root.matrix-build ? server.name + " (Discord)" : server.name;
-                    unread: true; badge: server.badge; discord: server.discord;
+                    unread: !server.pinned || server.unread; badge: server.badge; discord: server.discord;
                     clicked => { root.open-dm(server.id); }
                     context-menu(x, y) => { root.open-server-menu(server.id, x, y); }
+                }
+                if server.dm && server.presence != "": StatusDot {
+                    x: (72px + ClientStyle.rail-tile) / 2 - 14px; y: ClientStyle.rail-tile - 14px;
+                    presence: server.presence; ring: Theme.rail;
                 }
                 if !server.folder && !server.dm && !server.divider: RailItem {
                     y: 0px;
@@ -984,7 +992,7 @@ export component ServerRail inherits Rectangle {
                     selected: server.selected; unread: server.unread; badge: server.badge; discord: server.discord;
                     call: server.call;
                     opacity: server.unavailable ? 0.5 : 1;
-                    draggable: root.can-arrange && server.discord;
+                    draggable: root.can-arrange && server.discord && !server.pinned;
                     begin-drag(y) => { root.start(server.id, false, y); }
                     dragged(y) => { root.drag-y = y; }
                     dropped => { root.finish(); }

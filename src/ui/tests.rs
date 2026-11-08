@@ -1792,6 +1792,7 @@ fn a_server_members_menu_follows_permissions_and_ticks_roles() {
             "Kick Dave",
             "Ban Dave",
             "Copy ID",
+            "Pin Friend",
         ]
     );
     let marked = |pick: fn(&MenuRow) -> bool| -> Vec<&str> {
@@ -1806,7 +1807,8 @@ fn a_server_members_menu_follows_permissions_and_ticks_roles() {
             "Remove friend",
             "Change nickname",
             "Time out Dave",
-            "Copy ID"
+            "Copy ID",
+            "Pin Friend"
         ]
     );
     assert_eq!(
@@ -4487,7 +4489,8 @@ fn a_discord_servers_menus_show_and_change_its_notifications() {
             "Leave server",
             "Copy link",
             "Copy ID",
-            "Create Folder"
+            "Create Folder",
+            "Pin Server"
         ]
     );
     let notifications = rows.row_data(2).unwrap();
