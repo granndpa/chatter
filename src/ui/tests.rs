@@ -1368,7 +1368,7 @@ fn a_link_showing_other_text_asks_before_it_opens() {
             .dispatch_event(WindowEvent::PointerReleased { position, button });
     }
     let opened = opened.borrow();
-    assert!(!opened.is_empty(), "a click on the link reaches Static");
+    assert!(!opened.is_empty(), "a click on the link reaches Chatter");
     assert!(
         opened
             .iter()
@@ -6194,7 +6194,7 @@ fn a_theme_paints_the_window_and_the_mentions_in_its_rows() {
     assert_eq!(
         theme::Theme::shown(&window),
         theme::STATIC_THEME,
-        "the Slint defaults are Static's, for the first frame"
+        "the Slint defaults are Chatter's, for the first frame"
     );
     let message = ChatMessage {
         body: "hi @Bob".into(),
@@ -6278,7 +6278,7 @@ fn built_in_themes_have_their_own_ids_and_say_whether_they_are_dark() {
     assert_eq!(
         theme::BUILT_IN[0].theme,
         theme::STATIC_THEME,
-        "Static comes first"
+        "Chatter comes first"
     );
 }
 

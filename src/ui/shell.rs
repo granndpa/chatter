@@ -257,7 +257,7 @@ impl Shell {
         }
         #[cfg(not(feature = "discord"))]
         let _ = link;
-        tracing::warn!("a later start handed Static a link it can't open");
+        tracing::warn!("a later start handed Chatter a link it can't open");
     }
 
     /// Opens the window on a conversation, as a clicked notification does.
@@ -347,7 +347,7 @@ pub(super) fn launched(launch: crate::instance::Launch) {
     let Some(shell) = SHELL.with(|shell| shell.borrow().upgrade()) else {
         return;
     };
-    tracing::info!("Static started again; showing the window");
+    tracing::info!("Chatter started again; showing the window");
     if let Some(link) = link {
         shell.queue_link(link);
     }
@@ -441,9 +441,9 @@ impl Adapter {
     pub(super) fn show_title(&self, window: &StaticWindow) {
         let waiting: u64 = self.app.state.rooms.iter().map(|room| room.mentions).sum();
         let title = match waiting {
-            0 => "Static".to_owned(),
-            1..=99 => format!("({waiting}) Static"),
-            _ => "(99+) Static".to_owned(),
+            0 => "Chatter".to_owned(),
+            1..=99 => format!("({waiting}) Chatter"),
+            _ => "(99+) Chatter".to_owned(),
         };
         if window.get_window_title() != title.as_str() {
             window.set_window_title(title.into());

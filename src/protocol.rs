@@ -171,7 +171,7 @@ mod windows {
         let program = super::command(root)?
             .into_iter()
             .next()
-            .ok_or_else(|| io::Error::other("Static's own path is unavailable"))?;
+            .ok_or_else(|| io::Error::other("Chatter's own path is unavailable"))?;
         set_string(
             LEGACY_SCHEME_ICON,
             None,

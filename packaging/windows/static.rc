@@ -9,11 +9,11 @@ BEGIN
     BEGIN
         BLOCK "040904B0"
         BEGIN
-            VALUE "CompanyName", "Static\0"
-            VALUE "FileDescription", "Static desktop client\0"
+            VALUE "CompanyName", "Chatter\0"
+            VALUE "FileDescription", "Chatter\0"
             VALUE "FileVersion", "0.3.0\0"
             VALUE "OriginalFilename", "static.exe\0"
-            VALUE "ProductName", "Static\0"
+            VALUE "ProductName", "Chatter\0"
             VALUE "ProductVersion", "0.3.0\0"
         END
     END

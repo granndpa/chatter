@@ -684,7 +684,7 @@ export component VoiceSettings inherits VerticalLayout {
         spacing: 4px;
         SettingsHeading { text: "Input Profile"; }
         RadioOption {
-            text: "Voice Isolation"; description: "Just your voice: Static cuts through the noise and the room's echo.";
+            text: "Voice Isolation"; description: "Just your voice: Chatter cuts through the noise and the room's echo.";
             checked: root.input-profile == 0;
             clicked => {
                 root.input-profile = 0; root.noise-suppression = 0; root.noise-strength = 0;
@@ -807,8 +807,8 @@ export component VoiceSettings inherits VerticalLayout {
             chosen => { root.preferences-changed(); }
         }
         Label {
-            text: root.input-mode == 0 ? "Static sends your voice when it hears you speak."
-                : "Static sends your microphone only while you hold a key.";
+            text: root.input-mode == 0 ? "Chatter sends your voice when it hears you speak."
+                : "Chatter sends your microphone only while you hold a key.";
         }
     }
     if root.input-mode == 1: VerticalLayout {
@@ -861,7 +861,7 @@ export component VoiceSettings inherits VerticalLayout {
         }
         Label {
             text: root.gate-meter-note != "" ? root.gate-meter-note
-                : "Static sends your voice when it's louder than the handle, and other sounds when they're 18 dB louder still. The bar is your microphone after noise suppression and at its volume, as Static hears it to decide.";
+                : "Chatter sends your voice when it's louder than the handle, and other sounds when they're 18 dB louder still. The bar is your microphone after noise suppression and at its volume, as Chatter hears it to decide.";
         }
     }
     Rectangle { height: 1px; background: Theme.line; }
@@ -870,7 +870,7 @@ export component VoiceSettings inherits VerticalLayout {
         VerticalLayout {
             spacing: 2px; horizontal-stretch: 1; alignment: center;
             Text { text: "Reset all voice settings"; color: Theme.text; font-size: 15px; }
-            Label { text: "Back to Static's defaults: devices stay, everything else resets."; }
+            Label { text: "Back to Chatter's defaults: devices stay, everything else resets."; }
         }
         VerticalLayout {
             alignment: center;
@@ -1078,7 +1078,7 @@ export component AppearanceSettings inherits VerticalLayout {
     }
     if !root.editor && root.title-bar-choice: SettingsSwitch {
         text: "Use the system title bar";
-        description: "Your desktop draws the window's title bar and buttons, as on its other windows. Off, Static draws its own.";
+        description: "Your desktop draws the window's title bar and buttons, as on its other windows. Off, Chatter draws its own.";
         checked <=> root.system-title-bar;
         toggled => { root.title-bar-toggled(); }
     }
@@ -1222,7 +1222,7 @@ export component MessageSettings inherits VerticalLayout {
         spacing: 8px;
         SettingsHeading { text: "Play GIFs, Emoji and Stickers"; }
         Choices {
-            label: "Play GIFs, emoji and stickers"; options: ["While Static is focused", "Always", "Never"];
+            label: "Play GIFs, emoji and stickers"; options: ["While Chatter is focused", "Always", "Never"];
             current <=> root.animate;
             chosen => { root.preferences-changed(); }
         }
@@ -1270,7 +1270,7 @@ export component NotificationSettings inherits VerticalLayout {
     SettingsTitle { text: "Notifications"; }
     SettingsSwitch {
         text: "Show desktop notifications";
-        description: "For new messages while Static isn't in front. "
+        description: "For new messages while Chatter isn't in front. "
             + (root.matrix && root.discord ? "Each Discord server's notification settings and your Matrix notification rules decide"
                 : root.matrix ? "Your Matrix notification rules decide" : "Each Discord server's notification settings decide")
             + " which: usually DMs and mentions. Clicking one opens the conversation.";
@@ -1286,20 +1286,20 @@ export component NotificationSettings inherits VerticalLayout {
     }
     SettingsSwitch {
         text: "Enable unread message badge";
-        description: "A red count on Static's taskbar button for mentions and DMs waiting, as Discord shows it.";
+        description: "A red count on Chatter's taskbar button for mentions and DMs waiting, as Discord shows it.";
         checked <=> root.unread-badge;
         toggled => { root.preferences-changed(); }
     }
     SettingsSwitch {
         text: "Flash the taskbar";
-        description: "Static's taskbar button lights up for a message that notifies while Static isn't in front.";
+        description: "Chatter's taskbar button lights up for a message that notifies while Chatter isn't in front.";
         checked <=> root.flash-taskbar;
         toggled => { root.preferences-changed(); }
     }
     Rectangle { height: 1px; background: Theme.line; }
     SettingsSwitch {
         text: "Disable all notification sounds";
-        description: "Every sound Static plays, for messages and in calls. Each sound's own setting comes back when you turn this off.";
+        description: "Every sound Chatter plays, for messages and in calls. Each sound's own setting comes back when you turn this off.";
         checked <=> root.mute-all-sounds;
         toggled => { root.preferences-changed(); }
     }
@@ -1322,7 +1322,7 @@ export component SoundSettings inherits VerticalLayout {
     property <[string]> names: ["Someone joins the call", "Someone leaves the call", "Muting", "Unmuting", "Deafening", "Undeafening", "A message", "A mention", "Someone starts watching a stream", "Someone stops watching a stream", "Someone starts streaming", "Someone stops streaming"];
     spacing: 16px;
     SettingsTitle { text: "Sounds"; }
-    Label { text: "Static plays these as you and others join and leave a call, as you mute and deafen, as others start and stop streaming, as they start and stop watching your stream or the one you watch, and for messages that notify, except in the conversation in front of you. They play on the speakers chosen for calls."; }
+    Label { text: "Chatter plays these as you and others join and leave a call, as you mute and deafen, as others start and stop streaming, as they start and stop watching your stream or the one you watch, and for messages that notify, except in the conversation in front of you. They play on the speakers chosen for calls."; }
     VerticalLayout {
         spacing: 8px;
         SettingsHeading { text: "Sound Set"; }
@@ -1378,12 +1378,12 @@ export component AdvancedSettings inherits VerticalLayout {
 
     if root.autostart-available: SettingsSwitch {
         text: "Start when you sign in";
-        description: "Static starts in the system tray when you sign in to your computer, so messages and calls reach you.";
+        description: "Chatter starts in the system tray when you sign in to your computer, so messages and calls reach you.";
         checked <=> root.start-on-sign-in;
         toggled => { root.preferences-changed(); }
     }
     if root.discord-links-available: SettingsSwitch {
-        text: "Open Discord links in Static";
+        text: "Open Discord links in Chatter";
         description: "discord:// links from other apps and shortcuts open here instead of Discord. Turning it off gives them back to the app that had them.";
         checked <=> root.discord-links;
         toggled => { root.preferences-changed(); }
@@ -1391,37 +1391,37 @@ export component AdvancedSettings inherits VerticalLayout {
     SettingsSwitch {
         text: "Close to tray";
         description: root.tray-available
-            ? "Closing the window keeps Static running in the system tray, with any call. Quit from the tray icon's menu."
-            : "No system tray is running, so closing the window quits Static.";
+            ? "Closing the window keeps Chatter running in the system tray, with any call. Quit from the tray icon's menu."
+            : "No system tray is running, so closing the window quits Chatter.";
         checked <=> root.close-to-tray;
         toggled => { root.preferences-changed(); }
     }
     SettingsSwitch {
         text: "Allow multiple windows";
-        description: "Starting Static while it runs opens another Static, with its own window and tray icon. Off, it brings the open window forward.";
+        description: "Starting Chatter while it runs opens another Chatter, with its own window and tray icon. Off, it brings the open window forward.";
         checked <=> root.multiple-windows;
         toggled => { root.preferences-changed(); }
     }
     SettingsSwitch {
         text: "Render with the GPU";
-        description: "Hardware acceleration. Off, Static draws on the processor, which uses about half the memory.";
+        description: "Hardware acceleration. Off, Chatter draws on the processor, which uses about half the memory.";
         checked <=> root.gpu-rendering;
         toggled => { root.preferences-changed(); }
     }
     if root.gpu-rendering != root.gpu-running: HorizontalLayout {
         spacing: 12px;
         Label {
-            text: "Static switches to " + (root.gpu-rendering ? "the GPU" : "the processor") + " when it restarts. Restarting leaves any call.";
+            text: "Chatter switches to " + (root.gpu-rendering ? "the GPU" : "the processor") + " when it restarts. Restarting leaves any call.";
             vertical-alignment: center; horizontal-stretch: 1;
         }
         ActionButton {
-            text: "Restart Static"; icon: @image-url("icons/refresh-cw.svg");
+            text: "Restart Chatter"; icon: @image-url("icons/refresh-cw.svg");
             clicked => { root.restart(); }
         }
     }
     SettingsSwitch {
         text: "Encode streams with the GPU";
-        description: "Screen sharing uses the graphics card's video encoder, which takes almost no processor time and looks better at low bitrates. Off, or without one, Static encodes on the processor.";
+        description: "Screen sharing uses the graphics card's video encoder, which takes almost no processor time and looks better at low bitrates. Off, or without one, Chatter encodes on the processor.";
         checked <=> root.gpu-encoding;
         toggled => { root.preferences-changed(); }
     }
@@ -1443,7 +1443,7 @@ export component DiscordLinkSettings inherits VerticalLayout {
     callback open-discord-captcha;
     spacing: 16px;
     SettingsTitle { text: "Discord"; }
-    Label { text: "Link your Discord account to see its servers and DMs in Static, and join its calls. The login stays on this computer, in the system's credential store."; }
+    Label { text: "Link your Discord account to see its servers and DMs in Chatter, and join its calls. The login stays on this computer, in the system's credential store."; }
     DiscordLinkPanel {
         phase: root.link-phase; code: root.link-code; name: root.link-name; note: root.link-note;
         begin => { root.link-discord(); }
@@ -1472,7 +1472,7 @@ export component GameActivitySettings inherits VerticalLayout {
     SettingsTitle { text: "Game activity"; }
     SettingsSwitch {
         text: "Share the game you play";
-        description: "Static looks for games among the programs running, and on Linux takes the Rich Presence games send. Your Discord account keeps this setting, so it's the same in Discord's apps.";
+        description: "Chatter looks for games among the programs running, and on Linux takes the Rich Presence games send. Your Discord account keeps this setting, so it's the same in Discord's apps.";
         checked: root.shown;
         controlled: true;
         enabled: root.linked;
@@ -1480,7 +1480,7 @@ export component GameActivitySettings inherits VerticalLayout {
         toggled(shown) => { root.toggled(shown); }
     }
     SettingsHeading { text: "Custom Games"; }
-    Label { text: "Name a game by its executable, a file name or a full path, and what to show after Playing. These come before the games Static knows, but a game's Rich Presence comes first."; }
+    Label { text: "Name a game by its executable, a file name or a full path, and what to show after Playing. These come before the games Chatter knows, but a game's Rich Presence comes first."; }
     for game[index] in root.executables: VerticalLayout {
         spacing: 4px;
         HorizontalLayout {
@@ -1541,7 +1541,7 @@ export component DiscordSettings inherits VerticalLayout {
     ActionButton { text: "Clear local message history"; clicked => { root.message-history-action(root.retain-message-history, true); } }
     if root.matrix-build: HorizontalLayout {
         spacing: 12px;
-        Label { text: "Unlinking signs Static out of Discord on this computer."; vertical-alignment: center; horizontal-stretch: 1; }
+        Label { text: "Unlinking signs Chatter out of Discord on this computer."; vertical-alignment: center; horizontal-stretch: 1; }
         ActionButton {
             text: "Unlink Discord"; icon: @image-url("icons/log-out.svg"); danger: true;
             clicked => { root.unlink-discord(); }
@@ -1555,13 +1555,13 @@ export component DiscordSettings inherits VerticalLayout {
     }
     SettingsSwitch {
         text: "Mark messages read on Discord";
-        description: "Channels you read in Static show as read in the Discord apps too.";
+        description: "Channels you read in Chatter show as read in the Discord apps too.";
         checked: root.sync-discord-reads;
         toggled(sync) => { root.sync-discord-reads-toggled(sync); }
     }
     SettingsSwitch {
         text: "Show me as idle when I'm away";
-        description: "After 10 minutes without using Static, as in Discord. Either way, your phone gets notifications while you're away.";
+        description: "After 10 minutes without using Chatter, as in Discord. Either way, your phone gets notifications while you're away.";
         checked: root.show-idle;
         toggled(shown) => { root.show-idle-toggled(shown); }
     }

@@ -170,14 +170,14 @@ pub fn run(
     }
     let window = match static_window::window() {
         Ok(window) => window,
-        Err(error) => return failed(error, "could not create the Static window"),
+        Err(error) => return failed(error, "could not create the Chatter window"),
     };
     title_bar::show(&window, system_title_bar);
     if let Some(placement) = &placement {
         placement::place(&window, placement);
     }
     if !hidden && let Err(error) = window.show() {
-        return failed(error, "could not show Static");
+        return failed(error, "could not show Chatter");
     }
     if !preview {
         AUTOSTART.set(autostart::SUPPORTED);
@@ -256,7 +256,7 @@ pub fn run(
         Err(error) => failed(error, "Slint's desktop event loop failed"),
         Ok(()) if missing_window.get() => failed(
             "the window did not appear".into(),
-            "Static's window did not appear",
+            "Chatter's window did not appear",
         ),
         Ok(()) if restart => Ok(Exit::Restart),
         Ok(()) => Ok(Exit::Closed),
@@ -2289,7 +2289,7 @@ impl Adapter {
             Ok(handle) => self.dialog = Some(handle),
             Err(error) => {
                 tracing::error!(%error, "could not open the file dialog");
-                self.app.state.notice = Some("Static could not open a file dialog.".into());
+                self.app.state.notice = Some("Chatter could not open a file dialog.".into());
             }
         }
     }

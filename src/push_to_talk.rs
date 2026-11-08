@@ -157,7 +157,7 @@ impl Reach {
     /// What settings say under the key.
     pub fn note(&self) -> String {
         match self {
-            Reach::Asking => "Asking your desktop to let Static use the key in every app...".into(),
+            Reach::Asking => "Asking your desktop to let Chatter use the key in every app...".into(),
             Reach::Everywhere(None) => "Hold the key in any app to talk.".into(),
             Reach::Everywhere(Some(shortcut)) if shortcut.is_empty() => {
                 "Your desktop hasn't allowed this shortcut yet. Approve it in your system's global shortcuts settings.".into()
@@ -166,7 +166,7 @@ impl Reach {
                 "Your desktop gave push to talk the shortcut {shortcut}. Hold it in any app to talk; change it in your system's global shortcuts settings."
             ),
             Reach::Focused(why) => format!(
-                "{why}, so push to talk works only while Static's window is in front."
+                "{why}, so push to talk works only while Chatter's window is in front."
             ),
         }
     }
@@ -255,7 +255,7 @@ impl Watcher {
         {
             let _ = runtime;
             report(Reach::Focused(
-                "Static can't watch keys in other apps on this system yet",
+                "Chatter can't watch keys in other apps on this system yet",
             ));
         }
         Self {
@@ -340,7 +340,7 @@ mod linux {
                                 "no global push-to-talk key through the portal"
                             );
                             report(Reach::Focused(
-                                "Your desktop doesn't offer Static a global shortcut",
+                                "Your desktop doesn't offer Chatter a global shortcut",
                             ));
                         }
                     }),
@@ -356,7 +356,7 @@ mod linux {
                         error = format!("{error:#}"),
                         "no global push-to-talk key on X11"
                     );
-                    report(Reach::Focused("Static couldn't watch keys in other apps"));
+                    report(Reach::Focused("Chatter couldn't watch keys in other apps"));
                     None
                 }
             }
@@ -856,7 +856,7 @@ mod windows {
                 }
                 None => {
                     report(Reach::Focused(
-                        "Windows didn't let Static watch keys in other apps",
+                        "Windows didn't let Chatter watch keys in other apps",
                     ));
                     None
                 }

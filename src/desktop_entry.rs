@@ -17,7 +17,7 @@ use std::{
 use crate::icon::APP_ID;
 
 /// The entry a package installs, whose Exec line names the AppImage instead.
-const ENTRY: &str = include_str!("../packaging/linux/io.github.yapfast.Static.desktop");
+const ENTRY: &str = include_str!("../packaging/linux/io.github.yapfast.Chatter.desktop");
 const ICON: &[u8] = include_bytes!("../packaging/icon.svg");
 
 /// The AppImage this Static runs from. An AppImage runs from a temporary
@@ -39,9 +39,9 @@ pub fn install() {
         return;
     };
     match install_in(&data, &data_dirs(), &image) {
-        Ok(true) => tracing::info!(appimage = %image.display(), "added Static to the app menu"),
+        Ok(true) => tracing::info!(appimage = %image.display(), "added Chatter to the app menu"),
         Ok(false) => {}
-        Err(error) => tracing::warn!(%error, "could not add Static to the app menu"),
+        Err(error) => tracing::warn!(%error, "could not add Chatter to the app menu"),
     }
 }
 

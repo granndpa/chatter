@@ -113,7 +113,7 @@ fn main() -> Result<()> {
     let open_link = links.pop().and_then(|link| {
         let written = written_link(&link);
         if written.is_none() {
-            tracing::info!("Static has no place for the link it was handed; starting without it");
+            tracing::info!("Chatter has no place for the link it was handed; starting without it");
         }
         written
     });
@@ -150,7 +150,7 @@ fn main() -> Result<()> {
         [argument] if argument == "--smoke-test" => {
             runtime.block_on(runtime.spawn(static_core::check_build()))?;
             println!(
-                "Static {}: Tokio, LiveKit{}{} build check passed.",
+                "Chatter {}: Tokio, LiveKit{}{} build check passed.",
                 env!("CARGO_PKG_VERSION"),
                 if cfg!(feature = "matrix") {
                     ", Matrix SDK, MatrixRTC"
@@ -178,7 +178,7 @@ fn main() -> Result<()> {
         }
         [argument] if argument == "--help" || argument == "-h" => {
             println!(
-                "Usage: static [--preview] [--data-dir PATH] [--renderer gpu|software] [--background] [LINK]\n       static [--smoke-test | --help | --release-discord-links]\n       static --call-experiment [--resume PATH]\n       static [--voice-demo | --audio-devices]\n       static session login --homeserver URL --user USER --password-stdin [--data-dir PATH]\n       static session status [--data-dir PATH]\n       static session recover --key-stdin [--data-dir PATH]\n       static session logout [--data-dir PATH]\n\nWithout arguments, opens native Slint chat and restores a saved session.\n--renderer selects Skia Software or Skia GPU for this start, over the setting.\nIf Skia GPU fails to start, Static restarts with Skia Software.\n--background starts in the system tray with a saved session, as starting at sign-in does.\nLINK opens a Discord server, channel, message, profile or invite link in Static.\n--release-discord-links gives discord:// links back to the app that had them, as uninstalling does.\n--preview opens local sample conversations without connecting to Matrix.\n--smoke-test checks the linked stack without signing in or opening audio devices.\n--call-experiment creates disposable local accounts and checks encrypted synthetic audio. Start scripts/test-stack up first.\n--voice-demo creates two local accounts and a server with encrypted text and voice channels.\n--audio-devices lists native audio devices and cameras without recording.\nSession commands support password sign-in. Secrets are read from stdin."
+                "Usage: static [--preview] [--data-dir PATH] [--renderer gpu|software] [--background] [LINK]\n       static [--smoke-test | --help | --release-discord-links]\n       static --call-experiment [--resume PATH]\n       static [--voice-demo | --audio-devices]\n       static session login --homeserver URL --user USER --password-stdin [--data-dir PATH]\n       static session status [--data-dir PATH]\n       static session recover --key-stdin [--data-dir PATH]\n       static session logout [--data-dir PATH]\n\nWithout arguments, opens native Slint chat and restores a saved session.\n--renderer selects Skia Software or Skia GPU for this start, over the setting.\nIf Skia GPU fails to start, Chatter restarts with Skia Software.\n--background starts in the system tray with a saved session, as starting at sign-in does.\nLINK opens a Discord server, channel, message, profile or invite link in Chatter.\n--release-discord-links gives discord:// links back to the app that had them, as uninstalling does.\n--preview opens local sample conversations without connecting to Matrix.\n--smoke-test checks the linked stack without signing in or opening audio devices.\n--call-experiment creates disposable local accounts and checks encrypted synthetic audio. Start scripts/test-stack up first.\n--voice-demo creates two local accounts and a server with encrypted text and voice channels.\n--audio-devices lists native audio devices and cameras without recording.\nSession commands support password sign-in. Secrets are read from stdin."
             );
             Ok(())
         }
@@ -270,7 +270,7 @@ fn launch(
 #[cfg(feature = "desktop")]
 fn relaunch(arguments: &[String], gpu_failure: Option<&str>, link: Option<&str>) -> Result<()> {
     let mut command = std::process::Command::new(
-        std::env::current_exe().context("could not find Static to restart it")?,
+        std::env::current_exe().context("could not find Chatter to restart it")?,
     );
     command.args(arguments);
     match gpu_failure {
@@ -286,11 +286,11 @@ fn relaunch(arguments: &[String], gpu_failure: Option<&str>, link: Option<&str>)
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
-        Err(command.exec()).context("could not restart Static")
+        Err(command.exec()).context("could not restart Chatter")
     }
     #[cfg(not(unix))]
     {
-        command.spawn().context("could not restart Static")?;
+        command.spawn().context("could not restart Chatter")?;
         // An account switch must release this process, including its cached
         // keys, instead of retaining a parent for every later switch.
         std::process::exit(0);

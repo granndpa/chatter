@@ -41,7 +41,7 @@ pub fn plan(requested: Option<Renderer>, saved_gpu: bool, relaunch_reason: Optio
 }
 
 /// The technical reason stays in the log; the notice is for people.
-const NOTICE: &str = "GPU rendering failed to start, so Static is using software rendering.";
+const NOTICE: &str = "GPU rendering failed to start, so Chatter is using software rendering.";
 
 #[cfg(test)]
 mod tests {

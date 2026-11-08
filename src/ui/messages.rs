@@ -647,7 +647,7 @@ pub(super) fn message_row_within(
         Delivery::Sent => ("", false, false),
         Delivery::Sending => ("Sending...", false, true),
         Delivery::Waiting => (
-            "Not sent yet. Static sends it when the connection returns.",
+            "Not sent yet. Chatter sends it when the connection returns.",
             false,
             true,
         ),

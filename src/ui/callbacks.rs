@@ -2867,7 +2867,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
             window.set_meter_note(SharedString::from(if !meter::AVAILABLE {
                 "The level meter isn't available on this system yet."
             } else if meter.failed() {
-                "Static can't read this microphone. Check that it's connected, or choose another."
+                "Chatter can't read this microphone. Check that it's connected, or choose another."
             } else {
                 ""
             }));
@@ -2892,7 +2892,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
                     if !static_core::discord_audio::AVAILABLE {
                         "Discord voice and its level aren't available on this system yet."
                     } else if meter.failed() {
-                        "Static can't read this microphone. Check that it's connected, or choose another."
+                        "Chatter can't read this microphone. Check that it's connected, or choose another."
                     } else {
                         ""
                     },

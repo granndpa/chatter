@@ -34,7 +34,7 @@ export component AccessibilitySettings inherits VerticalLayout {
         spacing: 8px;
         SettingsHeading { text: "Play GIFs, Emoji and Stickers"; }
         Choices {
-            label: "Play GIFs, emoji and stickers"; options: ["While Static is focused", "Always", "Never"];
+            label: "Play GIFs, emoji and stickers"; options: ["While Chatter is focused", "Always", "Never"];
             current <=> root.animate;
             chosen => { root.preferences-changed(); }
         }
@@ -139,8 +139,8 @@ export component StreamerModeSettings inherits VerticalLayout {
         toggled => { root.preferences-changed(); }
     }
     SettingsSwitch {
-        text: "Hide Static from screen capture";
-        description: "OBS, screenshots and screen sharing can't see Static's window.";
+        text: "Hide Chatter from screen capture";
+        description: "OBS, screenshots and screen sharing can't see Chatter's window.";
         checked <=> root.hide-capture;
         toggled => { root.preferences-changed(); }
     }

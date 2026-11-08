@@ -65,7 +65,7 @@ fn claim_with(root: &Path, alone: bool, background: bool, launch: Launch) -> Sta
     let lock = match lock {
         Ok(lock) => lock,
         Err(error) => {
-            tracing::warn!(%error, "could not tell whether Static already runs");
+            tracing::warn!(%error, "could not tell whether Chatter already runs");
             return Start::Run(Instance::default());
         }
     };
@@ -78,24 +78,24 @@ fn claim_with(root: &Path, alone: bool, background: bool, launch: Launch) -> Sta
             })
         }
         Err(std::fs::TryLockError::WouldBlock) if !alone => {
-            tracing::info!("another Static runs on this folder; starting one more");
+            tracing::info!("another Chatter runs on this folder; starting one more");
             Start::Run(Instance::default())
         }
         Err(std::fs::TryLockError::WouldBlock) if background && launch.link.is_none() => {
-            tracing::info!("Static already runs; nothing to start in the tray");
+            tracing::info!("Chatter already runs; nothing to start in the tray");
             Start::Handed
         }
         Err(std::fs::TryLockError::WouldBlock) => {
             if hand(root, &launch) {
-                tracing::info!("Static already runs; showed its window");
+                tracing::info!("Chatter already runs; showed its window");
                 Start::Handed
             } else {
-                tracing::warn!("Static already runs but didn't answer; starting another");
+                tracing::warn!("Chatter already runs but didn't answer; starting another");
                 Start::Run(Instance::default())
             }
         }
         Err(std::fs::TryLockError::Error(error)) => {
-            tracing::warn!(%error, "could not tell whether Static already runs");
+            tracing::warn!(%error, "could not tell whether Chatter already runs");
             Start::Run(Instance::default())
         }
     }
@@ -134,7 +134,7 @@ fn hand(root: &Path, launch: &Launch) -> bool {
         match ask(root, launch) {
             Ok(()) => return true,
             Err(error) if started.elapsed() >= PATIENCE => {
-                tracing::warn!(%error, "could not reach the running Static");
+                tracing::warn!(%error, "could not reach the running Chatter");
                 return false;
             }
             Err(_) => std::thread::sleep(RETRY),
@@ -192,7 +192,7 @@ impl Listener {
         match std::os::unix::net::UnixListener::bind(&path) {
             Ok(listener) => Some(Self(Some(listener))),
             Err(error) => {
-                tracing::warn!(%error, "starting Static again can't show this window");
+                tracing::warn!(%error, "starting Chatter again can't show this window");
                 None
             }
         }
@@ -221,7 +221,7 @@ impl Listener {
                 }
             });
         if let Err(error) = thread {
-            tracing::warn!(%error, "starting Static again can't show this window");
+            tracing::warn!(%error, "starting Chatter again can't show this window");
         }
     }
 }
@@ -306,7 +306,7 @@ mod windows {
             if event.is_null() || stop.is_null() {
                 tracing::warn!(
                     error = %std::io::Error::last_os_error(),
-                    "starting Static again can't show this window"
+                    "starting Chatter again can't show this window"
                 );
                 // SAFETY: each is a handle this made, or null.
                 unsafe {
@@ -360,7 +360,7 @@ mod windows {
             match thread {
                 Ok(_) => self.listening = true,
                 Err(error) => {
-                    tracing::warn!(%error, "starting Static again can't show this window");
+                    tracing::warn!(%error, "starting Chatter again can't show this window");
                 }
             }
         }
