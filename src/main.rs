@@ -45,6 +45,7 @@ mod tray;
 mod twemoji;
 #[cfg(feature = "desktop")]
 mod ui;
+mod updater;
 #[cfg(feature = "desktop")]
 mod zoom;
 

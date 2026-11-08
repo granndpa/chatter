@@ -69,6 +69,7 @@ mod title_bar;
 
 use callbacks::bind_callbacks;
 mod tweaks;
+mod updates;
 use messages::*;
 pub(crate) use pictures::picture as slint_image;
 use pictures::*;
@@ -1030,6 +1031,8 @@ struct Layout {
     /// Others see this account deafened in voice while it still hears.
     #[serde(default)]
     fake_deafen: bool,
+    /// Install a newer release when Chatter starts; on unless turned off.
+    auto_update: Option<bool>,
     /// Discord shows this account idle after 10 minutes nobody uses Static;
     /// on unless turned off.
     show_idle: Option<bool>,
@@ -1429,6 +1432,7 @@ impl Layout {
         }
         window.set_share_typing(self.share_typing.unwrap_or(true));
         window.set_fake_deafen(self.fake_deafen);
+        window.set_auto_update(self.auto_update.unwrap_or(true));
         window.set_notifications(self.notifications.unwrap_or(true));
         window.set_notification_text(self.notification_text.unwrap_or(true));
         window.set_sound_set(choice(&SoundSet::ALL, self.sound_set));
@@ -1798,6 +1802,8 @@ struct Adapter {
     dismissed: HashSet<String>,
     /// Discord Tweaks' bookmarks, reminders and saved drafts; see `tweaks.rs`.
     tweaks: tweaks::Tweaks,
+    /// A newer release on GitHub; see `updates.rs`.
+    updates: updates::Updates,
     /// Discord Tweaks' voice log: the call it follows, who was in it at the
     /// last look, and what happened, newest last.
     voice_room: Option<String>,
@@ -2053,6 +2059,7 @@ impl Adapter {
                 translations: HashMap::new(),
                 dismissed: HashSet::new(),
                 tweaks: tweaks::Tweaks::default(),
+                updates: updates::Updates::default(),
                 voice_room: None,
                 voice_people: Vec::new(),
                 voice_log: Vec::new(),
