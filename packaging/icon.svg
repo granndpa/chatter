@@ -1,6 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024"><title>Chatter</title>
-<rect width="1024" height="1024" rx="230" fill="#0F111B"/>
-<svg x="142" y="170" width="740" height="690" viewBox="0 0 600 560"><defs><mask id="back-gap" maskUnits="userSpaceOnUse" x="50" y="60" width="670" height="530">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1024" height="1024" viewBox="0 0 1024 1024"><svg x="32" y="62" width="960" height="900" viewBox="0 0 600 560"><defs><mask id="back-gap" maskUnits="userSpaceOnUse" x="50" y="60" width="670" height="530">
     <rect x="50" y="60" width="670" height="530" fill="#fff"/>
     <path d="M 265,85 L 489,85 C 538,85 578,116 574,159 L 540,330 C 530,380 500,413 446,413 L 307,413 C 303,413 298,414 294,417 L 198,480 C 184,489 178,480 183,466 L 196,412 L 182,412 C 143,412 119,388 129,347 L 174,160 C 184,115 219,85 265,85 Z" fill="#000" stroke="#000" stroke-width="17" stroke-linejoin="round"/>
     </mask></defs>
