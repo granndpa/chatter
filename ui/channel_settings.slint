@@ -174,7 +174,7 @@ component OverviewSection inherits VerticalLayout {
     }
     if root.prompt.kind == 0: VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "CHANNEL TOPIC"; }
+        SettingsHeading { text: "Channel Topic"; }
         TextField {
             text <=> root.topic; label: "Channel topic"; enabled: !root.prompt.saving;
             placeholder: "Let everyone know how to use this channel!";
@@ -183,7 +183,7 @@ component OverviewSection inherits VerticalLayout {
     }
     if root.prompt.kind == 0: VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "SLOWMODE"; }
+        SettingsHeading { text: "Slowmode"; }
         HorizontalLayout {
             spacing: 8px; alignment: start;
             IconButton {
@@ -246,7 +246,7 @@ component PermissionsSection inherits VerticalLayout {
             }
         }
     }
-    SettingsHeading { text: "ADVANCED PERMISSIONS"; }
+    SettingsHeading { text: "Advanced Permissions"; }
     HorizontalLayout {
         spacing: 16px; vertical-stretch: 1;
         VerticalLayout {
@@ -394,7 +394,7 @@ component AddOverwriteDialog inherits Rectangle {
                     content-height: list.preferred-height;
                     list := VerticalLayout {
                         alignment: start;
-                        if root.prompt.roles-to-add.length > 0: SettingsHeading { text: "ROLES"; }
+                        if root.prompt.roles-to-add.length > 0: SettingsHeading { text: "Roles"; }
                         for role in root.prompt.roles-to-add: Rectangle {
                             height: 36px; border-radius: 4px;
                             background: role-area.has-hover ? Theme.hover : transparent;
@@ -406,7 +406,7 @@ component AddOverwriteDialog inherits Rectangle {
                                 Text { text: role.name; color: Theme.text; font-size: 15px; vertical-alignment: center; overflow: elide; }
                             }
                         }
-                        if root.prompt.members-found.length > 0: SettingsHeading { text: "MEMBERS"; }
+                        if root.prompt.members-found.length > 0: SettingsHeading { text: "Members"; }
                         for member in root.prompt.members-found: Rectangle {
                             height: 40px; border-radius: 4px;
                             background: member-area.has-hover ? Theme.hover : transparent;

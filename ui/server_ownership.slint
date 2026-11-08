@@ -71,7 +71,7 @@ export component DeleteServerDialog inherits Rectangle {
         StyledText { text: root.page.text; default-color: Theme.secondary; default-font-size: 15px; }
         if root.page.by-name: VerticalLayout {
             spacing: 6px;
-            SettingsHeading { text: "ENTER SERVER NAME"; }
+            SettingsHeading { text: "Enter Server Name"; }
             TextField {
                 label: "Enter server name"; enabled: !root.page.sending;
                 init => { self.focus-input(); }
@@ -154,7 +154,7 @@ export component TransferOwnershipDialog inherits Rectangle {
         }
         if root.page.code: VerticalLayout {
             spacing: 6px;
-            SettingsHeading { text: "VERIFICATION CODE"; }
+            SettingsHeading { text: "Verification Code"; }
             TextField {
                 label: "Verification Code"; enabled: !root.page.sending;
                 init => { self.focus-input(); }

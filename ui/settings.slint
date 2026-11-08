@@ -13,11 +13,11 @@ import { RadioOption } from "settings/radio.slint";
 // Settings: a section's title, a group's heading, a switch with what it does, and
 // a row of exclusive choices with the current one raised.
 export component SettingsTitle inherits Text {
-    color: Theme.text; font-size: ClientStyle.enabled ? 24px : 20px; font-weight: 700;
+    color: Theme.text; font-size: ClientStyle.enabled ? 26px : 22px; font-weight: 700;
 }
 
 export component SettingsHeading inherits Text {
-    color: Theme.muted; font-size: 12px; font-weight: 700; letter-spacing: 0.6px;
+    color: Theme.text; font-size: 16px; font-weight: 600;
 }
 
 // A mint switch, with its label beside it and what it does below. A click on
@@ -401,7 +401,7 @@ export component SettingsScreen inherits Rectangle {
             discord-layout: ClientStyle.enabled;
             page-title: root.settings-section == 0 ? "Account" : root.settings-section == 1 ? "Voice & Video"
                 : root.settings-section == 2 ? "Messages" : root.settings-section == 3 ? "Notifications"
-                : root.settings-section == 4 ? "Discord" : root.settings-section == 5 ? "Sounds"
+                : root.settings-section == 4 ? "Discord Tweaks" : root.settings-section == 5 ? "Sounds"
                 : root.settings-section == 6 ? "System" : root.settings-section == 7 ? "Appearance"
                 : root.settings-section == 9 ? "Connections" : root.settings-section == 10 ? "Data & Privacy"
                 : root.settings-section == 11 ? "Messaging Permissions" : root.settings-section == 12 ? "Accessibility"
@@ -495,7 +495,7 @@ export component AccountSettings inherits VerticalLayout {
     }
     if root.discord-linked: VerticalLayout {
         spacing: 0px;
-        SettingsHeading { text: "ACCOUNT INFO"; }
+        SettingsHeading { text: "Account Info"; }
         InfoRow { label: "Username"; value: root.account-username; }
         InfoRow {
             label: "Email"; loading: !root.account-loaded; hidden-by-streamer: root.hide-personal;
@@ -621,7 +621,7 @@ export component VoiceSettings inherits VerticalLayout {
         spacing: 16px;
         VerticalLayout {
             spacing: 8px; horizontal-stretch: 1; min-width: 0; preferred-width: 0;
-            SettingsHeading { text: "MICROPHONE"; }
+            SettingsHeading { text: "Microphone"; }
             ComboBox { model: root.microphones; current-index <=> root.microphone-index; enabled: root.microphones.length > 0; accessible-label: "Microphone device"; selected => { root.select-microphone(self.current-index); } }
             VolumeSlider {
                 label: "Microphone volume"; value <=> root.microphone-volume;
@@ -631,7 +631,7 @@ export component VoiceSettings inherits VerticalLayout {
         }
         VerticalLayout {
             spacing: 8px; horizontal-stretch: 1; min-width: 0; preferred-width: 0;
-            SettingsHeading { text: "SPEAKERS"; }
+            SettingsHeading { text: "Speakers"; }
             ComboBox { model: root.speakers; current-index <=> root.speaker-index; enabled: root.speakers.length > 0; accessible-label: "Speaker device"; selected => { root.select-speaker(self.current-index); } }
             VolumeSlider {
                 label: "Speaker volume"; value <=> root.speaker-volume;
@@ -645,13 +645,13 @@ export component VoiceSettings inherits VerticalLayout {
         spacing: 16px;
         VerticalLayout {
             spacing: 8px; horizontal-stretch: 1; min-width: 0; preferred-width: 0; alignment: start;
-            SettingsHeading { text: "CAMERA"; }
+            SettingsHeading { text: "Camera"; }
             ComboBox { model: root.cameras; current-index <=> root.camera-index; enabled: root.cameras.length > 0; accessible-label: "Camera device"; selected => { root.select-camera(self.current-index); } }
             if root.cameras.length == 0: Label { text: "No camera found. Connect one, then refresh."; }
         }
         VerticalLayout {
             spacing: 8px; horizontal-stretch: 1; min-width: 0; preferred-width: 0;
-            SettingsHeading { text: "PREVIEW"; }
+            SettingsHeading { text: "Preview"; }
             Rectangle {
                 height: self.width * 9 / 16; border-radius: 8px; background: #000000; clip: true;
                 accessible-role: image; accessible-label: root.camera-testing ? "Your camera" : "Camera preview, off";
@@ -682,7 +682,7 @@ export component VoiceSettings inherits VerticalLayout {
     Rectangle { height: 1px; background: Theme.line; }
     if root.discord: VerticalLayout {
         spacing: 4px;
-        SettingsHeading { text: "INPUT PROFILE"; }
+        SettingsHeading { text: "Input Profile"; }
         RadioOption {
             text: "Voice Isolation"; description: "Just your voice: Static cuts through the noise and the room's echo.";
             checked: root.input-profile == 0;
@@ -719,7 +719,7 @@ export component VoiceSettings inherits VerticalLayout {
     }
     if root.discord && root.input-profile == 2: VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "NOISE SUPPRESSION IN DISCORD CALLS"; }
+        SettingsHeading { text: "Noise Suppression in Discord Calls"; }
         Choices {
             label: "Noise suppression in Discord calls"; options: ["DeepFilterNet", "RNNoise", "Off"];
             current <=> root.noise-suppression;
@@ -729,7 +729,7 @@ export component VoiceSettings inherits VerticalLayout {
     }
     if root.discord && root.input-profile == 2 && root.noise-suppression != 2: VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "NOISE SUPPRESSION STRENGTH"; }
+        SettingsHeading { text: "Noise Suppression Strength"; }
         Choices {
             label: "Noise suppression strength"; options: ["Full", "Medium", "Light"];
             current <=> root.noise-strength;
@@ -739,7 +739,7 @@ export component VoiceSettings inherits VerticalLayout {
     }
     if root.discord: VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "SOUNDBOARD VOLUME"; }
+        SettingsHeading { text: "Soundboard Volume"; }
         VolumeSlider {
             label: "Soundboard volume"; value <=> root.soundboard-volume; maximum: 100;
             committed(value) => { root.soundboard-volume-committed(value); }
@@ -749,7 +749,7 @@ export component VoiceSettings inherits VerticalLayout {
     if root.discord: VerticalLayout {
         spacing: 8px;
         init => { root.entrance-sounds-wanted(); }
-        SettingsHeading { text: "ENTRANCE SOUNDS"; }
+        SettingsHeading { text: "Entrance Sounds"; }
         HorizontalLayout {
             spacing: 8px;
             Picker {
@@ -800,7 +800,7 @@ export component VoiceSettings inherits VerticalLayout {
     }
     VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "INPUT MODE"; }
+        SettingsHeading { text: "Input Mode"; }
         Choices {
             label: "Input mode"; options: ["Voice activity", "Push to talk"];
             current <=> root.input-mode;
@@ -813,7 +813,7 @@ export component VoiceSettings inherits VerticalLayout {
     }
     if root.input-mode == 1: VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "PUSH TO TALK KEYBIND"; }
+        SettingsHeading { text: "Push to Talk Keybind"; }
         HorizontalLayout {
             spacing: 8px; alignment: start;
             Rectangle {
@@ -843,7 +843,7 @@ export component VoiceSettings inherits VerticalLayout {
     }
     if root.input-mode == 1: VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "PUSH TO TALK RELEASE DELAY"; }
+        SettingsHeading { text: "Push to Talk Release Delay"; }
         VolumeSlider {
             label: "Push to talk release delay"; value <=> root.talk-delay; maximum: 2000; step: 10; full-mark: false;
             shown: self.value >= 1000 ? (self.value / 1000).to-fixed(2) + " s" : self.value + " ms";
@@ -853,7 +853,7 @@ export component VoiceSettings inherits VerticalLayout {
     }
     if root.discord && root.input-mode == 0: VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "INPUT SENSITIVITY IN DISCORD CALLS"; }
+        SettingsHeading { text: "Input Sensitivity in Discord Calls"; }
         SensitivitySlider {
             label: "Input sensitivity"; value <=> root.sensitivity;
             level: root.gate-level; sending: root.gate-sending;
@@ -863,7 +863,8 @@ export component VoiceSettings inherits VerticalLayout {
             text: root.gate-meter-note != "" ? root.gate-meter-note
                 : "Static sends your voice when it's louder than the handle, and other sounds when they're 18 dB louder still. The bar is your microphone after noise suppression and at its volume, as Static hears it to decide.";
         }
-        Rectangle { height: 1px; background: Theme.line; }
+    }
+    Rectangle { height: 1px; background: Theme.line; }
     HorizontalLayout {
         spacing: 12px;
         VerticalLayout {
@@ -885,7 +886,6 @@ export component VoiceSettings inherits VerticalLayout {
             }
         }
     }
-}
 }
 
 /// A theme as Appearance offers it: its name, and the colours of its preview.
@@ -1052,7 +1052,7 @@ export component AppearanceSettings inherits VerticalLayout {
     if !root.editor: VerticalLayout {
         spacing: 8px;
         HorizontalLayout {
-            SettingsHeading { text: "THEME"; vertical-alignment: center; horizontal-stretch: 1; }
+            SettingsHeading { text: "Theme"; vertical-alignment: center; horizontal-stretch: 1; }
             ActionButton {
                 text: "New theme"; small: true; icon: @image-url("icons/circle-plus.svg");
                 clicked => { root.new-theme(); }
@@ -1100,7 +1100,7 @@ export component AppearanceSettings inherits VerticalLayout {
         }
         if !root.editing-saved: VerticalLayout {
             spacing: 8px;
-            SettingsHeading { text: "START FROM"; }
+            SettingsHeading { text: "Start from"; }
             ComboBox {
                 model: root.starts; current-index: root.start-index; accessible-label: "Start from";
                 selected => { root.start-chosen(self.current-index); }
@@ -1112,7 +1112,7 @@ export component AppearanceSettings inherits VerticalLayout {
         }
         VerticalLayout {
             spacing: 8px;
-            SettingsHeading { text: "COLOURS"; }
+            SettingsHeading { text: "Colours"; }
             Label { text: "Each as #rgb, #rrggbb or #rrggbbaa. The window shows a change as you type it."; }
             // Two columns when they fit, read down.
             Rectangle {
@@ -1190,7 +1190,7 @@ export component MessageSettings inherits VerticalLayout {
     }
     if root.all-in-one: VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "TEXT SIZE"; }
+        SettingsHeading { text: "Text Size"; }
         Choices {
             label: "Text size"; options: ["Small", "Default", "Large"];
             current <=> root.text-size;
@@ -1199,7 +1199,7 @@ export component MessageSettings inherits VerticalLayout {
     }
     if root.all-in-one: VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "CLOCK"; }
+        SettingsHeading { text: "Clock"; }
         Choices {
             label: "Clock"; options: ["24-hour", "12-hour"];
             current: root.twelve-hour-clock ? 1 : 0;
@@ -1211,7 +1211,7 @@ export component MessageSettings inherits VerticalLayout {
             checked <=> root.clock-seconds;
             toggled => { root.preferences-changed(); }
         }
-        SettingsHeading { text: "DATE FORMAT"; }
+        SettingsHeading { text: "Date Format"; }
         Choices {
             label: "DATE FORMAT"; options: ["Day/Month/Year", "Month/Day/Year", "Year-Month-Day"];
             current: root.date-format >= 0 ? root.date-format : root.twelve-hour-clock ? 1 : 0;
@@ -1220,7 +1220,7 @@ export component MessageSettings inherits VerticalLayout {
     }
     if root.all-in-one: VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "PLAY GIFS, EMOJI AND STICKERS"; }
+        SettingsHeading { text: "Play GIFs, Emoji and Stickers"; }
         Choices {
             label: "Play GIFs, emoji and stickers"; options: ["While Static is focused", "Always", "Never"];
             current <=> root.animate;
@@ -1260,6 +1260,7 @@ export component NotificationSettings inherits VerticalLayout {
     in-out property <bool> notifications;
     in-out property <bool> notification-text;
     in-out property <bool> flash-taskbar;
+    in-out property <bool> unread-badge;
     in-out property <bool> mute-all-sounds;
     /// The networks in use, whose rules decide what notifies.
     in property <bool> matrix;
@@ -1284,18 +1285,24 @@ export component NotificationSettings inherits VerticalLayout {
         toggled => { root.preferences-changed(); }
     }
     SettingsSwitch {
+        text: "Enable unread message badge";
+        description: "A red count on Static's taskbar button for mentions and DMs waiting, as Discord shows it.";
+        checked <=> root.unread-badge;
+        toggled => { root.preferences-changed(); }
+    }
+    SettingsSwitch {
         text: "Flash the taskbar";
-        description: "For a message that notifies while Static isn't in front. The window's title counts mentions and DMs waiting either way.";
+        description: "Static's taskbar button lights up for a message that notifies while Static isn't in front.";
         checked <=> root.flash-taskbar;
         toggled => { root.preferences-changed(); }
-        Rectangle { height: 1px; background: Theme.line; }
+    }
+    Rectangle { height: 1px; background: Theme.line; }
     SettingsSwitch {
         text: "Disable all notification sounds";
         description: "Every sound Static plays, for messages and in calls. Each sound's own setting comes back when you turn this off.";
         checked <=> root.mute-all-sounds;
         toggled => { root.preferences-changed(); }
     }
-}
 }
 
 // Settings: Static's own sounds for calls and messages, which instrument plays
@@ -1318,7 +1325,7 @@ export component SoundSettings inherits VerticalLayout {
     Label { text: "Static plays these as you and others join and leave a call, as you mute and deafen, as others start and stop streaming, as they start and stop watching your stream or the one you watch, and for messages that notify, except in the conversation in front of you. They play on the speakers chosen for calls."; }
     VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "SOUND SET"; }
+        SettingsHeading { text: "Sound Set"; }
         Choices {
             label: "Sound set"; options: ["New Kalimba", "Felt piano", "Soft marimba", "Mellow Rhodes", "Glow", "Flute"];
             max-width: 520px;
@@ -1472,7 +1479,7 @@ export component GameActivitySettings inherits VerticalLayout {
         locked-tip: "Link a Discord account first.";
         toggled(shown) => { root.toggled(shown); }
     }
-    SettingsHeading { text: "CUSTOM GAMES"; }
+    SettingsHeading { text: "Custom Games"; }
     Label { text: "Name a game by its executable, a file name or a full path, and what to show after Playing. These come before the games Static knows, but a game's Rich Presence comes first."; }
     for game[index] in root.executables: VerticalLayout {
         spacing: 4px;
@@ -1524,7 +1531,7 @@ export component DiscordSettings inherits VerticalLayout {
     callback sync-discord-reads-toggled(bool);
     callback show-idle-toggled(bool);
     spacing: 16px;
-    SettingsTitle { text: "Discord"; }
+    SettingsTitle { text: "Discord Tweaks"; }
     SettingsSwitch {
         text: "Keep local message history";
         description: "Keeps observed deletions and up to 10 text versions for 200 edited messages per loaded channel, in memory for this session. Older channels are evicted. Turning this off clears retained history.";

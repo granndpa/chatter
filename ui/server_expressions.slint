@@ -205,7 +205,7 @@ export component EmojiUploadDialog inherits Rectangle {
                 }
                 VerticalLayout {
                     spacing: 6px;
-                    SettingsHeading { text: "NAME"; }
+                    SettingsHeading { text: "Name"; }
                     name := TextField {
                         text: root.page.name; label: "Emoji name"; enabled: !root.page.saving;
                         init => { self.focus-input(); }
@@ -348,7 +348,7 @@ export component StickerDialog inherits Rectangle {
                 // An edit can't change the file.
                 if !root.page.editing: VerticalLayout {
                     spacing: 6px;
-                    SettingsHeading { text: "FILE"; }
+                    SettingsHeading { text: "File"; }
                     HorizontalLayout {
                         spacing: 8px;
                         Middle {
@@ -363,7 +363,7 @@ export component StickerDialog inherits Rectangle {
                 }
                 VerticalLayout {
                     spacing: 6px;
-                    SettingsHeading { text: "RELATED EMOJI"; }
+                    SettingsHeading { text: "Related Emoji"; }
                     tags := TextField {
                         text: root.page.tags; label: "Related Emoji"; placeholder: "Type or paste an emoji"; enabled: !root.page.saving;
                         edited(text) => { root.act(3, text); }
@@ -372,7 +372,7 @@ export component StickerDialog inherits Rectangle {
                 }
                 VerticalLayout {
                     spacing: 6px;
-                    SettingsHeading { text: "STICKER NAME"; }
+                    SettingsHeading { text: "Sticker Name"; }
                     name := TextField {
                         text: root.page.name; label: "Sticker Name"; placeholder: "e.g.: cat hug"; enabled: !root.page.saving;
                         edited(text) => { root.act(2, text); }
@@ -381,7 +381,7 @@ export component StickerDialog inherits Rectangle {
                 }
                 VerticalLayout {
                     spacing: 6px;
-                    SettingsHeading { text: "DESCRIPTION"; }
+                    SettingsHeading { text: "Description"; }
                     description := TextField {
                         text: root.page.description; label: "Description"; enabled: !root.page.saving;
                         edited(text) => { root.act(4, text); }

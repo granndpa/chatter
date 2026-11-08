@@ -147,7 +147,7 @@ export component SafetySection inherits VerticalLayout {
     SettingsTitle { text: "Safety Setup"; }
     VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "VERIFICATION LEVEL"; }
+        SettingsHeading { text: "Verification Level"; }
         Label { text: root.page.verification-text; }
         SafetyChoices {
             label: "Verification Level"; options: root.page.verification-options;
@@ -175,7 +175,7 @@ export component SafetySection inherits VerticalLayout {
     }
     VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "SENSITIVE CONTENT FILTERS"; }
+        SettingsHeading { text: "Sensitive Content Filters"; }
         Label { text: "Choose if server members can share image-based media detected by Discord's sensitive content filters. This setting will apply to channels that are not age-restricted."; }
         SafetyChoices {
             label: "Sensitive content filters"; options: root.page.filter-options;

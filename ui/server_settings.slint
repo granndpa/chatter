@@ -146,7 +146,7 @@ component ServerProfileSection inherits VerticalLayout {
     Label { text: "Customize how your server appears in invite links and, if enabled, in Server Discovery and Announcement Channel messages."; }
     VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "NAME"; }
+        SettingsHeading { text: "Name"; }
         TextField {
             text <=> root.name; label: "Server name"; enabled: root.ready;
             edited(text) => { root.write(0, text); }
@@ -154,7 +154,7 @@ component ServerProfileSection inherits VerticalLayout {
     }
     VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "ICON"; }
+        SettingsHeading { text: "Icon"; }
         HorizontalLayout {
             spacing: 16px; alignment: start;
             Avatar {
@@ -180,7 +180,7 @@ component ServerProfileSection inherits VerticalLayout {
     }
     VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "DESCRIPTION"; }
+        SettingsHeading { text: "Description"; }
         SettingsArea {
             text <=> root.description; label: "Description"; enabled: root.ready;
             placeholder: "Tell people what your server is about.";
@@ -207,7 +207,7 @@ component EngagementSection inherits VerticalLayout {
     SettingsTitle { text: "Engagement"; }
     VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "SYSTEM MESSAGES CHANNEL"; }
+        SettingsHeading { text: "System Messages Channel"; }
         Label { text: "This is the channel we send system event messages to. These can be turned off at any time."; }
         Picker {
             model: root.page.system-channels; chosen: root.page.system-channel; enabled: root.ready;
@@ -237,7 +237,7 @@ component EngagementSection inherits VerticalLayout {
     }
     VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "DEFAULT NOTIFICATION SETTINGS"; }
+        SettingsHeading { text: "Default Notification Settings"; }
         Label { text: "This will determine whether members who have not explicitly set their notification settings receive a notification for every message sent in this server or not."; }
         Choices {
             label: "Default Notification Settings"; options: ["All Messages", "Only @mentions"];
@@ -247,7 +247,7 @@ component EngagementSection inherits VerticalLayout {
     }
     VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "INACTIVE CHANNEL"; }
+        SettingsHeading { text: "Inactive Channel"; }
         Label { text: "Automatically move members to this channel and mute them when they have been idle for longer than the inactive timeout. This does not affect browsers."; }
         HorizontalLayout {
             spacing: 16px;

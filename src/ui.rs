@@ -60,6 +60,7 @@ mod refresh;
 mod server_folders;
 mod server_settings;
 mod shell;
+mod badge;
 mod static_window;
 mod streamer;
 mod theme;
@@ -1035,8 +1036,13 @@ struct Layout {
     hide_blocked: bool,
     retain_message_history: Option<bool>,
     /// A message that notifies while Static isn't in front flashes the
-    /// taskbar; on unless turned off.
+    /// taskbar; off unless turned on. Its key is new, so the flashing that
+    /// was on for everyone before stays off until chosen.
+    #[serde(rename = "taskbar_flash")]
     flash_taskbar: Option<bool>,
+    /// The taskbar button shows a red count of mentions and DMs waiting, as
+    /// Discord's does; on unless turned off.
+    unread_badge: Option<bool>,
     /// Every sound Static plays stays quiet.
     mute_all_sounds: bool,
     /// Streamer Mode, by hand, and on its own while OBS or XSplit runs (on
@@ -1342,7 +1348,8 @@ impl Layout {
         static_core::discord_text::message_history::configure(
             self.retain_message_history.unwrap_or(true),
         );
-        window.set_flash_taskbar(self.flash_taskbar.unwrap_or(true));
+        window.set_flash_taskbar(self.flash_taskbar.unwrap_or(false));
+        window.set_unread_badge(self.unread_badge.unwrap_or(true));
         window.set_mute_all_sounds(self.mute_all_sounds);
         window.set_streamer_mode(self.streamer_mode);
         window.set_streamer_auto(self.streamer_auto.unwrap_or(true));
@@ -2419,7 +2426,7 @@ impl Adapter {
                     // Only while Static isn't in front: there the lists show what's new.
                     if !FOCUSED.get()
                         && !alert.call
-                        && self.layout.flash_taskbar.unwrap_or(true)
+                        && self.layout.flash_taskbar.unwrap_or(false)
                         && let Some(window) = self.window.upgrade()
                     {
                         attention(&window, true);

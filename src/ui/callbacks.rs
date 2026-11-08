@@ -1547,6 +1547,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
         layout.notifications = Some(window.get_notifications());
         layout.notification_text = Some(window.get_notification_text());
         layout.flash_taskbar = Some(window.get_flash_taskbar());
+        layout.unread_badge = Some(window.get_unread_badge());
         layout.mute_all_sounds = window.get_mute_all_sounds();
         layout.streamer_mode = window.get_streamer_mode();
         layout.streamer_auto = Some(window.get_streamer_auto());
@@ -1570,6 +1571,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
         layout.close_to_tray = Some(window.get_close_to_tray());
         layout.multiple_windows = window.get_multiple_windows();
         adapter.layout.write(&adapter.root);
+        adapter.show_title(&window);
         adapter.watch_talk_key(&window);
         let start = window.get_start_on_sign_in();
         if AUTOSTART.get() && start != autostart::enabled() {

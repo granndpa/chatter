@@ -401,7 +401,7 @@ export component RolesSection inherits VerticalLayout {
                 padding-left: 4px; padding-right: 8px; padding-bottom: 6px; spacing: 10px;
                 Rectangle { width: 20px; }
                 SettingsHeading { text: root.page.heading; horizontal-stretch: 1; }
-                SettingsHeading { text: "MEMBERS"; width: 80px + 32px + 32px + 20px; }
+                SettingsHeading { text: "Members"; width: 80px + 32px + 32px + 20px; }
             }
             Rectangle { height: 1px; background: Theme.line; }
             if root.page.rows.length == 0: Label { text: "No roles"; }
@@ -446,7 +446,7 @@ export component RolesSection inherits VerticalLayout {
             spacing: 20px;
             VerticalLayout {
                 spacing: 8px;
-                SettingsHeading { text: "ROLE NAME"; }
+                SettingsHeading { text: "Role Name"; }
                 TextField {
                     text <=> root.name; label: "Role name"; enabled: root.editable;
                     edited(text) => { root.write(1, text); }
@@ -454,7 +454,7 @@ export component RolesSection inherits VerticalLayout {
             }
             VerticalLayout {
                 spacing: 8px;
-                SettingsHeading { text: "ROLE COLOR"; }
+                SettingsHeading { text: "Role Color"; }
                 Label { text: "Members use the color of the highest role they have on the roles list."; }
                 HorizontalLayout {
                     spacing: 10px; alignment: start;
@@ -507,7 +507,7 @@ export component RolesSection inherits VerticalLayout {
             }
             VerticalLayout {
                 spacing: 8px;
-                SettingsHeading { text: "ROLE ICON"; }
+                SettingsHeading { text: "Role Icon"; }
                 Label { text: "Upload an image under 256 KB or use an emoji. We recommend at least 64x64 pixels. Members will see the icon for their highest role if they have multiple roles."; }
                 HorizontalLayout {
                     spacing: 16px; alignment: start;

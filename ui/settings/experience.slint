@@ -15,7 +15,7 @@ export component AccessibilitySettings inherits VerticalLayout {
     SettingsTitle { text: "Accessibility"; }
     VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "TEXT SIZE IN CHAT"; }
+        SettingsHeading { text: "Text Size in Chat"; }
         Choices {
             label: "Text size in chat"; options: ["Small", "Default", "Large"];
             current <=> root.text-size;
@@ -23,7 +23,7 @@ export component AccessibilitySettings inherits VerticalLayout {
         }
     }
     Divider { }
-    SettingsHeading { text: "MOTION"; }
+    SettingsHeading { text: "Motion"; }
     SettingsSwitch {
         text: "Reduce motion";
         description: "Menus, popups and switches change at once instead of sliding and fading.";
@@ -32,7 +32,7 @@ export component AccessibilitySettings inherits VerticalLayout {
     }
     VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "PLAY GIFS, EMOJI AND STICKERS"; }
+        SettingsHeading { text: "Play GIFs, Emoji and Stickers"; }
         Choices {
             label: "Play GIFs, emoji and stickers"; options: ["While Static is focused", "Always", "Never"];
             current <=> root.animate;
@@ -52,7 +52,7 @@ export component LanguageTimeSettings inherits VerticalLayout {
     SettingsTitle { text: "Language & Time"; }
     VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "CLOCK"; }
+        SettingsHeading { text: "Clock"; }
         Choices {
             label: "Clock"; options: ["24-hour", "12-hour"];
             current: root.twelve-hour-clock ? 1 : 0;
@@ -67,7 +67,7 @@ export component LanguageTimeSettings inherits VerticalLayout {
     }
     VerticalLayout {
         spacing: 8px;
-        SettingsHeading { text: "DATE FORMAT"; }
+        SettingsHeading { text: "Date Format"; }
         Choices {
             label: "Date format"; options: ["Day/Month/Year", "Month/Day/Year", "Year-Month-Day"];
             current: root.date-format >= 0 ? root.date-format : root.twelve-hour-clock ? 1 : 0;
@@ -82,7 +82,7 @@ export component ChatBoxSettings inherits VerticalLayout {
     in-out property <bool> convert-emoticons;
     callback preferences-changed;
     spacing: 16px;
-    SettingsHeading { text: "CHAT BOX"; }
+    SettingsHeading { text: "Chat Box"; }
     SettingsSwitch {
         text: "Show send message button";
         description: "A button beside the message box. Enter still sends.";
@@ -109,7 +109,7 @@ export component StreamerModeSettings inherits VerticalLayout {
     in property <bool> active;
     callback preferences-changed;
     spacing: 16px;
-    SettingsHeading { text: "STREAMER MODE"; }
+    SettingsHeading { text: "Streamer Mode"; }
     SettingsSwitch {
         text: "Enable Streamer Mode";
         description: root.active && !root.streamer-mode ? "On now, because OBS or XSplit is running." : "Hides your personal info so people watching your stream can't see it.";

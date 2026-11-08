@@ -448,6 +448,7 @@ impl Adapter {
         if window.get_window_title() != title.as_str() {
             window.set_window_title(title.into());
         }
+        super::badge::show(window, if window.get_unread_badge() { waiting } else { 0 });
     }
 
     /// The tray icon's unread dot, for a mention or an unread DM as Discord

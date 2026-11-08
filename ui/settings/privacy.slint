@@ -17,7 +17,7 @@ export component DataPrivacySettings inherits VerticalLayout {
     callback consent-changed(string, bool);
     spacing: 16px;
     SettingsTitle { text: "Data & Privacy"; }
-    SettingsHeading { text: "HOW DISCORD USES YOUR DATA"; }
+    SettingsHeading { text: "How Discord Uses Your Data"; }
     Label { text: "Discord always keeps what it needs to run your account, such as your messages, servers and DMs. These choose what else it may do with your data, for this account on every device."; }
     if !root.loaded: Label { text: "Loading your settings from Discord..."; }
     if root.loaded: SettingsSwitch {
@@ -33,7 +33,7 @@ export component DataPrivacySettings inherits VerticalLayout {
         toggled(on) => { root.consent-changed("personalization", on); }
     }
     Divider { }
-    SettingsHeading { text: "STATIC"; }
+    SettingsHeading { text: "Static"; }
     Label { text: "Static sends nothing to anyone but Discord: no analytics, crash reports or update checks. Your login stays in Windows' credential store on this computer."; }
 }
 
@@ -64,7 +64,7 @@ export component MessagingSettings inherits VerticalLayout {
     if !root.loaded: Label { text: "Loading your settings from Discord..."; }
     if root.loaded: VerticalLayout {
         spacing: 4px;
-        SettingsHeading { text: "SPAM FILTER"; }
+        SettingsHeading { text: "Spam Filter"; }
         Label { text: "Discord can filter out messages that look like spam. They go to your Spam inbox."; }
         RadioOption {
             text: "Filter all spam"; checked: root.spam-filter == 3;
@@ -83,7 +83,7 @@ export component MessagingSettings inherits VerticalLayout {
     if root.loaded: Divider { }
     if root.loaded: VerticalLayout {
         spacing: 12px;
-        SettingsHeading { text: "DIRECT MESSAGES"; }
+        SettingsHeading { text: "Direct Messages"; }
         SettingsSwitch {
             text: "Allow DMs from other server members";
             description: "People who share a server with you can message you. Friends always can.";
@@ -94,7 +94,7 @@ export component MessagingSettings inherits VerticalLayout {
     if root.loaded: Divider { }
     if root.loaded: VerticalLayout {
         spacing: 12px;
-        SettingsHeading { text: "ALLOW FRIEND REQUESTS FROM"; }
+        SettingsHeading { text: "Allow Friend Requests from"; }
         SettingsSwitch {
             text: "Everyone"; controlled: true; checked: root.from-everyone;
             toggled(on) => { root.changed("friends", on ? 8 : 6); }
@@ -111,7 +111,7 @@ export component MessagingSettings inherits VerticalLayout {
         }
     }
     Divider { }
-    SettingsHeading { text: "IGNORE & BLOCK"; }
+    SettingsHeading { text: "Ignore & Block"; }
     SettingsSwitch {
         text: "Hide messages from people you blocked";
         description: "Leaves them out entirely, rather than showing a line you can open.";

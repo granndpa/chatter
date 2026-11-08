@@ -1143,7 +1143,8 @@ export component StaticWindow inherits Window {
     in-out property <bool> share-typing: true;
     in-out property <bool> notifications: true;
     in-out property <bool> notification-text: true;
-    in-out property <bool> flash-taskbar: true;
+    in-out property <bool> flash-taskbar;
+    in-out property <bool> unread-badge: true;
     /// Every sound Static plays stays quiet.
     in-out property <bool> mute-all-sounds;
     /// Streamer Mode, by hand or while OBS or XSplit runs, and what it does.
@@ -3935,7 +3936,7 @@ export component StaticWindow inherits Window {
         }
         if root.settings-section == 3: NotificationSettings {
             notifications <=> root.notifications; notification-text <=> root.notification-text;
-            flash-taskbar <=> root.flash-taskbar; mute-all-sounds <=> root.mute-all-sounds;
+            flash-taskbar <=> root.flash-taskbar; unread-badge <=> root.unread-badge; mute-all-sounds <=> root.mute-all-sounds;
             matrix: root.matrix-build; discord: root.discord-linked;
             preferences-changed => { root.preferences-changed(); }
         }
