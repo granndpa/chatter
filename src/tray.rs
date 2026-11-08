@@ -54,18 +54,18 @@ impl Tray {
     }
 }
 
-/// Static's white logo, `size` pixels square, with a red dot for
-/// unread messages cut into its corner.
+/// Chatter's logo, `size` pixels square, with a red dot for unread messages
+/// in its corner.
 fn logo(size: u32, unread: bool) -> Option<slint::SharedPixelBuffer<slint::Rgba8Pixel>> {
-    let mut svg = include_str!("../ui/icons/static.svg").replacen(
-        r#"width="180" height="180""#,
+    let mut svg = include_str!("../ui/icons/chatter.svg").replacen(
+        r#"width="600" height="560""#,
         &format!(r#"width="{size}" height="{size}""#),
         1,
     );
     if unread {
         svg = svg.replacen(
             "</svg>",
-            r##"<circle cx="153" cy="27" r="16" fill="#f0545e" /></svg>"##,
+            r##"<circle cx="530" cy="80" r="70" fill="#f0545e" /></svg>"##,
             1,
         );
     }

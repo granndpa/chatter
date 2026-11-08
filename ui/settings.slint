@@ -290,7 +290,7 @@ export component SettingsFrame inherits Rectangle {
                     y: 0px; height: 48px; background: Theme.panel;
                     HorizontalLayout {
                         padding-left: 16px; padding-right: 8px; spacing: 10px;
-                        Image { source: @image-url("icons/static.svg"); width: 16px; height: 16px; image-fit: contain; }
+                        Image { source: @image-url("icons/chatter.svg"); width: 16px; height: 16px; image-fit: contain; }
                         Text { text: root.page-title; color: Theme.text; font-size: 15px; font-weight: 700; vertical-alignment: center; horizontal-stretch: 1; }
                         Middle { IconButton { icon: @image-url("icons/x.svg"); label: "Close " + root.label; size: 32px; glyph: 18px; clicked => { root.close(); } } }
                     }

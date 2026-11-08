@@ -28,7 +28,7 @@ export component SignInScreen inherits Rectangle {
     callback link-discord-token(string);
     callback open-discord-captcha;
     background: Theme.rail;
-    Image { x: 32px; y: 22px; source: @image-url("icons/static-wordmark.svg"); width: 120px; height: 30px; image-fit: contain; }
+    Image { x: 32px; y: 22px; source: @image-url("icons/chatter-wordmark.svg"); width: 120px; height: 30px; image-fit: contain; }
     ScrollView {
         y: 64px; height: parent.height - 64px;
         VerticalLayout {
@@ -91,7 +91,7 @@ export component SignInScreen inherits Rectangle {
                                 alignment: center;
                                 Rectangle {
                                     width: 72px; height: 72px; border-radius: 24px; background: Theme.raised;
-                                    Image { source: @image-url("icons/static.svg"); width: 44px; height: 44px; }
+                                    Image { source: @image-url("icons/chatter.svg"); width: 44px; height: 44px; }
                                 }
                             }
                             Text { text: "Just looking?"; color: Theme.text; font-size: 20px; font-weight: 700; horizontal-alignment: center; }
