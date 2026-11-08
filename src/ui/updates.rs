@@ -122,6 +122,11 @@ pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
     if let Some(release) = &adapter.borrow().updates.release {
         window.set_update_version(release.version.as_str().into());
     }
+    // Tests make many windows; asking GitHub for each would use up its
+    // hourly limit for this computer.
+    if cfg!(test) {
+        return;
+    }
     check(Rc::downgrade(adapter), window.as_weak());
     let timer = Rc::new(slint::Timer::default());
     let (state, weak) = (Rc::downgrade(adapter), window.as_weak());
