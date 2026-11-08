@@ -625,7 +625,7 @@ export struct MessageRow {
     /// The body, and the author and time as selectable text: a selection runs across messages
     /// through all three. A body of nothing but emoji shows them large.
     jumbo: bool,
-    styled: styled-text, author-styled: styled-text, time-styled: styled-text, edited: bool, deleted: bool,
+    styled: styled-text, author-styled: styled-text, time-styled: styled-text, edited: bool, deleted: bool, edit-history: string,
     /// A notice in place of a message, such as Discord's that someone pinned
     /// one, by the icon it shows in place of the avatar: "pin", "join",
     /// "thread", "call" or "poll"; empty for a message. Its text has its
@@ -2015,6 +2015,7 @@ export component VideoViewer inherits Rectangle {
 // thread and reactions: a timeline row without what scrolls and hovers it,
 // for the conversation's timeline and a thread's beside it.
 export component MessageContent inherits VerticalLayout {
+    private property <bool> history-open: false;
     in property <MessageRow> message;
     /// The message the pointer or keyboard is on, whose time shows.
     in property <string> active-item;
@@ -2175,6 +2176,15 @@ export component MessageContent inherits VerticalLayout {
                     color: message.deleted || message.delivery != "" ? Theme.muted : Theme.text;
                     open-link(link) => { root.link-clicked(link); }
                 }
+            }
+            if message.deleted: Text { text: "Deleted · retained locally"; color: Theme.danger-text; font-size: 12px; }
+            if message.edit-history != "": VerticalLayout {
+                Text {
+                    text: root.history-open ? "Hide edit history" : "View edit history";
+                    color: Theme.link; font-size: 12px;
+                    TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.history-open = !root.history-open; } }
+                }
+                if root.history-open: Text { text: message.edit-history; color: Theme.muted; wrap: word-wrap; }
             }
             if message.edited && !message.deleted: Text { text: "(edited)"; color: Theme.muted; font-size: 12px; }
             // Fixed-size children sit beside a spacer, so they do not cap the column's width.

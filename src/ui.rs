@@ -1032,6 +1032,7 @@ struct Layout {
     game_executables: Vec<(String, String)>,
     /// Messages from people this account blocked don't show at all.
     hide_blocked: bool,
+    retain_message_history: Option<bool>,
     /// A message that notifies while Static isn't in front flashes the
     /// taskbar; on unless turned off.
     flash_taskbar: Option<bool>,
@@ -1304,6 +1305,11 @@ impl Layout {
         self.apply_custom_games(window);
         window.set_show_idle(self.show_idle.unwrap_or(true));
         window.set_hide_blocked(self.hide_blocked);
+        window.set_retain_message_history(self.retain_message_history.unwrap_or(true));
+        #[cfg(feature = "discord")]
+        static_core::discord_text::message_history::configure(
+            self.retain_message_history.unwrap_or(true),
+        );
         window.set_flash_taskbar(self.flash_taskbar.unwrap_or(true));
         self.apply_appearance(window);
         if let Some(width) = self.aside_width {

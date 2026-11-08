@@ -102,7 +102,7 @@ fn live_events_echoes_and_failed_sends() {
         id: "3".into()
     }));
     let order: Vec<_> = open.shown.messages.keys().copied().collect();
-    assert_eq!(order, [5, 7]);
+    assert_eq!(order, [3, 5, 7]);
 
     // A send that failed can be cancelled; one that arrives replaces its echo.
     for nonce in ["100", "101"] {
@@ -581,7 +581,18 @@ fn a_page_asked_for_before_a_delete_doesnt_bring_the_message_back() {
     });
     open.deleted("3");
     open.loaded(Load::Latest, shown(page(1..=4)));
-    assert!(open.shown.messages.keys().eq(&[1, 4]));
+    assert!(open.shown.messages.keys().eq(&[1, 2, 4]));
+    assert_eq!(
+        open.shown.messages[&2].content, "2",
+        "the observed deletion stays locally"
+    );
+    assert!(
+        open.take_changes()
+            .unwrap()
+            .1
+            .iter()
+            .all(|message| message.id != "2" && message.id != "3")
+    );
 }
 
 #[test]

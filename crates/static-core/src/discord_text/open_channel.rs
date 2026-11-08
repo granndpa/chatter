@@ -158,6 +158,8 @@ pub struct OpenChannel {
     /// Messages deleted while the channel is open. A page asked for before
     /// Discord deleted one can still carry it, and mustn't bring it back.
     deleted: HashSet<u64>,
+    edit_history: BTreeMap<u64, Vec<String>>,
+    history_generation: u64,
     /// A page of earlier history is on its way.
     pub(super) loading_earlier: bool,
     /// A page after the window is on its way.
@@ -250,6 +252,8 @@ impl OpenChannel {
             pending: Vec::new(),
             sent: HashSet::new(),
             deleted: HashSet::new(),
+            edit_history: BTreeMap::new(),
+            history_generation: super::message_history::generation(),
             loading_earlier: false,
             loading_later: false,
             focusing: false,
@@ -554,7 +558,12 @@ impl OpenChannel {
             .saturating_sub(static_discord::cache::CHANNEL_MESSAGES);
         Some((
             self.channel.clone(),
-            newest.values().skip(skip).cloned().collect(),
+            newest
+                .values()
+                .skip(skip)
+                .filter(|message| !self.deleted.contains(&message.order()))
+                .cloned()
+                .collect(),
         ))
     }
 
@@ -594,6 +603,42 @@ impl OpenChannel {
 
     /// Applies a gateway event; returns whether the shown messages changed.
     pub fn live(&mut self, event: &Live) -> bool {
+        self.sync_message_history();
+        if super::message_history::enabled() {
+            if let Live::Updated(message) = event {
+                if message.channel_id == self.channel {
+                    let order = message.order();
+                    if let Some(previous) = self.message(order)
+                        && previous.content != message.content
+                    {
+                        let content = previous.content.clone();
+                        let versions = self.edit_history.entry(order).or_default();
+                        if versions.last() != Some(&content) {
+                            versions.push(content);
+                        }
+                        if versions.len() > 10 {
+                            versions.remove(0);
+                        }
+                        while self.edit_history.len() > 200 {
+                            if let Some((expired, _)) = self.edit_history.pop_first() {
+                                self.rendered.remove(&expired);
+                            }
+                        }
+                    }
+                }
+            }
+            if let Live::Deleted { channel, id } = event
+                && channel == &self.channel
+            {
+                let order = id.parse().unwrap_or_default();
+                if self.message(order).is_some() {
+                    self.deleted.insert(order);
+                    self.rendered.remove(&order);
+                    self.dirty = true;
+                    return true;
+                }
+            }
+        }
         if let Live::Deleted { channel, id } = event
             && *channel == self.channel
         {
@@ -615,6 +660,21 @@ impl OpenChannel {
         let changed = self.apply_live(event);
         self.dirty |= changed;
         changed
+    }
+
+    fn sync_message_history(&mut self) {
+        let generation = super::message_history::generation();
+        if generation != self.history_generation {
+            self.edit_history.clear();
+            self.shown
+                .messages
+                .retain(|id, _| !self.deleted.contains(id));
+            if let Some(latest) = &mut self.latest {
+                latest.messages.retain(|id, _| !self.deleted.contains(id));
+            }
+            self.rendered.clear();
+            self.history_generation = generation;
+        }
     }
 
     fn apply_live(&mut self, event: &Live) -> bool {
@@ -1459,6 +1519,7 @@ impl OpenChannel {
         discord: &Discord,
         done: &UnboundedSender<Done>,
     ) -> Vec<Arc<ChatMessage>> {
+        self.sync_message_history();
         while self.tasks.try_join_next().is_some() {}
         self.load_originals(discord, done);
         let snapshot = discord.snapshots().borrow().clone();
@@ -1533,6 +1594,24 @@ impl OpenChannel {
                 }
                 _ => Arc::new(self.render(discord, &snapshot, server, message, id, &mut wanted)),
             };
+            let mut row = row;
+            if super::message_history::enabled() {
+                let history = self.edit_history.get(order).cloned().unwrap_or_default();
+                let deleted = self.deleted.contains(order);
+                if !history.is_empty() || deleted {
+                    let row = Arc::make_mut(&mut row);
+                    row.edit_history = history;
+                    row.deleted = deleted;
+                    if deleted {
+                        row.can_reply = false;
+                        row.can_edit = false;
+                        row.can_delete = false;
+                        row.can_react = false;
+                        row.can_pin = false;
+                        row.can_forward = false;
+                    }
+                }
+            }
             self.rendered.insert(*order, Arc::clone(&row));
             rows.push(row);
         }
@@ -1739,6 +1818,7 @@ impl OpenChannel {
             timestamp,
             own,
             edited: message.edited,
+            edit_history: Vec::new(),
             deleted: false,
             blocked: snapshot.blocked.contains(&message.author_id),
             mentions_me: message.names_me(me, marks),
@@ -1891,6 +1971,42 @@ pub(super) fn upload_name(name: &str, spoiler: bool) -> String {
 }
 
 const SPOILER: &str = "SPOILER_";
+
+#[cfg(test)]
+mod history_tests {
+    use super::*;
+
+    #[test]
+    fn observed_edits_are_bounded_and_deleted_content_is_not_saved() {
+        let mut open = OpenChannel::new("discord:10:11").unwrap();
+        let message = Message {
+            id: "5".into(),
+            channel_id: "11".into(),
+            content: "original".into(),
+            ..Default::default()
+        };
+        open.live(&Live::Created(message.clone()));
+        for version in 0..15 {
+            open.live(&Live::Updated(Message {
+                content: format!("edit {version}"),
+                ..message.clone()
+            }));
+        }
+        assert_eq!(open.edit_history[&5].len(), 10);
+        assert_eq!(open.edit_history[&5].last().unwrap(), "edit 13");
+        open.live(&Live::Deleted {
+            channel: "11".into(),
+            id: "5".into(),
+        });
+        assert!(open.shown.messages.contains_key(&5));
+        assert!(open.deleted.contains(&5));
+        assert!(open.take_changes().unwrap().1.is_empty());
+        assert!(!open.live(&Live::Deleted {
+            channel: "12".into(),
+            id: "5".into()
+        }));
+    }
+}
 
 /// Applies an edit, a deletion or a reaction in `channel` to the messages
 /// it changes; the snowflake of the one it changed, if any.

@@ -13,7 +13,7 @@ pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
         #[cfg(feature = "discord")]
         {
             use static_core::static_discord::accounts;
-            let adapter = state.borrow();
+            let mut adapter = state.borrow_mut();
             if adapter.app.state.preview {
                 return;
             }
@@ -38,7 +38,12 @@ pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
                             .collect::<Vec<_>>();
                         window.set_saved_accounts(ModelRc::new(VecModel::from(rows)));
                         window.set_accounts_error(SharedString::default());
-                        window.invoke_show_accounts();
+                        let weak = window.as_weak();
+                        slint::Timer::single_shot(std::time::Duration::ZERO, move || {
+                            if let Some(window) = weak.upgrade() {
+                                window.invoke_show_accounts();
+                            }
+                        });
                         Ok(false)
                     }
                     "add" => {
@@ -49,6 +54,7 @@ pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
                         accounts::select(&adapter.root, slot.as_str())?;
                         Ok(true)
                     }
+                    "select" if slot == accounts::active_slot() && !app.discord_linked => Ok(false),
                     _ => Ok(false),
                 }
             })();
@@ -57,8 +63,22 @@ pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
                     drop(adapter);
                     window.invoke_restart();
                 }
-                Ok(false) => {}
-                Err(error) => window.set_accounts_error(error.to_string().into()),
+                Ok(false) => {
+                    if what == "select" && !adapter.app.state.discord_linked {
+                        let effects = adapter.app.dispatch(Action::LinkDiscord);
+                        adapter.execute(effects);
+                        adapter.refresh(&window);
+                    }
+                }
+                Err(error) => {
+                    window.set_accounts_error(error.to_string().into());
+                    let weak = window.as_weak();
+                    slint::Timer::single_shot(std::time::Duration::ZERO, move || {
+                        if let Some(window) = weak.upgrade() {
+                            window.invoke_show_accounts();
+                        }
+                    });
+                }
             }
         }
         #[cfg(not(feature = "discord"))]

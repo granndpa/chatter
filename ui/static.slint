@@ -416,6 +416,8 @@ export component StaticWindow inherits Window {
     callback remove-game-executable(int);
     in-out property <bool> hide-blocked;
     callback hide-blocked-toggled(bool);
+    in-out property <bool> retain-message-history: true;
+    callback message-history-action(bool, bool);
     /// Those the Discord account blocked, for Settings, and unblocking one
     /// by user id.
     in property <[BlockedRow]> blocked-people;
@@ -1940,7 +1942,7 @@ export component StaticWindow inherits Window {
                 edit-profile => { root.edit-profile(); status-menu.close(); }
                 copy-id => { root.copy-text(root.account-user-id); status-menu.close(); }
                 open-link(url) => { root.open-link(url); }
-                switch-accounts => { status-menu.close(); root.accounts-action("open", ""); }
+                switch-accounts => { root.accounts-action("open", ""); status-menu.close(); }
                 settings => { root.settings-section = 0; root.settings-open = true; status-menu.close(); }
             }
             if !ClientStyle.enabled: StatusMenu {
@@ -2253,8 +2255,8 @@ export component StaticWindow inherits Window {
                 Text { text: "Switching restarts Static and ends any current call. Each account keeps its own saved login."; color: Theme.muted; wrap: word-wrap; font-size: 13px; }
                 for account in root.saved-accounts: ActionButton {
                     text: account.name + (account.username != "" ? " · " + account.username : "") + (account.current ? " (current)" : "");
-                    enabled: !account.current;
-                    clicked => { root.accounts-action("select", account.slot); }
+                    enabled: !account.current || !root.discord-linked;
+                    clicked => { root.accounts-action("select", account.slot); accounts-popup.close(); }
                 }
                 if root.accounts-error != "": Text { text: root.accounts-error; color: Theme.danger-text; wrap: word-wrap; }
                 ActionButton { text: "Add account"; primary: true; clicked => { root.accounts-action("add", ""); } }
@@ -2264,6 +2266,7 @@ export component StaticWindow inherits Window {
     }
     // Sign in; see SignInScreen.
     SignInScreen {
+        width: root.width;
         y: root.title-height; height: root.height - root.title-height;
         visible: !root.workspace;
         busy: root.busy; notice: root.notice; restore-available: root.restore-available; matrix-build: root.matrix-build;
@@ -2280,6 +2283,7 @@ export component StaticWindow inherits Window {
     }
 
     if !root.workspace && root.discord-build: ActionButton {
+        width: 160px; height: 40px;
         x: root.width - self.width - 32px; y: root.title-height + 24px;
         text: "Switch Accounts"; clicked => { root.accounts-action("open", ""); }
     }
@@ -3904,6 +3908,8 @@ export component StaticWindow inherits Window {
             unlink-discord => { root.unlink-discord(); }
             show-idle-toggled(shown) => { root.show-idle = shown; root.show-idle-toggled(shown); }
             hide-blocked: root.hide-blocked;
+            retain-message-history: root.retain-message-history;
+            message-history-action(enabled, clear) => { root.retain-message-history = enabled; root.message-history-action(enabled, clear); }
             hide-blocked-toggled(hide) => { root.hide-blocked = hide; root.hide-blocked-toggled(hide); }
             blocked: root.blocked-people;
             unblock(id) => { root.unblock(id); }

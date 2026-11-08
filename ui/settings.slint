@@ -1385,6 +1385,8 @@ export struct BlockedRow { id: string, name: string, username: string, avatar-ur
 
 // Settings: Discord account and channel behavior.
 export component DiscordSettings inherits VerticalLayout {
+    in property <bool> retain-message-history;
+    callback message-history-action(bool, bool);
     in property <bool> matrix-build;
     in property <bool> show-hidden-channels;
     in property <bool> sync-discord-reads;
@@ -1403,6 +1405,13 @@ export component DiscordSettings inherits VerticalLayout {
     callback show-idle-toggled(bool);
     spacing: 16px;
     SettingsTitle { text: "Discord"; }
+    SettingsSwitch {
+        text: "Keep local message history";
+        description: "Keeps observed deletions and up to 10 text versions for 200 edited messages per loaded channel, in memory for this session. Older channels are evicted. Turning this off clears retained history.";
+        checked: root.retain-message-history;
+        toggled(enabled) => { root.message-history-action(enabled, false); }
+    }
+    ActionButton { text: "Clear local message history"; clicked => { root.message-history-action(root.retain-message-history, true); } }
     if root.matrix-build: HorizontalLayout {
         spacing: 12px;
         Label { text: "Unlinking signs Static out of Discord on this computer."; vertical-alignment: center; horizontal-stretch: 1; }

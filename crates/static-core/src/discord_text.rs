@@ -9,6 +9,28 @@ use std::{
     time::{Duration, Instant},
 };
 
+/// Local message history lasts only while this process keeps the channel.
+pub mod message_history {
+    use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+    static ENABLED: AtomicBool = AtomicBool::new(true);
+    static GENERATION: AtomicU64 = AtomicU64::new(0);
+    pub fn enabled() -> bool {
+        ENABLED.load(Ordering::Relaxed)
+    }
+    pub fn generation() -> u64 {
+        GENERATION.load(Ordering::Relaxed)
+    }
+    pub fn configure(enabled: bool) {
+        ENABLED.store(enabled, Ordering::Relaxed);
+        if !enabled {
+            clear();
+        }
+    }
+    pub fn clear() {
+        GENERATION.fetch_add(1, Ordering::Relaxed);
+    }
+}
+
 use static_discord::{
     member_list::ListedMember,
     message::{Message, Page, Reply as DiscordReply, Shown},

@@ -198,6 +198,37 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
     super::games::bind(window, adapter);
     super::connections::bind(window, adapter);
     super::accounts::bind(window, adapter);
+    #[cfg(feature = "discord")]
+    {
+        let state = adapter.clone();
+        let weak = window.as_weak();
+        window.on_message_history_action(move |enabled, clear| {
+            let mut adapter = state.borrow_mut();
+            adapter.layout.retain_message_history = Some(enabled);
+            adapter.layout.write(&adapter.root);
+            static_core::discord_text::message_history::configure(enabled);
+            if clear {
+                static_core::discord_text::message_history::clear();
+            }
+            if clear || !enabled {
+                let messages = Arc::make_mut(&mut adapter.app.state.messages);
+                messages.retain(|message| !message.deleted);
+                for message in messages {
+                    Arc::make_mut(message).edit_history.clear();
+                }
+                if let Some(aside) = &mut adapter.app.state.aside {
+                    let messages = Arc::make_mut(&mut aside.messages);
+                    messages.retain(|message| !message.deleted);
+                    for message in messages {
+                        Arc::make_mut(message).edit_history.clear();
+                    }
+                }
+                if let Some(window) = weak.upgrade() {
+                    adapter.refresh(&window);
+                }
+            }
+        });
+    }
     super::server_folders::bind(window, adapter);
     super::gifs::bind(window, adapter);
     super::polls::bind(window, adapter);

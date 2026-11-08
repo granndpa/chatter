@@ -1475,6 +1475,7 @@ pub struct ChatMessage {
     pub timestamp: u64,
     pub own: bool,
     pub edited: bool,
+    pub edit_history: Vec<String>,
     pub deleted: bool,
     /// From someone this account blocked: it shows collapsed until asked for.
     pub blocked: bool,

@@ -697,6 +697,14 @@ pub(super) fn message_row_within(
         author_styled: bold(&message.author),
         time_styled: slint::StyledText::from_plain_text(&message.time),
         edited: message.edited,
+        edit_history: message
+            .edit_history
+            .iter()
+            .enumerate()
+            .map(|(i, text)| format!("Version {}: {}", i + 1, text))
+            .collect::<Vec<_>>()
+            .join("\n\n")
+            .into(),
         deleted: message.deleted,
         forwarded: message.forwarded,
         has_reply: message.reply.is_some(),

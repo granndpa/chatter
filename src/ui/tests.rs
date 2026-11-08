@@ -4453,6 +4453,20 @@ fn a_stale_server_cache_does_not_hide_discord_relinking() {
 
 #[test]
 #[cfg(feature = "discord")]
+fn account_switcher_loads_choices_and_reports_a_broken_account_list() {
+    let (window, adapter, _directory) = discord_server_window();
+    window.invoke_accounts_action("open".into(), "".into());
+    assert_eq!(window.get_accounts_error().as_str(), "");
+    assert!(window.get_saved_accounts().row_count() > 0);
+    let root = adapter.borrow().root.clone();
+    std::fs::write(root.join("discord-accounts.json"), b"invalid json").unwrap();
+    window.invoke_accounts_action("open".into(), "".into());
+    assert!(!window.get_accounts_error().is_empty());
+    window.hide().unwrap();
+}
+
+#[test]
+#[cfg(feature = "discord")]
 fn a_discord_servers_menus_show_and_change_its_notifications() {
     use static_core::chat::{Muting, NotificationChange, NotifyLevel};
     let (window, adapter, _directory) = discord_server_window();
