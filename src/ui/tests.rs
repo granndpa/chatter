@@ -6295,7 +6295,7 @@ fn a_colour_is_written_as_slint_writes_one() {
         assert_eq!(theme::parse(wrong), None, "{wrong:?}");
     }
     assert_eq!(
-        theme::parse("#76e0be26"),
+        theme::parse("#5865f226"),
         Some(theme::STATIC_THEME.accent_soft)
     );
 }
@@ -6540,7 +6540,7 @@ fn a_window_made_again_while_editing_drops_the_edit() {
     );
     assert!(!again.get_theme_editor());
     assert_eq!(theme::Theme::shown(&again), theme::STATIC_THEME);
-    assert_eq!(theme::mention_color(), 0x7cc4ff);
+    assert_eq!(theme::mention_color(), 0xc9cdfb);
     assert!(Layout::read(directory.path()).custom_themes.is_empty());
 }
 
@@ -7920,14 +7920,15 @@ fn static_settings_navigation_and_header_keep_the_existing_actions() {
                 button: PointerEventButton::Left,
             });
     };
-    // Reference geometry: a 1400px card, 72px outer inset, 266px navigation.
-    click(350., 500.);
+    // Reference geometry: a 1400px card, 72px outer inset, 266px navigation;
+    // Discord's order puts Data & Privacy and Messaging Permissions above Voice.
+    click(350., 540.);
     assert_eq!(
         window.get_settings_section(),
         7,
         "Appearance remains reachable"
     );
-    click(350., 340.);
+    click(350., 460.);
     assert_eq!(window.get_settings_section(), 1);
     assert_eq!(refreshed.get(), 1, "Voice still refreshes the device list");
     click(350., 180.);

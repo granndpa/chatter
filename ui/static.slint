@@ -35,6 +35,8 @@ import { ServerRow, RoomRow, StatusDot, ServerRail, ServerHeader, RoomList } fro
 import { StagedFile, StagedTile, Composer, MentionRow, MentionList, EmojiSuggestions, RequestBar } from "composer.slint";
 import { EmojiCell, EmojiRow, EmojiSection, EmojiCard, EmojiCardView, MessageRow, ReactionToggle, EmojiButton, EmojiPicker, MessageMenu, MessageGallery, MessageStickers, FileCard, MessageContent, EmbedView, BotTag, NoConversation, ConversationStart, HistoryEdge, UnreadBar, PresentBar, ImageViewer, VideoViewer, VideoPlayer, Polls } from "messages.slint";
 import { SettingsRow, SettingsScreen, AccountSettings, AppearanceSettings, ThemeCard, ThemeColour, VoiceSettings, MessageSettings, NotificationSettings, SoundSettings, AdvancedSettings, DiscordLinkSettings, DiscordSettings, BlockedRow, GameActivitySettings, GameExecutable } from "settings.slint";
+import { DataPrivacySettings, MessagingSettings } from "settings/privacy.slint";
+import { AccessibilitySettings, LanguageTimeSettings, ChatBoxSettings, StreamerModeSettings } from "settings/experience.slint";
 import { ConnectionRow, ConnectionsSettings } from "connections.slint";
 import { SavedAccountRow, AccountSwitcher, ManageAccounts } from "static/account-switcher.slint";
 export { SavedAccountRow } from "static/account-switcher.slint";
@@ -1088,6 +1090,7 @@ export component StaticWindow inherits Window {
     // Closing settings stops linking Discord there.
     changed settings-open => {
         if self.settings-open && self.settings-section == 9 { self.connections-action("refresh", "", "", false); }
+        if self.settings-open && (self.settings-section == 0 || self.settings-section == 10 || self.settings-section == 11) { self.account-wanted(); }
         if !self.settings-open && self.link-phase != 0 { self.cancel-discord-link(); }
         if !self.settings-open { self.camera-testing = false; }
         if !self.settings-open && self.theme-editor { self.cancel-theme(); }
@@ -1141,6 +1144,40 @@ export component StaticWindow inherits Window {
     in-out property <bool> notifications: true;
     in-out property <bool> notification-text: true;
     in-out property <bool> flash-taskbar: true;
+    /// Every sound Static plays stays quiet.
+    in-out property <bool> mute-all-sounds;
+    /// Streamer Mode, by hand or while OBS or XSplit runs, and what it does.
+    in-out property <bool> streamer-mode;
+    in-out property <bool> streamer-auto: true;
+    in-out property <bool> streamer-hide-info: true;
+    in-out property <bool> streamer-sounds-off: true;
+    in-out property <bool> streamer-notifications-off: true;
+    in-out property <bool> streamer-hide-capture;
+    /// Streamer Mode is on now, by hand or because OBS or XSplit runs.
+    in property <bool> streamer-active;
+    property <bool> streamer-hides-info: root.streamer-active && root.streamer-hide-info;
+    in-out property <bool> send-button;
+    in-out property <bool> convert-emoticons: true;
+    in-out property <bool> reduced-motion;
+    /// 0 Voice Isolation, 1 Studio, 2 Custom.
+    in-out property <int> input-profile: 2;
+    /// The Discord account's sign-in details and permissions, once loaded.
+    in property <bool> account-loaded;
+    in property <string> account-email;
+    in property <string> account-email-hidden;
+    in property <string> account-phone;
+    in property <string> account-phone-hidden;
+    in property <bool> account-mfa;
+    in property <bool> dms-from-servers: true;
+    in property <int> friend-sources: 14;
+    in property <int> spam-filter: 2;
+    in property <bool> usage-statistics;
+    in property <bool> personalization;
+    /// Read the account's details and permissions from Discord.
+    callback account-wanted();
+    /// Change one: `dms`, `friends`, `spam`, `usage_statistics` or
+    /// `personalization`, to a value as the settings pages give it.
+    callback account-change(string, int);
     /// Static's sounds: their set, their volume as a percentage, and each one's
     /// own, which each-sound-changed reports. play-sound plays one to try it.
     in-out property <int> sound-set;
@@ -1201,6 +1238,7 @@ export component StaticWindow inherits Window {
     changed settings-section => {
         if root.theme-editor && root.settings-section != 7 { root.cancel-theme(); }
         if root.settings-open && root.settings-section == 9 { root.connections-action("refresh", "", "", false); }
+        if root.settings-open && (root.settings-section == 0 || root.settings-section == 10 || root.settings-section == 11) { root.account-wanted(); }
     }
     out property <length> message-font-size: root.text-size == 0 ? 14px : root.text-size == 2 ? 18px : ClientStyle.text-size;
     // The sidebar keeps 180 to 380px. Dragging also leaves the conversation 420px;
@@ -3481,7 +3519,7 @@ export component StaticWindow inherits Window {
                                                 }
                                             }
                                         }
-                                        if !ClientStyle.enabled: VerticalLayout {
+                                        if !ClientStyle.enabled || root.send-button: VerticalLayout {
                                             alignment: end; padding-bottom: ClientStyle.composer-button-inset;
                                             IconButton {
                                                 icon: @image-url("icons/send-horizontal.svg");
@@ -3802,7 +3840,12 @@ export component StaticWindow inherits Window {
         discord-build: root.discord-build; preview: root.preview;
         close => { root.settings-open = false; }
         refresh-devices => { root.refresh-devices(); }
-        if root.settings-section == 9: ConnectionsSettings {
+        if root.settings-section == 9 && root.streamer-hides-info: VerticalLayout {
+            spacing: 8px;
+            Text { text: "Connections"; color: Theme.text; font-size: 20px; font-weight: 700; }
+            Text { text: "Hidden while Streamer Mode is on."; color: Theme.muted; font-size: 14px; }
+        }
+        if root.settings-section == 9 && !root.streamer-hides-info: ConnectionsSettings {
             accounts: root.connections; linked: root.connections-online;
             busy: root.connections-busy; loaded: root.connections-loaded;
             error: root.connections-error; authorizing: root.connections-authorizing;
@@ -3814,35 +3857,53 @@ export component StaticWindow inherits Window {
             account-initial: root.account-initial; account-tint: root.account-tint; account-picture: root.account-picture;
             storage: root.storage; preview: root.preview; online: root.online; busy: root.busy; sending: root.sending;
             discord-linked: root.discord-linked; has-custom-status: root.has-custom-status;
+            account-loaded: root.account-loaded; account-username: root.account-username;
+            account-email: root.account-email; account-email-hidden: root.account-email-hidden;
+            account-phone: root.account-phone; account-phone-hidden: root.account-phone-hidden;
+            account-mfa: root.account-mfa; hide-personal: root.streamer-hides-info;
             retry-sync => { root.retry-sync(); }
             set-custom-status => { root.settings-open = false; root.open-status(); }
             edit-profile => { root.settings-open = false; root.edit-profile(); }
             sign-out => { root.settings-open = false; root.logout(); }
         }
-        if root.settings-section == 7: AppearanceSettings {
-            themes: root.themes; theme-id: root.theme-id;
-            editor: root.theme-editor; colours: root.theme-colours;
-            theme-name <=> root.theme-name; theme-dark <=> root.theme-dark;
-            editing-saved: root.theme-editing-saved; starts: root.theme-starts; start-index: root.theme-start;
-            can-save: root.theme-can-save;
-            system-title-bar <=> root.system-title-bar; title-bar-choice: root.title-bar-choice;
-            title-bar-toggled => { root.title-bar-toggled(); }
-            choose-theme(id) => { root.choose-theme(id); }
-            new-theme => { root.new-theme(); }
-            edit-theme(id) => { root.edit-theme(id); }
-            start-chosen(index) => { root.theme-start-chosen(index); }
-            colour-edited(index, text) => { root.theme-colour-edited(index, text); }
-            dark-toggled(dark) => { root.theme-dark-toggled(dark); }
-            save-theme => { root.save-theme(); }
-            cancel-theme => { root.cancel-theme(); }
-            delete-theme => { root.delete-theme(); }
+        if root.settings-section == 7: VerticalLayout {
+            spacing: 32px;
+            AppearanceSettings {
+                themes: root.themes; theme-id: root.theme-id;
+                editor: root.theme-editor; colours: root.theme-colours;
+                theme-name <=> root.theme-name; theme-dark <=> root.theme-dark;
+                editing-saved: root.theme-editing-saved; starts: root.theme-starts; start-index: root.theme-start;
+                can-save: root.theme-can-save;
+                system-title-bar <=> root.system-title-bar; title-bar-choice: root.title-bar-choice;
+                title-bar-toggled => { root.title-bar-toggled(); }
+                choose-theme(id) => { root.choose-theme(id); }
+                new-theme => { root.new-theme(); }
+                edit-theme(id) => { root.edit-theme(id); }
+                start-chosen(index) => { root.theme-start-chosen(index); }
+                colour-edited(index, text) => { root.theme-colour-edited(index, text); }
+                dark-toggled(dark) => { root.theme-dark-toggled(dark); }
+                save-theme => { root.save-theme(); }
+                cancel-theme => { root.cancel-theme(); }
+                delete-theme => { root.delete-theme(); }
+            }
+            ChatBoxSettings {
+                send-button <=> root.send-button; convert-emoticons <=> root.convert-emoticons;
+                preferences-changed => { root.preferences-changed(); }
+            }
+            StreamerModeSettings {
+                streamer-mode <=> root.streamer-mode; streamer-auto <=> root.streamer-auto;
+                hide-info <=> root.streamer-hide-info; sounds-off <=> root.streamer-sounds-off;
+                notifications-off <=> root.streamer-notifications-off; hide-capture <=> root.streamer-hide-capture;
+                active: root.streamer-active;
+                preferences-changed => { root.preferences-changed(); }
+            }
         }
         if root.settings-section == 1: VoiceSettings {
             microphones: root.microphones; microphone-index <=> root.microphone-index;
             speakers: root.speakers; speaker-index <=> root.speaker-index;
             cameras: root.cameras; camera-index <=> root.camera-index;
             camera-testing <=> root.camera-testing; camera-preview: root.camera-preview; camera-note: root.camera-note;
-            unmute-on-join <=> root.unmute-on-join; level-voice <=> root.level-voice;
+            unmute-on-join <=> root.unmute-on-join; level-voice <=> root.level-voice; input-profile <=> root.input-profile;
             noise-suppression <=> root.noise-suppression; noise-strength <=> root.noise-strength; dereverb <=> root.dereverb; discord: root.discord-linked;
             sensitivity <=> root.sensitivity; gate-level: root.gate-level; gate-sending: root.gate-sending; gate-meter-note: root.gate-meter-note;
             input-mode <=> root.input-mode; talk-key: root.talk-key; talk-recording <=> root.talk-recording;
@@ -3869,12 +3930,12 @@ export component StaticWindow inherits Window {
             link-previews <=> root.link-previews; share-typing <=> root.share-typing;
             animate <=> root.animate;
             reply-ping <=> root.reply-ping-default; strip-tracking <=> root.strip-tracking;
-            matrix: root.matrix-build; discord: root.discord-linked;
+            matrix: root.matrix-build; discord: root.discord-linked; all-in-one: false;
             preferences-changed => { root.preferences-changed(); }
         }
         if root.settings-section == 3: NotificationSettings {
             notifications <=> root.notifications; notification-text <=> root.notification-text;
-            flash-taskbar <=> root.flash-taskbar;
+            flash-taskbar <=> root.flash-taskbar; mute-all-sounds <=> root.mute-all-sounds;
             matrix: root.matrix-build; discord: root.discord-linked;
             preferences-changed => { root.preferences-changed(); }
         }
@@ -3895,6 +3956,27 @@ export component StaticWindow inherits Window {
             preferences-changed => { root.preferences-changed(); }
             restart => { root.restart(); }
         }
+        if root.settings-section == 10: DataPrivacySettings {
+            loaded: root.account-loaded;
+            usage-statistics: root.usage-statistics; personalization: root.personalization;
+            consent-changed(kind, on) => { root.account-change(kind, on ? 1 : 0); }
+        }
+        if root.settings-section == 11: MessagingSettings {
+            loaded: root.account-loaded;
+            dms-from-servers: root.dms-from-servers; friend-sources: root.friend-sources; spam-filter: root.spam-filter;
+            hide-blocked: root.hide-blocked; blocked: root.blocked-people;
+            changed(what, value) => { root.account-change(what, value); }
+            hide-blocked-toggled(hide) => { root.hide-blocked = hide; root.hide-blocked-toggled(hide); }
+            unblock(id) => { root.unblock(id); }
+        }
+        if root.settings-section == 12: AccessibilitySettings {
+            text-size <=> root.text-size; animate <=> root.animate; reduced-motion <=> root.reduced-motion;
+            preferences-changed => { root.preferences-changed(); }
+        }
+        if root.settings-section == 13: LanguageTimeSettings {
+            twelve-hour-clock <=> root.twelve-hour-clock; clock-seconds <=> root.clock-seconds; date-format <=> root.date-format;
+            preferences-changed => { root.preferences-changed(); }
+        }
         if root.settings-section == 8: GameActivitySettings {
             shown: root.show-game; linked: root.discord-linked; executables: root.game-executables;
             toggled(shown) => { root.show-game-toggled(shown); }
@@ -3913,12 +3995,8 @@ export component StaticWindow inherits Window {
             show-idle: root.show-idle;
             unlink-discord => { root.unlink-discord(); }
             show-idle-toggled(shown) => { root.show-idle = shown; root.show-idle-toggled(shown); }
-            hide-blocked: root.hide-blocked;
             retain-message-history: root.retain-message-history;
             message-history-action(enabled, clear) => { root.retain-message-history = enabled; root.message-history-action(enabled, clear); }
-            hide-blocked-toggled(hide) => { root.hide-blocked = hide; root.hide-blocked-toggled(hide); }
-            blocked: root.blocked-people;
-            unblock(id) => { root.unblock(id); }
             show-hidden-channels-toggled(shown) => { root.show-hidden-channels = shown; root.show-hidden-channels-toggled(shown); }
             sync-discord-reads-toggled(sync) => { root.sync-discord-reads = sync; root.sync-discord-reads-toggled(sync); }
         }

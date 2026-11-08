@@ -6,6 +6,36 @@ use super::*;
 pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
     let state = adapter.clone();
     let weak = window.as_weak();
+    window.on_account_wanted(move || {
+        if let Some(window) = weak.upgrade() {
+            state
+                .borrow_mut()
+                .action(&window, Action::LoadDiscordAccount);
+        }
+    });
+    let state = adapter.clone();
+    let weak = window.as_weak();
+    window.on_account_change(move |what, value| {
+        use static_core::chat::AccountChange;
+        let Some(window) = weak.upgrade() else {
+            return;
+        };
+        let value = value.max(0) as u32;
+        let change = match what.as_str() {
+            "dms" => AccountChange::DmsFromServers(value != 0),
+            "friends" => AccountChange::FriendSources(value),
+            "spam" => AccountChange::SpamFilter(value),
+            kind @ ("usage_statistics" | "personalization") => {
+                AccountChange::Consent(kind.to_owned(), value != 0)
+            }
+            _ => return,
+        };
+        state
+            .borrow_mut()
+            .action(&window, Action::ChangeDiscordAccount(change));
+    });
+    let state = adapter.clone();
+    let weak = window.as_weak();
     window.on_accounts_action(move |what, slot| {
         let Some(window) = weak.upgrade() else {
             return;

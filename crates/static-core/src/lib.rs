@@ -46,6 +46,7 @@ pub mod encode;
 pub mod experiment;
 pub mod frames;
 pub mod leveling;
+pub mod emoticons;
 pub mod links;
 pub mod logging;
 #[cfg(feature = "discord")]

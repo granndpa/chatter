@@ -1332,6 +1332,56 @@ impl Api {
         .map(drop)
     }
 
+    /// This account's email, phone and two-factor state, its messaging
+    /// permissions, and whether Discord may use its data.
+    pub async fn account(&self) -> Result<settings::Account> {
+        let me = self.json(self.request(Method::GET, "/users/@me")).await?;
+        let privacy = settings::privacy(&self.user_settings().await?);
+        // Consent is the least needed, so a failure there shows the rest.
+        let consent = self
+            .json(self.request(Method::GET, "/users/@me/consent"))
+            .await
+            .unwrap_or(Value::Null);
+        let text = |key: &str| me[key].as_str().unwrap_or_default().to_owned();
+        Ok(settings::Account {
+            email: text("email"),
+            phone: text("phone"),
+            mfa: me["mfa_enabled"].as_bool().unwrap_or(false),
+            privacy,
+            usage_statistics: consent["usage_statistics"]["consented"].as_bool(),
+            personalization: consent["personalization"]["consented"].as_bool(),
+        })
+    }
+
+    /// Changes the messaging permissions given, keeping every other setting:
+    /// it reads the account's settings first, as Discord replaces whole groups.
+    pub async fn set_privacy(
+        &self,
+        dms_from_servers: Option<bool>,
+        friend_sources: Option<u32>,
+        spam_filter: Option<u32>,
+    ) -> Result<()> {
+        let current = self.user_settings().await?;
+        let changed =
+            settings::write_privacy(&current, dms_from_servers, friend_sources, spam_filter);
+        self.set_user_settings(&changed).await
+    }
+
+    /// Lets Discord use this account's data for `kind`, `usage_statistics`
+    /// or `personalization`, or stops it.
+    pub async fn set_consent(&self, kind: &str, granted: bool) -> Result<()> {
+        let body = if granted {
+            json!({"grant": [kind], "revoke": []})
+        } else {
+            json!({"grant": [], "revoke": [kind]})
+        };
+        self.empty(with_json(
+            self.request(Method::POST, "/users/@me/consent"),
+            &body,
+        ))
+        .await
+    }
+
     /// Shares the game this account plays, everywhere it's signed in, or
     /// stops sharing it.
     pub async fn set_show_game(&self, shown: bool) -> Result<()> {

@@ -465,6 +465,8 @@ pub struct AppState {
     /// Whether the Discord account shares the game it plays, and the game
     /// it shows.
     pub discord_show_game: bool,
+    /// The account's sign-in details and permissions, once settings asked.
+    pub discord_account: Option<chat::DiscordAccount>,
     pub discord_playing: Option<chat::Playing>,
     pub discord_spotify: Option<chat::Activity>,
     /// How loud the Discord account's soundboard plays, as Discord keeps
@@ -499,6 +501,8 @@ pub struct AppState {
     pub reply_ping: bool,
     /// Tracking parameters come out of the links in sent messages.
     pub strip_tracking: bool,
+    /// Emoticons such as :) go as emoji in sent messages.
+    pub convert_emoticons: bool,
     /// Messages from people this account blocked don't show at all, rather
     /// than collapsed.
     pub hide_blocked: bool,
@@ -1909,6 +1913,10 @@ pub enum Action {
     SetStatus(String),
     /// Share the game the Discord account plays, or stop.
     ShowGame(bool),
+    /// Read the Discord account's sign-in details and permissions.
+    LoadDiscordAccount,
+    /// Change a Discord permission or data consent.
+    ChangeDiscordAccount(chat::AccountChange),
     /// Set how loud the Discord account's soundboard plays, on its slider
     /// from 0 to 100.
     SoundboardVolume(f32),
@@ -1953,6 +1961,8 @@ pub enum Action {
     },
     /// Take tracking parameters out of links in sent messages.
     StripTracking(bool),
+    /// Send emoticons such as :) as emoji.
+    ConvertEmoticons(bool),
     /// Leave out messages from people this account blocked, rather than
     /// collapsing them.
     HideBlocked(bool),
@@ -3165,6 +3175,24 @@ impl Application {
                     DiscordCommand::SetStatus(status),
                 ))]
             }
+            Action::LoadDiscordAccount => {
+                if self.state.preview || self.state.discord_user.is_none() {
+                    return vec![];
+                }
+                vec![Effect::Backend(Command::Discord(DiscordCommand::LoadAccount))]
+            }
+            Action::ChangeDiscordAccount(change) => {
+                if self.state.preview || self.state.discord_user.is_none() {
+                    return vec![];
+                }
+                // The switch moves at once; a refusal reads the account again.
+                if let Some(account) = &mut self.state.discord_account {
+                    account.changed(&change);
+                }
+                vec![Effect::Backend(Command::Discord(
+                    DiscordCommand::ChangeAccount(change),
+                ))]
+            }
             Action::ShowGame(shown) => {
                 if self.state.preview
                     || self.state.discord_user.is_none()
@@ -3274,6 +3302,10 @@ impl Application {
             }
             Action::StripTracking(strip) => {
                 self.state.strip_tracking = strip;
+                vec![]
+            }
+            Action::ConvertEmoticons(convert) => {
+                self.state.convert_emoticons = convert;
                 vec![]
             }
             Action::HideBlocked(hide) => {
@@ -3779,6 +3811,20 @@ impl Application {
                         Some(format!("Couldn't list the soundboard's sounds: {error}"));
                 }
             },
+            Event::AccountLoaded(result) => match result {
+                Ok(account) => self.state.discord_account = Some(account),
+                Err(error) => {
+                    self.state.notice =
+                        Some(format!("Couldn't load your account settings: {error}"));
+                }
+            },
+            Event::AccountChanged(result) => {
+                if let Err(error) = result {
+                    self.state.notice = Some(format!("Couldn't change that setting: {error}"));
+                    // What Discord kept shows again.
+                    return vec![Effect::Backend(Command::Discord(DiscordCommand::LoadAccount))];
+                }
+            }
             Event::ShowGameSet(result) => {
                 if let Err(error) = result {
                     self.state.discord_show_game = !self.state.discord_show_game;

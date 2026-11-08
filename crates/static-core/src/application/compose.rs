@@ -218,6 +218,11 @@ impl Application {
         } else {
             std::borrow::Cow::Borrowed(text)
         };
+        let text = if self.state.convert_emoticons {
+            std::borrow::Cow::Owned(crate::emoticons::convert(&text).into_owned())
+        } else {
+            text
+        };
         let body = if self.state.preview {
             text.into_owned()
         } else {

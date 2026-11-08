@@ -996,6 +996,20 @@ impl Adapter {
         window.set_account_name(account_name.into());
         window.set_account_username(state.account_username.as_deref().unwrap_or_default().into());
         window.set_account_user_id(state.discord_user.as_deref().unwrap_or_default().into());
+        window.set_account_loaded(state.discord_account.is_some());
+        if let Some(details) = &state.discord_account {
+            window.set_account_email(details.email.as_str().into());
+            window.set_account_email_hidden(hidden_email(&details.email).into());
+            window.set_account_phone(details.phone.as_str().into());
+            window.set_account_phone_hidden(hidden_phone(&details.phone).into());
+            window.set_account_mfa(details.mfa);
+            window.set_dms_from_servers(details.dms_from_servers);
+            window.set_friend_sources(details.friend_sources as i32);
+            window.set_spam_filter(details.spam_filter as i32);
+            // Unknown is Discord's default, which lets it.
+            window.set_usage_statistics(details.usage_statistics.unwrap_or(true));
+            window.set_personalization(details.personalization.unwrap_or(true));
+        }
         window.set_account_initial(initial(account_name));
         window.set_account_tint(tint(account_name));
         window.set_account_picture(cached_picture(
@@ -4873,4 +4887,23 @@ fn sound_rows(
         }
     }
     rows
+}
+
+/// An email as Discord's Account Info shows it until Reveal: the name hidden,
+/// the domain shown.
+fn hidden_email(email: &str) -> String {
+    match email.split_once('@') {
+        Some((name, domain)) => format!("{}@{domain}", "*".repeat(name.chars().count().max(1))),
+        None => String::new(),
+    }
+}
+
+/// A phone number as Discord shows it until Reveal: only its last four digits.
+fn hidden_phone(phone: &str) -> String {
+    let digits: Vec<char> = phone.chars().filter(char::is_ascii_digit).collect();
+    if digits.len() <= 4 {
+        return String::new();
+    }
+    let last: String = digits[digits.len() - 4..].iter().collect();
+    format!("{}{last}", "*".repeat(digits.len() - 4))
 }

@@ -1932,6 +1932,28 @@ impl Discord {
         Ok(())
     }
 
+    /// This account's sign-in details, messaging permissions and data consents.
+    pub async fn account(&self) -> Result<crate::settings::Account> {
+        self.api.account().await
+    }
+
+    /// Changes the messaging permissions given; see [`Api::set_privacy`].
+    pub async fn set_privacy(
+        &self,
+        dms_from_servers: Option<bool>,
+        friend_sources: Option<u32>,
+        spam_filter: Option<u32>,
+    ) -> Result<()> {
+        self.api
+            .set_privacy(dms_from_servers, friend_sources, spam_filter)
+            .await
+    }
+
+    /// Lets Discord use this account's data for `kind`, or stops it.
+    pub async fn set_consent(&self, kind: &str, granted: bool) -> Result<()> {
+        self.api.set_consent(kind, granted).await
+    }
+
     /// Shares the game this account plays, everywhere it's signed in, or
     /// stops sharing it. Stopping ends game detection and Rich Presence.
     pub async fn set_show_game(&self, shown: bool) -> Result<()> {

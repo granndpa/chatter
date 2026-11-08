@@ -8,6 +8,7 @@ import { ActionButton, IconButton, Avatar, SensitivitySlider, VolumeSlider, Text
 import { DiscordLinkPanel } from "discord.slint";
 import { ChannelRow } from "rail.slint";
 import { Soundboard, SoundRow } from "voice.slint";
+import { RadioOption } from "settings/radio.slint";
 
 // Settings: a section's title, a group's heading, a switch with what it does, and
 // a row of exclusive choices with the current one raised.
@@ -398,11 +399,13 @@ export component SettingsScreen inherits Rectangle {
         close => { root.close(); }
         SettingsFrame {
             discord-layout: ClientStyle.enabled;
-            page-title: root.settings-section == 0 ? "My Account" : root.settings-section == 1 ? "Voice & Video"
+            page-title: root.settings-section == 0 ? "Account" : root.settings-section == 1 ? "Voice & Video"
                 : root.settings-section == 2 ? "Messages" : root.settings-section == 3 ? "Notifications"
                 : root.settings-section == 4 ? "Discord" : root.settings-section == 5 ? "Sounds"
-                : root.settings-section == 6 ? "Advanced" : root.settings-section == 7 ? "Appearance"
-                : root.settings-section == 9 ? "Connected Apps" : "Game Activity";
+                : root.settings-section == 6 ? "System" : root.settings-section == 7 ? "Appearance"
+                : root.settings-section == 9 ? "Connections" : root.settings-section == 10 ? "Data & Privacy"
+                : root.settings-section == 11 ? "Messaging Permissions" : root.settings-section == 12 ? "Accessibility"
+                : root.settings-section == 13 ? "Language & Time" : "Registered Games";
             account-name: root.account-name; account-initial: root.account-initial;
             account-tint: root.account-tint; account-picture: root.account-picture;
             with-discord: root.discord-build && !root.preview;
@@ -420,6 +423,34 @@ export component SettingsScreen inherits Rectangle {
     }
 }
 
+// A detail of the account, as Discord's Account Info lists them: hidden ones
+// show masked until Reveal.
+component InfoRow inherits HorizontalLayout {
+    in property <string> label;
+    in property <string> value;
+    /// The masked form; none shows the value as it is.
+    in property <string> hidden-value;
+    in property <bool> loading;
+    in property <bool> hidden-by-streamer;
+    private property <bool> revealed;
+    padding-top: 12px; padding-bottom: 12px; spacing: 12px;
+    Text { text: root.label; color: Theme.text; font-size: 15px; font-weight: 600; vertical-alignment: center; }
+    Rectangle { horizontal-stretch: 1; }
+    Text {
+        vertical-alignment: center; font-size: 15px; overflow: elide;
+        color: root.loading ? Theme.muted : Theme.secondary;
+        text: root.loading ? "Loading..."
+            : root.hidden-by-streamer && root.hidden-value != "" ? "Hidden in Streamer Mode"
+            : root.revealed || root.hidden-value == "" ? root.value : root.hidden-value;
+    }
+    if !root.loading && !root.hidden-by-streamer && root.hidden-value != "": Text {
+        text: root.revealed ? "Hide" : "Reveal"; color: Theme.link; font-size: 15px; vertical-alignment: center;
+        accessible-role: button; accessible-label: (root.revealed ? "Hide " : "Reveal ") + root.label;
+        accessible-action-default => { root.revealed = !root.revealed; }
+        TouchArea { mouse-cursor: pointer; clicked => { root.revealed = !root.revealed; } }
+    }
+}
+
 export component AccountSettings inherits VerticalLayout {
     in property <string> account-name;
     in property <string> account-status;
@@ -434,12 +465,22 @@ export component AccountSettings inherits VerticalLayout {
     in property <bool> sending;
     in property <bool> discord-linked;
     in property <bool> has-custom-status;
+    /// The account's sign-in details, once Discord sent them; the hidden
+    /// forms show until Reveal, and stay while Streamer Mode hides them.
+    in property <bool> account-loaded;
+    in property <string> account-username;
+    in property <string> account-email;
+    in property <string> account-email-hidden;
+    in property <string> account-phone;
+    in property <string> account-phone-hidden;
+    in property <bool> account-mfa;
+    in property <bool> hide-personal;
     callback retry-sync;
     callback set-custom-status;
     callback edit-profile;
     callback sign-out;
     spacing: 16px;
-    SettingsTitle { text: "My account"; }
+    SettingsTitle { text: "Account"; }
     Rectangle {
         background: Theme.sidebar; border-radius: 8px;
         HorizontalLayout {
@@ -450,6 +491,25 @@ export component AccountSettings inherits VerticalLayout {
                 Text { text: root.account-name; color: Theme.text; font-size: 20px; font-weight: 700; overflow: elide; }
                 StatusText { text: root.account-status; emoji-url: root.account-status-emoji; }
             }
+        }
+    }
+    if root.discord-linked: VerticalLayout {
+        spacing: 0px;
+        SettingsHeading { text: "ACCOUNT INFO"; }
+        InfoRow { label: "Username"; value: root.account-username; }
+        InfoRow {
+            label: "Email"; loading: !root.account-loaded; hidden-by-streamer: root.hide-personal;
+            value: root.account-email != "" ? root.account-email : "Not added";
+            hidden-value: root.account-email-hidden;
+        }
+        InfoRow {
+            label: "Phone Number"; loading: !root.account-loaded; hidden-by-streamer: root.hide-personal;
+            value: root.account-phone != "" ? root.account-phone : "Not added";
+            hidden-value: root.account-phone-hidden;
+        }
+        InfoRow {
+            label: "Two-Factor Authentication"; loading: !root.account-loaded;
+            value: root.account-mfa ? "Enabled" : "Off";
         }
     }
     if root.storage != "": Label { text: root.storage; }
@@ -494,6 +554,8 @@ export component VoiceSettings inherits VerticalLayout {
     in property <string> camera-note;
     in-out property <bool> unmute-on-join;
     in-out property <bool> level-voice;
+    /// 0 Voice Isolation, 1 Studio, 2 Custom, which shows each setting.
+    in-out property <int> input-profile: 2;
     /// What suppresses noise in Discord calls: 0 DeepFilterNet, 1 RNNoise, 2
     /// nothing; and how far: 0 full, 1 medium, 2 light.
     in-out property <int> noise-suppression;
@@ -618,19 +680,44 @@ export component VoiceSettings inherits VerticalLayout {
         Rectangle { horizontal-stretch: 1; }
     }
     Rectangle { height: 1px; background: Theme.line; }
+    if root.discord: VerticalLayout {
+        spacing: 4px;
+        SettingsHeading { text: "INPUT PROFILE"; }
+        RadioOption {
+            text: "Voice Isolation"; description: "Just your voice: Static cuts through the noise and the room's echo.";
+            checked: root.input-profile == 0;
+            clicked => {
+                root.input-profile = 0; root.noise-suppression = 0; root.noise-strength = 0;
+                root.dereverb = true; root.level-voice = true; root.preferences-changed();
+            }
+        }
+        RadioOption {
+            text: "Studio"; description: "Pure audio: your microphone with no processing.";
+            checked: root.input-profile == 1;
+            clicked => {
+                root.input-profile = 1; root.noise-suppression = 2;
+                root.dereverb = false; root.level-voice = false; root.preferences-changed();
+            }
+        }
+        RadioOption {
+            text: "Custom"; description: "Advanced mode: every button and dial.";
+            checked: root.input-profile == 2;
+            clicked => { root.input-profile = 2; root.preferences-changed(); }
+        }
+    }
     SettingsSwitch {
         text: "Turn on your microphone when you join a call";
         description: "Otherwise you join muted, and unmute when you're ready.";
         checked <=> root.unmute-on-join;
         toggled => { root.preferences-changed(); }
     }
-    SettingsSwitch {
+    if !root.discord || root.input-profile == 2: SettingsSwitch {
         text: "Even out your voice";
         description: "Keeps your voice steady as you lean towards the microphone or away from it. Whispers and shouts still come through as they are.";
         checked <=> root.level-voice;
         toggled => { root.preferences-changed(); }
     }
-    if root.discord: VerticalLayout {
+    if root.discord && root.input-profile == 2: VerticalLayout {
         spacing: 8px;
         SettingsHeading { text: "NOISE SUPPRESSION IN DISCORD CALLS"; }
         Choices {
@@ -640,7 +727,7 @@ export component VoiceSettings inherits VerticalLayout {
         }
         Label { text: "DeepFilterNet also takes out typing and other sudden noise. RNNoise uses less processing. Off sends your microphone as it is, for a quiet room. A call going on switches straight away."; }
     }
-    if root.discord && root.noise-suppression != 2: VerticalLayout {
+    if root.discord && root.input-profile == 2 && root.noise-suppression != 2: VerticalLayout {
         spacing: 8px;
         SettingsHeading { text: "NOISE SUPPRESSION STRENGTH"; }
         Choices {
@@ -705,7 +792,7 @@ export component VoiceSettings inherits VerticalLayout {
             }
         }
     }
-    if root.discord: SettingsSwitch {
+    if root.discord && root.input-profile == 2: SettingsSwitch {
         text: "Take out your room's echo in Discord calls";
         description: "For a bare or echoey room that makes your voice sound far away. Uses a little more processing, and your voice goes out 10 ms later.";
         checked <=> root.dereverb;
@@ -776,7 +863,29 @@ export component VoiceSettings inherits VerticalLayout {
             text: root.gate-meter-note != "" ? root.gate-meter-note
                 : "Static sends your voice when it's louder than the handle, and other sounds when they're 18 dB louder still. The bar is your microphone after noise suppression and at its volume, as Static hears it to decide.";
         }
+        Rectangle { height: 1px; background: Theme.line; }
+    HorizontalLayout {
+        spacing: 12px;
+        VerticalLayout {
+            spacing: 2px; horizontal-stretch: 1; alignment: center;
+            Text { text: "Reset all voice settings"; color: Theme.text; font-size: 15px; }
+            Label { text: "Back to Static's defaults: devices stay, everything else resets."; }
+        }
+        VerticalLayout {
+            alignment: center;
+            ActionButton {
+                text: "Reset"; danger: true; small: true;
+                clicked => {
+                    root.input-profile = 2; root.unmute-on-join = true; root.level-voice = true;
+                    root.noise-suppression = 0; root.noise-strength = 1; root.dereverb = false;
+                    root.sensitivity = -60; root.input-mode = 0; root.talk-delay = 20;
+                    root.microphone-volume = 100; root.speaker-volume = 100;
+                    root.preferences-changed(); root.call-volumes-changed();
+                }
+            }
+        }
     }
+}
 }
 
 /// A theme as Appearance offers it: its name, and the colours of its preview.
@@ -1054,6 +1163,9 @@ export component MessageSettings inherits VerticalLayout {
     /// The networks in use, which the descriptions name.
     in property <bool> matrix;
     in property <bool> discord;
+    /// Text size, the clock and animation show here too; Static's own layout
+    /// moves them to Accessibility and Language & Time.
+    in property <bool> all-in-one: true;
     callback preferences-changed;
     spacing: 16px;
     SettingsTitle { text: "Messages"; }
@@ -1076,7 +1188,7 @@ export component MessageSettings inherits VerticalLayout {
             }
         }
     }
-    VerticalLayout {
+    if root.all-in-one: VerticalLayout {
         spacing: 8px;
         SettingsHeading { text: "TEXT SIZE"; }
         Choices {
@@ -1085,7 +1197,7 @@ export component MessageSettings inherits VerticalLayout {
             chosen => { root.preferences-changed(); }
         }
     }
-    VerticalLayout {
+    if root.all-in-one: VerticalLayout {
         spacing: 8px;
         SettingsHeading { text: "CLOCK"; }
         Choices {
@@ -1106,7 +1218,7 @@ export component MessageSettings inherits VerticalLayout {
             chosen(index) => { root.date-format = index; root.preferences-changed(); }
         }
     }
-    VerticalLayout {
+    if root.all-in-one: VerticalLayout {
         spacing: 8px;
         SettingsHeading { text: "PLAY GIFS, EMOJI AND STICKERS"; }
         Choices {
@@ -1148,6 +1260,7 @@ export component NotificationSettings inherits VerticalLayout {
     in-out property <bool> notifications;
     in-out property <bool> notification-text;
     in-out property <bool> flash-taskbar;
+    in-out property <bool> mute-all-sounds;
     /// The networks in use, whose rules decide what notifies.
     in property <bool> matrix;
     in property <bool> discord;
@@ -1175,7 +1288,14 @@ export component NotificationSettings inherits VerticalLayout {
         description: "For a message that notifies while Static isn't in front. The window's title counts mentions and DMs waiting either way.";
         checked <=> root.flash-taskbar;
         toggled => { root.preferences-changed(); }
+        Rectangle { height: 1px; background: Theme.line; }
+    SettingsSwitch {
+        text: "Disable all notification sounds";
+        description: "Every sound Static plays, for messages and in calls. Each sound's own setting comes back when you turn this off.";
+        checked <=> root.mute-all-sounds;
+        toggled => { root.preferences-changed(); }
     }
+}
 }
 
 // Settings: Static's own sounds for calls and messages, which instrument plays
@@ -1437,58 +1557,5 @@ export component DiscordSettings inherits VerticalLayout {
         description: "After 10 minutes without using Static, as in Discord. Either way, your phone gets notifications while you're away.";
         checked: root.show-idle;
         toggled(shown) => { root.show-idle-toggled(shown); }
-    }
-    SettingsSwitch {
-        text: "Hide messages from people you blocked";
-        description: "Leaves them out entirely, rather than showing a line you can open.";
-        checked: root.hide-blocked;
-        toggled(hide) => { root.hide-blocked-toggled(hide); }
-    }
-    // As Discord's Ignore & Block lists them, only while there are any.
-    if root.blocked.length > 0: VerticalLayout {
-        spacing: 8px;
-        HorizontalLayout {
-            spacing: 12px; padding-top: 8px;
-            Middle {
-                Rectangle {
-                    width: 40px; height: 40px; border-radius: 20px; background: Theme.raised;
-                    Image { source: @image-url("icons/ban.svg"); width: 20px; height: 20px; colorize: Theme.secondary; }
-                }
-            }
-            VerticalLayout {
-                alignment: center; spacing: 2px;
-                Text { text: "Blocked accounts"; color: Theme.text; font-size: 16px; font-weight: 600; }
-                Text { text: root.blocked.length + (root.blocked.length == 1 ? " account" : " accounts"); color: Theme.secondary; font-size: 14px; }
-            }
-        }
-        VerticalLayout {
-            for person[index] in root.blocked: VerticalLayout {
-                if index < root.blocked-shown: HorizontalLayout {
-                    padding-top: 6px; padding-bottom: 6px; spacing: 12px;
-                    Middle { Avatar { size: 40px; initial: person.initial; picture-url: person.avatar-url; } }
-                    Middle {
-                        horizontal-stretch: 1;
-                        VerticalLayout {
-                            spacing: 2px;
-                            Text { text: person.name; color: Theme.text; font-size: 16px; font-weight: 600; overflow: elide; }
-                            if person.username != "": Text { text: person.username; color: Theme.secondary; font-size: 14px; overflow: elide; }
-                        }
-                    }
-                    Middle {
-                        ActionButton {
-                            text: "Unblock"; small: true; label: "Unblock " + person.name;
-                            clicked => { root.unblock(person.id); }
-                        }
-                    }
-                }
-            }
-        }
-        if root.blocked.length > root.blocked-shown: HorizontalLayout {
-            alignment: start;
-            ActionButton {
-                text: "See " + (root.blocked.length - root.blocked-shown) + " more"; ghost: true; small: true;
-                clicked => { root.blocked-shown += 5; }
-            }
-        }
     }
 }

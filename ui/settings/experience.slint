@@ -1,0 +1,147 @@
+import { Theme, Label } from "../theme.slint";
+import { SettingsTitle, SettingsHeading, SettingsSwitch, Choices } from "../settings.slint";
+
+component Divider inherits Rectangle { height: 1px; background: Theme.line; }
+
+// Settings: how large text is, and how much moves.
+export component AccessibilitySettings inherits VerticalLayout {
+    /// Message text: 0 small, 1 default, 2 large.
+    in-out property <int> text-size;
+    /// When animations play: 0 while Static has the focus, 1 always, 2 never.
+    in-out property <int> animate;
+    in-out property <bool> reduced-motion;
+    callback preferences-changed;
+    spacing: 16px;
+    SettingsTitle { text: "Accessibility"; }
+    VerticalLayout {
+        spacing: 8px;
+        SettingsHeading { text: "TEXT SIZE IN CHAT"; }
+        Choices {
+            label: "Text size in chat"; options: ["Small", "Default", "Large"];
+            current <=> root.text-size;
+            chosen => { root.preferences-changed(); }
+        }
+    }
+    Divider { }
+    SettingsHeading { text: "MOTION"; }
+    SettingsSwitch {
+        text: "Reduce motion";
+        description: "Menus, popups and switches change at once instead of sliding and fading.";
+        checked <=> root.reduced-motion;
+        toggled => { root.preferences-changed(); }
+    }
+    VerticalLayout {
+        spacing: 8px;
+        SettingsHeading { text: "PLAY GIFS, EMOJI AND STICKERS"; }
+        Choices {
+            label: "Play GIFs, emoji and stickers"; options: ["While Static is focused", "Always", "Never"];
+            current <=> root.animate;
+            chosen => { root.preferences-changed(); }
+        }
+    }
+}
+
+// Settings: how message times and dates read.
+export component LanguageTimeSettings inherits VerticalLayout {
+    in-out property <bool> twelve-hour-clock;
+    in-out property <bool> clock-seconds;
+    /// The date format: 0 day first, 1 month first, 2 year first; -1 follows the clock.
+    in-out property <int> date-format: -1;
+    callback preferences-changed;
+    spacing: 16px;
+    SettingsTitle { text: "Language & Time"; }
+    VerticalLayout {
+        spacing: 8px;
+        SettingsHeading { text: "CLOCK"; }
+        Choices {
+            label: "Clock"; options: ["24-hour", "12-hour"];
+            current: root.twelve-hour-clock ? 1 : 0;
+            chosen(index) => { root.twelve-hour-clock = index == 1; root.preferences-changed(); }
+        }
+    }
+    SettingsSwitch {
+        text: "Show seconds";
+        description: "Message times show them, as " + (root.twelve-hour-clock ? "9:41:05 PM." : "21:41:05.");
+        checked <=> root.clock-seconds;
+        toggled => { root.preferences-changed(); }
+    }
+    VerticalLayout {
+        spacing: 8px;
+        SettingsHeading { text: "DATE FORMAT"; }
+        Choices {
+            label: "Date format"; options: ["Day/Month/Year", "Month/Day/Year", "Year-Month-Day"];
+            current: root.date-format >= 0 ? root.date-format : root.twelve-hour-clock ? 1 : 0;
+            chosen(index) => { root.date-format = index; root.preferences-changed(); }
+        }
+    }
+}
+
+// Settings: the message box, as Discord's Chat Box group has it.
+export component ChatBoxSettings inherits VerticalLayout {
+    in-out property <bool> send-button;
+    in-out property <bool> convert-emoticons;
+    callback preferences-changed;
+    spacing: 16px;
+    SettingsHeading { text: "CHAT BOX"; }
+    SettingsSwitch {
+        text: "Show send message button";
+        description: "A button beside the message box. Enter still sends.";
+        checked <=> root.send-button;
+        toggled => { root.preferences-changed(); }
+    }
+    SettingsSwitch {
+        text: "Automatically convert emoticons to emoji";
+        description: "When you send :) it goes as \u{1F642}. Messages with code in them stay as typed.";
+        checked <=> root.convert-emoticons;
+        toggled => { root.preferences-changed(); }
+    }
+}
+
+// Settings: Streamer Mode, which keeps what's private off a stream.
+export component StreamerModeSettings inherits VerticalLayout {
+    in-out property <bool> streamer-mode;
+    in-out property <bool> streamer-auto;
+    in-out property <bool> hide-info;
+    in-out property <bool> sounds-off;
+    in-out property <bool> notifications-off;
+    in-out property <bool> hide-capture;
+    /// Streamer Mode is on now, by hand or because OBS or XSplit runs.
+    in property <bool> active;
+    callback preferences-changed;
+    spacing: 16px;
+    SettingsHeading { text: "STREAMER MODE"; }
+    SettingsSwitch {
+        text: "Enable Streamer Mode";
+        description: root.active && !root.streamer-mode ? "On now, because OBS or XSplit is running." : "Hides your personal info so people watching your stream can't see it.";
+        checked <=> root.streamer-mode;
+        toggled => { root.preferences-changed(); }
+    }
+    SettingsSwitch {
+        text: "Automatically enable Streamer Mode if OBS or XSplit are running";
+        checked <=> root.streamer-auto;
+        toggled => { root.preferences-changed(); }
+    }
+    Text { text: "If Streamer Mode is on..."; color: Theme.text; font-size: 15px; font-weight: 600; }
+    SettingsSwitch {
+        text: "Hide my personal information";
+        description: "Your email, phone number and connected accounts.";
+        checked <=> root.hide-info;
+        toggled => { root.preferences-changed(); }
+    }
+    SettingsSwitch {
+        text: "Disable all sound effects";
+        checked <=> root.sounds-off;
+        toggled => { root.preferences-changed(); }
+    }
+    SettingsSwitch {
+        text: "Disable notifications";
+        checked <=> root.notifications-off;
+        toggled => { root.preferences-changed(); }
+    }
+    SettingsSwitch {
+        text: "Hide Static from screen capture";
+        description: "OBS, screenshots and screen sharing can't see Static's window.";
+        checked <=> root.hide-capture;
+        toggled => { root.preferences-changed(); }
+    }
+}

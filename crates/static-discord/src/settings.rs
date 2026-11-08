@@ -735,3 +735,219 @@ mod tests {
         assert_eq!(read(&write_status("dnd")).afk_timeout, None);
     }
 }
+
+// Messaging permissions, as Discord's PreloadedUserSettings holds them; the
+// field numbers are those of discord-protos.
+const TEXT_AND_IMAGES: u64 = 6;
+const DM_SPAM_FILTER_V2: u64 = 27;
+const PRIVACY: u64 = 8;
+const DEFAULT_GUILDS_RESTRICTED: u64 = 4;
+const FRIEND_SOURCE_FLAGS: u64 = 11;
+const DEFAULT_GUILDS_RESTRICTED_V2: u64 = 27;
+
+/// Friend requests may come from friends of friends.
+pub const FRIENDS_OF_FRIENDS: u32 = 1 << 1;
+/// From people in a server with this account.
+pub const SERVER_MEMBERS: u32 = 1 << 2;
+/// From anyone; Discord sets it with the other two.
+pub const EVERYONE: u32 = 1 << 3;
+
+/// Who may message and befriend this account, as its settings say.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Privacy {
+    /// DMs from members of the servers this account is in.
+    pub dms_from_servers: bool,
+    /// Who may send friend requests: [`FRIENDS_OF_FRIENDS`], [`SERVER_MEMBERS`]
+    /// and [`EVERYONE`].
+    pub friend_sources: u32,
+    /// Which DMs Discord filters as spam: 1 none, 2 from non-friends, 3 all.
+    pub spam_filter: u32,
+}
+
+impl Default for Privacy {
+    /// What Discord does for a setting the account never changed.
+    fn default() -> Self {
+        Self {
+            dms_from_servers: true,
+            friend_sources: FRIENDS_OF_FRIENDS | SERVER_MEMBERS | EVERYONE,
+            spam_filter: 2,
+        }
+    }
+}
+
+/// The messaging permissions in base64 settings.
+pub fn privacy(encoded: &str) -> Privacy {
+    let mut privacy = Privacy::default();
+    let Ok(data) = base64::engine::general_purpose::STANDARD.decode(encoded) else {
+        return privacy;
+    };
+    if let Some(settings) = message(&data, PRIVACY) {
+        let mut restricted = None;
+        let mut restricted_v2 = None;
+        for (number, value) in fields(settings) {
+            match (number, value) {
+                (DEFAULT_GUILDS_RESTRICTED, Field::Varint(on)) => restricted = Some(on != 0),
+                (DEFAULT_GUILDS_RESTRICTED_V2, Field::Bytes(wrapper)) => {
+                    restricted_v2 = Some(wrapped_varint(wrapper) != 0);
+                }
+                (FRIEND_SOURCE_FLAGS, Field::Bytes(wrapper)) => {
+                    privacy.friend_sources = u32::try_from(wrapped_varint(wrapper)).unwrap_or(0);
+                }
+                _ => {}
+            }
+        }
+        privacy.dms_from_servers = !restricted_v2.or(restricted).unwrap_or(false);
+    }
+    if let Some(text) = message(&data, TEXT_AND_IMAGES) {
+        for (number, value) in fields(text) {
+            if let (DM_SPAM_FILTER_V2, Field::Varint(filter)) = (number, value) {
+                // 0 is unset, which Discord treats as filtering non-friends.
+                privacy.spam_filter = match filter {
+                    1..=3 => filter as u32,
+                    _ => 2,
+                };
+            }
+        }
+    }
+    privacy
+}
+
+/// Base64 settings with the permissions given changed in `current`, the
+/// account's settings as they are. Discord replaces each top-level group a
+/// PATCH holds as a whole, so the groups this changes carry every field they
+/// had, and the others are left out, unchanged.
+pub fn write_privacy(
+    current: &str,
+    dms_from_servers: Option<bool>,
+    friend_sources: Option<u32>,
+    spam_filter: Option<u32>,
+) -> String {
+    let current = base64::engine::general_purpose::STANDARD
+        .decode(current)
+        .unwrap_or_default();
+    // A group's fields but those about to be written, as they were.
+    let kept = |group: u64, replaced: &[u64]| {
+        let mut out = Vec::new();
+        if let Some(old) = message(&current, group) {
+            for (number, field) in fields(old) {
+                if !replaced.contains(&number) {
+                    put_field(&mut out, number, &field);
+                }
+            }
+        }
+        out
+    };
+    let mut settings = Vec::new();
+    if let Some(filter) = spam_filter {
+        let mut text = kept(TEXT_AND_IMAGES, &[DM_SPAM_FILTER_V2]);
+        put_varint(&mut text, DM_SPAM_FILTER_V2 << 3 | VARINT);
+        put_varint(&mut text, u64::from(filter.clamp(1, 3)));
+        put_bytes(&mut settings, TEXT_AND_IMAGES, &text);
+    }
+    if dms_from_servers.is_some() || friend_sources.is_some() {
+        let mut replaced = Vec::new();
+        if dms_from_servers.is_some() {
+            replaced.extend([DEFAULT_GUILDS_RESTRICTED, DEFAULT_GUILDS_RESTRICTED_V2]);
+        }
+        if friend_sources.is_some() {
+            replaced.push(FRIEND_SOURCE_FLAGS);
+        }
+        let mut privacy = kept(PRIVACY, &replaced);
+        if let Some(allowed) = dms_from_servers {
+            // proto3 leaves a false bool out.
+            if !allowed {
+                put_varint(&mut privacy, DEFAULT_GUILDS_RESTRICTED << 3 | VARINT);
+                put_varint(&mut privacy, 1);
+            }
+            // The newer setting is a BoolValue, which carries a false value.
+            let mut wrapper = Vec::new();
+            if !allowed {
+                put_varint(&mut wrapper, 1 << 3 | VARINT);
+                put_varint(&mut wrapper, 1);
+            }
+            put_bytes(&mut privacy, DEFAULT_GUILDS_RESTRICTED_V2, &wrapper);
+        }
+        if let Some(sources) = friend_sources {
+            // Everyone takes the other two with it, as Discord's switches do.
+            let sources = if sources & EVERYONE != 0 {
+                FRIENDS_OF_FRIENDS | SERVER_MEMBERS | EVERYONE
+            } else {
+                sources & (FRIENDS_OF_FRIENDS | SERVER_MEMBERS)
+            };
+            let mut wrapper = Vec::new();
+            if sources != 0 {
+                put_varint(&mut wrapper, 1 << 3 | VARINT);
+                put_varint(&mut wrapper, u64::from(sources));
+            }
+            put_bytes(&mut privacy, FRIEND_SOURCE_FLAGS, &wrapper);
+        }
+        put_bytes(&mut settings, PRIVACY, &privacy);
+    }
+    base64::engine::general_purpose::STANDARD.encode(settings)
+}
+
+/// This account's sign-in details and permissions, for its settings.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Account {
+    pub email: String,
+    pub phone: String,
+    /// Two-factor authentication is on.
+    pub mfa: bool,
+    pub privacy: Privacy,
+    /// Discord may use the account's data to improve Discord, and to
+    /// personalise it; unknown if Discord didn't say.
+    pub usage_statistics: Option<bool>,
+    pub personalization: Option<bool>,
+}
+#[cfg(test)]
+mod privacy_tests {
+    use super::*;
+
+    #[test]
+    fn unset_permissions_are_discords_defaults() {
+        assert_eq!(privacy(""), Privacy::default());
+        assert_eq!(privacy(&write_status("idle")), Privacy::default());
+    }
+
+    #[test]
+    fn written_permissions_read_back() {
+        let closed = privacy(&write_privacy("", Some(false), Some(0), Some(3)));
+        assert!(!closed.dms_from_servers);
+        assert_eq!(closed.friend_sources, 0);
+        assert_eq!(closed.spam_filter, 3);
+        let open = privacy(&write_privacy("", Some(true), Some(EVERYONE), Some(1)));
+        assert!(open.dms_from_servers);
+        assert_eq!(open.friend_sources, FRIENDS_OF_FRIENDS | SERVER_MEMBERS | EVERYONE);
+        assert_eq!(open.spam_filter, 1);
+        let some = privacy(&write_privacy("", None, Some(SERVER_MEMBERS), None));
+        assert_eq!(some.friend_sources, SERVER_MEMBERS);
+        assert!(some.dms_from_servers, "left out, so unchanged");
+    }
+
+    #[test]
+    fn only_the_changed_setting_is_written() {
+        let only_spam = write_privacy("", None, None, Some(2));
+        let data = base64::engine::general_purpose::STANDARD
+            .decode(&only_spam)
+            .unwrap();
+        assert!(message(&data, PRIVACY).is_none());
+        assert!(message(&data, TEXT_AND_IMAGES).is_some());
+    }
+
+    #[test]
+    fn other_privacy_settings_are_kept() {
+        // A server whose members may not DM, field 3, set before.
+        let mut privacy_group = Vec::new();
+        put_fixed64(&mut privacy_group, 3, 42);
+        let mut settings = Vec::new();
+        put_bytes(&mut settings, PRIVACY, &privacy_group);
+        let current = base64::engine::general_purpose::STANDARD.encode(&settings);
+        let written = write_privacy(&current, None, Some(SERVER_MEMBERS), None);
+        let data = base64::engine::general_purpose::STANDARD
+            .decode(&written)
+            .unwrap();
+        let group = message(&data, PRIVACY).unwrap();
+        assert!(fields(group).any(|(number, field)| number == 3 && matches!(field, Field::Fixed64(42))));
+        assert_eq!(privacy(&written).friend_sources, SERVER_MEMBERS);
+    }
+}

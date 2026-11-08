@@ -1547,6 +1547,19 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
         layout.notifications = Some(window.get_notifications());
         layout.notification_text = Some(window.get_notification_text());
         layout.flash_taskbar = Some(window.get_flash_taskbar());
+        layout.mute_all_sounds = window.get_mute_all_sounds();
+        layout.streamer_mode = window.get_streamer_mode();
+        layout.streamer_auto = Some(window.get_streamer_auto());
+        layout.streamer_hide_info = Some(window.get_streamer_hide_info());
+        layout.streamer_sounds_off = Some(window.get_streamer_sounds_off());
+        layout.streamer_notifications_off = Some(window.get_streamer_notifications_off());
+        layout.streamer_hide_capture = window.get_streamer_hide_capture();
+        super::streamer::apply(&window);
+        layout.send_button = window.get_send_button();
+        layout.convert_emoticons = Some(window.get_convert_emoticons());
+        layout.reduced_motion = window.get_reduced_motion();
+        super::reduce_motion(&window, layout.reduced_motion);
+        layout.input_profile = Some(window.get_input_profile());
         layout.sound_set = chosen(&SoundSet::ALL, window.get_sound_set());
         layout.sound_volume = Some(window.get_sound_volume().clamp(0, 200) as u8);
         layout.adjust_each_sound = window.get_adjust_each_sound();
@@ -1582,6 +1595,9 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
             (window.get_reply_ping_default(), window.get_strip_tracking());
         adapter.app.dispatch(Action::ReplyPing(reply_ping));
         adapter.app.dispatch(Action::StripTracking(strip_tracking));
+        adapter
+            .app
+            .dispatch(Action::ConvertEmoticons(window.get_convert_emoticons()));
         adapter.restyle = true;
         adapter.refresh(&window);
     });

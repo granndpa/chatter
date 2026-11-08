@@ -2127,6 +2127,54 @@ pub enum ConnectionAnswer {
     },
 }
 
+/// This Discord account's sign-in details and permissions, for its settings.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct DiscordAccount {
+    pub email: String,
+    pub phone: String,
+    /// Two-factor authentication is on.
+    pub mfa: bool,
+    /// DMs from members of the account's servers are allowed.
+    pub dms_from_servers: bool,
+    /// Who may send friend requests, as Discord's flags: 2 friends of
+    /// friends, 4 server members, 8 everyone.
+    pub friend_sources: u32,
+    /// Which DMs Discord filters as spam: 1 none, 2 from non-friends, 3 all.
+    pub spam_filter: u32,
+    /// Discord may use the account's data to improve Discord, and to
+    /// personalise it; unknown if Discord didn't say.
+    pub usage_statistics: Option<bool>,
+    pub personalization: Option<bool>,
+}
+
+/// A change to the Discord account's permissions or data consents.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum AccountChange {
+    DmsFromServers(bool),
+    FriendSources(u32),
+    SpamFilter(u32),
+    /// `usage_statistics` or `personalization`, granted or not.
+    Consent(String, bool),
+}
+
+impl DiscordAccount {
+    /// The account as the change leaves it, to show at once.
+    pub fn changed(&mut self, change: &AccountChange) {
+        match change {
+            AccountChange::DmsFromServers(allowed) => self.dms_from_servers = *allowed,
+            AccountChange::FriendSources(sources) => {
+                self.friend_sources = if sources & 8 != 0 { 14 } else { sources & 6 };
+            }
+            AccountChange::SpamFilter(filter) => self.spam_filter = (*filter).clamp(1, 3),
+            AccountChange::Consent(kind, granted) => match kind.as_str() {
+                "usage_statistics" => self.usage_statistics = Some(*granted),
+                "personalization" => self.personalization = Some(*granted),
+                _ => {}
+            },
+        }
+    }
+}
+
 /// Commands only the linked Discord account carries out.
 #[derive(Clone)]
 pub enum DiscordCommand {
@@ -2508,6 +2556,11 @@ pub enum DiscordCommand {
     /// Share the game the Discord account plays, or stop;
     /// [`Event::ShowGameSet`] follows.
     ShowGame(bool),
+    /// Read the account's sign-in details and permissions;
+    /// [`Event::AccountLoaded`] follows.
+    LoadAccount,
+    /// Change a permission or data consent; [`Event::AccountChanged`] follows.
+    ChangeAccount(AccountChange),
     /// Set how loud the soundboard plays, as Discord keeps it, from 0 to
     /// 100; [`Event::SoundboardVolumeSet`] follows.
     SoundboardVolume(f32),
@@ -3452,6 +3505,10 @@ pub enum Event {
     StatusSet(Result<(), String>),
     /// Whether [`DiscordCommand::ShowGame`] changed it, or why not.
     ShowGameSet(Result<(), String>),
+    /// [`DiscordCommand::LoadAccount`]'s answer.
+    AccountLoaded(Result<DiscordAccount, String>),
+    /// Whether [`DiscordCommand::ChangeAccount`] changed it, or why not.
+    AccountChanged(Result<(), String>),
     /// Whether [`DiscordCommand::SoundboardVolume`] changed it, or why not.
     SoundboardVolumeSet(Result<(), String>),
     /// [`DiscordCommand::SoundCatalog`]'s sounds, in groups as the

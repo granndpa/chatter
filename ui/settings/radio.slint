@@ -1,0 +1,35 @@
+import { Theme } from "../theme.slint";
+
+// One of a group of exclusive choices, as Discord's settings draw them: a ring
+// that fills with the accent, its name, and what it does under it.
+export component RadioOption inherits Rectangle {
+    in property <string> text;
+    in property <string> description;
+    in property <bool> checked;
+    in property <bool> enabled: true;
+    callback clicked;
+    height: body.preferred-height;
+    accessible-role: button;
+    accessible-label: root.text;
+    accessible-description: root.description;
+    accessible-checked: root.checked;
+    accessible-action-default => { if root.enabled { root.clicked(); } }
+    body := HorizontalLayout {
+        spacing: 12px; padding-top: 6px; padding-bottom: 6px;
+        VerticalLayout {
+            alignment: start; padding-top: 1px;
+            Rectangle {
+                width: 20px; height: 20px; border-radius: 10px; border-width: 2px;
+                border-color: !root.enabled ? Theme.faint : root.checked ? Theme.accent : touch.has-hover ? Theme.secondary : Theme.muted;
+                animate border-color { duration: Theme.quick; }
+                if root.checked: Rectangle { width: 10px; height: 10px; border-radius: 5px; background: root.enabled ? Theme.accent : Theme.faint; }
+            }
+        }
+        VerticalLayout {
+            spacing: 2px; horizontal-stretch: 1; alignment: center;
+            Text { text: root.text; color: root.enabled ? Theme.text : Theme.muted; font-size: 15px; wrap: word-wrap; }
+            if root.description != "": Text { text: root.description; color: Theme.muted; font-size: 13px; wrap: word-wrap; }
+        }
+    }
+    touch := TouchArea { enabled: root.enabled; mouse-cursor: pointer; clicked => { root.clicked(); } }
+}

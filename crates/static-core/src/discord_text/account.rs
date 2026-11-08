@@ -77,6 +77,76 @@ pub(super) fn command(
     previews: &SharedPreviews,
     events: &UnboundedSender<Event>,
 ) -> Option<Command> {
+    if let Command::Discord(DiscordCommand::LoadAccount) = command {
+        match discord {
+            Ok(discord) => {
+                let (discord, events) = (discord.clone(), events.clone());
+                tokio::spawn(async move {
+                    let result = discord
+                        .account()
+                        .await
+                        .map(|account| crate::chat::DiscordAccount {
+                            email: account.email,
+                            phone: account.phone,
+                            mfa: account.mfa,
+                            dms_from_servers: account.privacy.dms_from_servers,
+                            friend_sources: account.privacy.friend_sources,
+                            spam_filter: account.privacy.spam_filter,
+                            usage_statistics: account.usage_statistics,
+                            personalization: account.personalization,
+                        })
+                        .map_err(|error| {
+                            tracing::warn!(
+                                error = format!("{error:#}"),
+                                "could not read the account's settings"
+                            );
+                            error.to_string()
+                        });
+                    let _ = events.send(Event::AccountLoaded(result));
+                });
+            }
+            Err(why) => {
+                let _ = events.send(Event::AccountLoaded(Err(why.into())));
+            }
+        }
+        return None;
+    }
+    if let Command::Discord(DiscordCommand::ChangeAccount(change)) = command {
+        match discord {
+            Ok(discord) => {
+                let (discord, events) = (discord.clone(), events.clone());
+                tokio::spawn(async move {
+                    use crate::chat::AccountChange;
+                    let result = match change {
+                        AccountChange::DmsFromServers(allowed) => {
+                            discord.set_privacy(Some(allowed), None, None).await
+                        }
+                        AccountChange::FriendSources(sources) => {
+                            discord.set_privacy(None, Some(sources), None).await
+                        }
+                        AccountChange::SpamFilter(filter) => {
+                            discord.set_privacy(None, None, Some(filter)).await
+                        }
+                        AccountChange::Consent(kind, granted) => {
+                            discord.set_consent(&kind, granted).await
+                        }
+                    }
+                    .map_err(|error| {
+                        tracing::warn!(
+                            error = format!("{error:#}"),
+                            "could not change the account's settings"
+                        );
+                        error.to_string()
+                    });
+                    let _ = events.send(Event::AccountChanged(result));
+                });
+            }
+            Err(why) => {
+                let _ = events.send(Event::AccountChanged(Err(why.into())));
+            }
+        }
+        return None;
+    }
     if let Command::Discord(DiscordCommand::ArrangeServers {
         source,
         target,

@@ -58,33 +58,33 @@ export component SettingsNavigation inherits Rectangle {
                 padding-left: 16px; padding-right: 16px; padding-bottom: 16px; spacing: 0px; alignment: start;
                 for entry in [
                     { heading: true, text: "Account", id: -1 },
-                    { text: "My Account", icon: @image-url("../icons/user.svg"), id: 0 },
+                    { text: "Account", icon: @image-url("../icons/user.svg"), id: 0 },
+                    { text: "Data & Privacy", icon: @image-url("../icons/shield.svg"), id: 10 },
+                    { text: "Messaging Permissions", icon: @image-url("../icons/message-square-text.svg"), id: 11 },
+                    { text: "Notifications", icon: @image-url("../icons/bell.svg"), id: 3 },
                     { heading: true, text: "Experience", id: -1 },
                     { text: "Voice & Video", icon: @image-url("../icons/mic.svg"), id: 1 },
-                    { text: "Messages", icon: @image-url("../icons/message-circle.svg"), id: 2 },
-                    { text: "Notifications", icon: @image-url("../icons/bell.svg"), id: 3 },
                     { text: "Sounds", icon: @image-url("../icons/volume-2.svg"), id: 5 },
                     { text: "Appearance", icon: @image-url("../icons/palette.svg"), id: 7 },
+                    { text: "Messages", icon: @image-url("../icons/message-circle.svg"), id: 2 },
+                    { text: "Accessibility", icon: @image-url("../icons/eye.svg"), id: 12 },
+                    { text: "System", icon: @image-url("../icons/settings.svg"), id: 6 },
+                    { text: "Language & Time", icon: @image-url("../icons/clock.svg"), id: 13 },
                     { heading: true, text: "Games & Apps", id: -1 },
-                    { text: "Game Activity", icon: @image-url("../icons/play.svg"), id: 8 },
-                    { text: "Connected Apps", icon: @image-url("../icons/link.svg"), id: 9 },
-                    { heading: true, text: "App Settings", id: -1 },
+                    { text: "Registered Games", icon: @image-url("../icons/gamepad.svg"), id: 8 },
+                    { text: "Connections", icon: @image-url("../icons/link.svg"), id: 9 },
+                    { heading: true, text: "Static", id: -1 },
                     { text: "Discord", icon: @image-url("../icons/discord.svg"), id: 4 },
-                    { text: "Advanced", icon: @image-url("../icons/settings.svg"), id: 6 },
                 ]: VerticalLayout {
                     if entry.heading && root.query == "" && (root.with-discord || entry.text != "Games & Apps"): VerticalLayout {
                         padding-top: entry.text == "Account" ? 0px : 16px;
                         height: entry.text == "Account" ? 24px : 40px;
                         Text { x: 8px; text: entry.text; color: Theme.muted; font-size: 12px; vertical-alignment: center; }
                     }
-                    if !entry.heading && (root.matches(entry.text) || (entry.id == 9 && root.matches("Connections"))) && (root.with-discord || (entry.id != 4 && entry.id != 8 && entry.id != 9)): ChannelRow {
+                    if !entry.heading && (root.matches(entry.text) || (entry.id == 9 && root.matches("Connected Apps")) || (entry.id == 7 && (root.matches("Streamer Mode") || root.matches("Chat Box")))) && (root.with-discord || (entry.id != 4 && entry.id != 8 && entry.id != 9 && entry.id != 10 && entry.id != 11)): ChannelRow {
                         height: 40px; text: entry.text; icon: entry.icon;
                         selected: root.selected == entry.id;
                         clicked => { root.chose(entry.id); }
-                    }
-                    if entry.id == 9 && root.with-discord && (root.selected == 9 || (root.query != "" && root.matches("Connections"))): HorizontalLayout {
-                        padding-left: 24px;
-                        ChannelRow { height: 32px; text: "Connections"; selected: root.selected == 9; clicked => { root.chose(9); } }
                     }
                 }
             }

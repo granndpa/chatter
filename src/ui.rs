@@ -61,6 +61,7 @@ mod server_folders;
 mod server_settings;
 mod shell;
 mod static_window;
+mod streamer;
 mod theme;
 mod tiles;
 mod title_bar;
@@ -1036,6 +1037,26 @@ struct Layout {
     /// A message that notifies while Static isn't in front flashes the
     /// taskbar; on unless turned off.
     flash_taskbar: Option<bool>,
+    /// Every sound Static plays stays quiet.
+    mute_all_sounds: bool,
+    /// Streamer Mode, by hand, and on its own while OBS or XSplit runs (on
+    /// unless turned off), and what it does: each on unless turned off but
+    /// hiding the window from capture.
+    streamer_mode: bool,
+    streamer_auto: Option<bool>,
+    streamer_hide_info: Option<bool>,
+    streamer_sounds_off: Option<bool>,
+    streamer_notifications_off: Option<bool>,
+    streamer_hide_capture: bool,
+    /// A send button beside the message box.
+    send_button: bool,
+    /// Emoticons go as emoji; on unless turned off.
+    convert_emoticons: Option<bool>,
+    /// Popups and switches change at once.
+    reduced_motion: bool,
+    /// The microphone's processing: 0 Voice Isolation, 1 Studio, 2 Custom,
+    /// which leaves each setting as chosen.
+    input_profile: Option<i32>,
     /// DMs pinned to the top of the DM list, by room ID, the first pinned first.
     pinned: Vec<String>,
     /// Message times as 9:41 PM rather than 21:41.
@@ -1181,6 +1202,14 @@ fn attention(window: &StaticWindow, wanted: bool) {
 }
 
 /// Plays animations or holds them still, as the setting and the focus say.
+/// Popups, menus and switches change at once with reduced motion, rather
+/// than over Static's short animations.
+fn reduce_motion(window: &StaticWindow, reduced: bool) {
+    let (quick, popup) = if reduced { (0, 0) } else { (120, 100) };
+    window.global::<static_ui::Theme>().set_quick(quick);
+    window.global::<static_ui::Popup>().set_duration(popup);
+}
+
 fn show_motion(window: &StaticWindow) {
     let playing = match ANIMATE.get() {
         Animate::Focused => FOCUSED.get(),
@@ -1279,6 +1308,9 @@ impl Layout {
 
     /// How loud a sound plays, as a gain.
     fn sound_gain(&self, sound: Sound) -> f32 {
+        if self.mute_all_sounds || streamer::quiets_sounds() {
+            return 0.0;
+        }
         sounds::gain(self.sound_volume.unwrap_or(DEFAULT_SOUND_VOLUME))
             * sounds::gain(self.each_sound(sound))
     }
@@ -1311,6 +1343,20 @@ impl Layout {
             self.retain_message_history.unwrap_or(true),
         );
         window.set_flash_taskbar(self.flash_taskbar.unwrap_or(true));
+        window.set_mute_all_sounds(self.mute_all_sounds);
+        window.set_streamer_mode(self.streamer_mode);
+        window.set_streamer_auto(self.streamer_auto.unwrap_or(true));
+        window.set_streamer_hide_info(self.streamer_hide_info.unwrap_or(true));
+        window.set_streamer_sounds_off(self.streamer_sounds_off.unwrap_or(true));
+        window.set_streamer_notifications_off(self.streamer_notifications_off.unwrap_or(true));
+        window.set_streamer_hide_capture(self.streamer_hide_capture);
+        streamer::apply(window);
+        streamer::watch(window);
+        window.set_send_button(self.send_button);
+        window.set_convert_emoticons(self.convert_emoticons.unwrap_or(true));
+        window.set_reduced_motion(self.reduced_motion);
+        reduce_motion(window, self.reduced_motion);
+        window.set_input_profile(self.input_profile.unwrap_or(2).clamp(0, 2));
         self.apply_appearance(window);
         if let Some(width) = self.aside_width {
             window.set_aside_width(width);
@@ -2378,7 +2424,10 @@ impl Adapter {
                     {
                         attention(&window, true);
                     }
-                    if self.layout.notifications.unwrap_or(true) && !FOCUSED.get() {
+                    if self.layout.notifications.unwrap_or(true)
+                        && !FOCUSED.get()
+                        && !streamer::quiets_notifications()
+                    {
                         let style = crate::notify::Style {
                             text: self.layout.notification_text.unwrap_or(true),
                         };
