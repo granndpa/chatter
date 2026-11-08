@@ -4,11 +4,6 @@ A native Discord client for Windows and Linux, written in Rust with Slint. No
 web browser inside, so it idles at a fraction of the memory Discord's own app
 uses.
 
-Chatter is a fork of [Yapfast](https://yapfast.com)
-([github.com/yapfast](https://github.com/yapfast)). Almost everything that
-makes it work, from voice and video to the Discord protocol itself, is their
-work. Chatter adds its own look and a set of extras on top.
-
 ## What Chatter adds
 
 **Look and feel**
@@ -25,7 +20,7 @@ work. Chatter adds its own look and a set of extras on top.
 - Spotify listening status, shown like Discord's own client shows it
 - Streamer Mode, turned on automatically while OBS runs
 
-Everything Yapfast already does is still here: voice, cameras, Go Live,
+Everything else is still here: voice, cameras, Go Live,
 forums, polls, the GIF picker, server settings and more.
 
 ## Will Discord ban me?
@@ -88,7 +83,7 @@ More detail is in [docs/building.md](docs/building.md).
 
 ## License
 
-GPL 3.0 or later, the same as Yapfast. See [LICENSE](LICENSE).
+GPL 3.0 or later. See [LICENSE](LICENSE).
 
 <sub>Chatter isn't affiliated with or endorsed by Discord Inc. Discord is a
 trademark of Discord Inc.</sub>
