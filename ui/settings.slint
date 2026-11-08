@@ -1517,6 +1517,7 @@ export component DiscordSettings inherits VerticalLayout {
     in property <bool> matrix-build;
     in property <bool> show-hidden-channels;
     in property <bool> sync-discord-reads;
+    in property <bool> fake-deafen;
     in property <bool> show-idle;
     in property <bool> hide-blocked;
     /// Those the account blocked, by name.
@@ -1529,6 +1530,7 @@ export component DiscordSettings inherits VerticalLayout {
     callback hide-blocked-toggled(bool);
     callback show-hidden-channels-toggled(bool);
     callback sync-discord-reads-toggled(bool);
+    callback fake-deafen-toggled(bool);
     callback show-idle-toggled(bool);
     spacing: 16px;
     SettingsTitle { text: "Discord Tweaks"; }
@@ -1558,6 +1560,12 @@ export component DiscordSettings inherits VerticalLayout {
         description: "Channels you read in Chatter show as read in the Discord apps too.";
         checked: root.sync-discord-reads;
         toggled(sync) => { root.sync-discord-reads-toggled(sync); }
+    }
+    SettingsSwitch {
+        text: "Fake deafen";
+        description: "Others in voice see you muted and deafened, but you still hear everyone. Switching it in a call shows straight away.";
+        checked: root.fake-deafen;
+        toggled(fake) => { root.fake-deafen-toggled(fake); }
     }
     SettingsSwitch {
         text: "Show me as idle when I'm away";

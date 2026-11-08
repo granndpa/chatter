@@ -13,8 +13,13 @@
 
 use std::{
     collections::{HashMap, VecDeque},
+    sync::atomic::{AtomicBool, Ordering},
     time::Duration,
 };
+
+/// Fake deafen: others see this account muted and deafened in voice, while
+/// Chatter keeps playing the call as usual.
+pub static FAKE_DEAFEN: AtomicBool = AtomicBool::new(false);
 
 use anyhow::{Context, Result, anyhow, bail};
 use futures_util::{SinkExt, StreamExt};
@@ -386,6 +391,12 @@ impl Gateway {
         self_deaf: bool,
         self_video: bool,
     ) -> Result<()> {
+        let fake = channel_id.is_some() && FAKE_DEAFEN.load(Ordering::Relaxed);
+        let (self_mute, self_deaf) = if fake {
+            (true, true)
+        } else {
+            (self_mute, self_deaf)
+        };
         self.send(
             VOICE_STATE_UPDATE,
             json!({

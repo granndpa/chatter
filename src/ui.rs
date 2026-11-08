@@ -1026,6 +1026,9 @@ struct Layout {
     show_hidden_channels: bool,
     /// Reading in Static marks Discord channels read on Discord; on unless turned off.
     sync_discord_reads: Option<bool>,
+    /// Others see this account deafened in voice while it still hears.
+    #[serde(default)]
+    fake_deafen: bool,
     /// Discord shows this account idle after 10 minutes nobody uses Static;
     /// on unless turned off.
     show_idle: Option<bool>,
@@ -1424,6 +1427,7 @@ impl Layout {
             static_core::volume::mute_soundboard(person, true);
         }
         window.set_share_typing(self.share_typing.unwrap_or(true));
+        window.set_fake_deafen(self.fake_deafen);
         window.set_notifications(self.notifications.unwrap_or(true));
         window.set_notification_text(self.notification_text.unwrap_or(true));
         window.set_sound_set(choice(&SoundSet::ALL, self.sound_set));
@@ -1980,6 +1984,7 @@ impl Adapter {
         app.dispatch(Action::SyncDiscordReads(
             layout.sync_discord_reads.unwrap_or(true),
         ));
+        app.dispatch(Action::FakeDeafen(layout.fake_deafen));
         app.dispatch(Action::ReplyPing(layout.reply_ping.unwrap_or(true)));
         app.dispatch(Action::HideBlocked(layout.hide_blocked));
         app.dispatch(Action::StripTracking(layout.strip_tracking.unwrap_or(true)));

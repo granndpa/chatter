@@ -1968,6 +1968,9 @@ pub enum Action {
     HideBlocked(bool),
     /// Mark Discord channels read on Discord when reading them in Static.
     SyncDiscordReads(bool),
+    /// Fake deafen: show this account deafened in Discord voice while still
+    /// hearing the call.
+    FakeDeafen(bool),
     /// Accept the selected Discord message request, or ignore it.
     AnswerRequest(bool),
     /// Show the profile of a member of the selected room, as a card beside
@@ -3329,6 +3332,21 @@ impl Application {
             }
             Action::SyncDiscordReads(sync) => {
                 self.state.sync_discord_reads = sync;
+                vec![]
+            }
+            Action::FakeDeafen(fake) => {
+                #[cfg(feature = "discord")]
+                {
+                    use std::sync::atomic::Ordering;
+                    let was = static_discord::gateway::FAKE_DEAFEN.swap(fake, Ordering::Relaxed);
+                    if was != fake {
+                        // A Discord call sends its voice state again on this,
+                        // so others see the change straight away.
+                        return self.voice_command_quietly(voice::Command::LeaveStale);
+                    }
+                }
+                #[cfg(not(feature = "discord"))]
+                let _ = fake;
                 vec![]
             }
             Action::ShowProfile { user, large } => self.show_profile(user, large),

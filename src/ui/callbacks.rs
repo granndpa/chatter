@@ -1703,6 +1703,16 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
             adapter.action(&window, Action::SyncDiscordReads(sync));
         }
     });
+    let state = adapter.clone();
+    let weak = window.as_weak();
+    window.on_fake_deafen_toggled(move |fake| {
+        let mut adapter = state.borrow_mut();
+        adapter.layout.fake_deafen = fake;
+        adapter.layout.write(&adapter.root);
+        if let Some(window) = weak.upgrade() {
+            adapter.action(&window, Action::FakeDeafen(fake));
+        }
+    });
     // The channel's composer and the thread beside's pick files alike.
     let pick = |state: Rc<RefCell<Adapter>>, stage: fn(Vec<PathBuf>) -> Action| {
         move || {

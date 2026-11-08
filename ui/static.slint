@@ -408,6 +408,8 @@ export component StaticWindow inherits Window {
     /// A link in a message was clicked.
     callback open-link(string);
     in-out property <bool> sync-discord-reads;
+    in-out property <bool> fake-deafen;
+    callback fake-deafen-toggled(bool);
     callback sync-discord-reads-toggled(bool);
     in-out property <bool> show-idle: true;
     callback show-idle-toggled(bool);
@@ -4000,6 +4002,8 @@ export component StaticWindow inherits Window {
             message-history-action(enabled, clear) => { root.retain-message-history = enabled; root.message-history-action(enabled, clear); }
             show-hidden-channels-toggled(shown) => { root.show-hidden-channels = shown; root.show-hidden-channels-toggled(shown); }
             sync-discord-reads-toggled(sync) => { root.sync-discord-reads = sync; root.sync-discord-reads-toggled(sync); }
+            fake-deafen: root.fake-deafen;
+            fake-deafen-toggled(fake) => { root.fake-deafen = fake; root.fake-deafen-toggled(fake); }
         }
     }
     // A Discord server's settings, and a channel's, on the same card.
