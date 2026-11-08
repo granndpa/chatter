@@ -2015,7 +2015,6 @@ export component VideoViewer inherits Rectangle {
 // thread and reactions: a timeline row without what scrolls and hovers it,
 // for the conversation's timeline and a thread's beside it.
 export component MessageContent inherits VerticalLayout {
-    private property <bool> history-open: false;
     in property <MessageRow> message;
     /// The message the pointer or keyboard is on, whose time shows.
     in property <string> active-item;
@@ -2162,7 +2161,7 @@ export component MessageContent inherits VerticalLayout {
                 // An overlong word breaks, as in Discord's client, rather than widening the row.
                 min-width: 0px;
                 text: message.styled; link-color: Theme.link;
-                default-color: message.deleted || message.delivery != "" ? Theme.muted : message.notice != "" ? Theme.secondary : Theme.text;
+                default-color: message.deleted ? Theme.danger-text : message.delivery != "" ? Theme.muted : message.notice != "" ? Theme.secondary : Theme.text;
                 // Discord's large emoji are 48 pixels where text's are 22.
                 default-font-size: message.jumbo ? root.message-font-size * 2.2 : root.message-font-size;
                 // A mention's card opens beside the pointer.
@@ -2173,20 +2172,14 @@ export component MessageContent inherits VerticalLayout {
                 accessible-role: text; accessible-label: "Message from " + message.author + ": " + message.body;
                 TextBlocks {
                     blocks: message.blocks; font-size: root.message-font-size;
-                    color: message.deleted || message.delivery != "" ? Theme.muted : Theme.text;
+                    color: message.deleted ? Theme.danger-text : message.delivery != "" ? Theme.muted : Theme.text;
                     open-link(link) => { root.link-clicked(link); }
                 }
             }
-            if message.deleted: Text { text: "Deleted · retained locally"; color: Theme.danger-text; font-size: 12px; }
-            if message.edit-history != "": VerticalLayout {
-                Text {
-                    text: root.history-open ? "Hide edit history" : "View edit history";
-                    color: Theme.link; font-size: 12px;
-                    TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.history-open = !root.history-open; } }
-                }
-                if root.history-open: Text { text: message.edit-history; color: Theme.muted; wrap: word-wrap; }
-            }
-            if message.edited && !message.deleted: Text { text: "(edited)"; color: Theme.muted; font-size: 12px; }
+            // As MessageLogger shows an edit: what the message said before, small
+            // and grey under it, then (edited).
+            if message.edit-history != "": Text { text: message.edit-history; color: Theme.muted; font-size: root.message-font-size - 3px; wrap: word-wrap; }
+            if message.edited && !message.deleted: Text { text: "(edited)"; color: Theme.muted; font-size: root.message-font-size - 4px; }
             // Fixed-size children sit beside a spacer, so they do not cap the column's width.
             if message.images.length > 0: MessageGallery {
                 images: message.images; gallery-width: message.gallery-width; gallery-height: message.gallery-height;

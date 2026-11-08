@@ -701,9 +701,9 @@ pub(super) fn message_row_within(
             .edit_history
             .iter()
             .enumerate()
-            .map(|(i, text)| format!("Version {}: {}", i + 1, text))
+            .map(|(_, text)| text.as_str())
             .collect::<Vec<_>>()
-            .join("\n\n")
+            .join("\n")
             .into(),
         deleted: message.deleted,
         forwarded: message.forwarded,
