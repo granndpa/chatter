@@ -122,7 +122,7 @@ export component AccountPopover inherits Rectangle {
                     VerticalLayout {
                         padding: 8px; spacing: 4px;
                         if root.user-id != "": MenuItem { height: 40px; text: "Copy User ID"; icon: @image-url("../icons/copy.svg"); clicked => { root.copy-id(); } }
-                        MenuItem { height: 40px; text: "Switch Accounts"; icon: @image-url("../icons/user.svg"); clicked => { root.switch-accounts(); } }
+                        MenuItem { height: 40px; text: "Switch Accounts"; icon: @image-url("../icons/users.svg"); submenu: true; clicked => { root.switch-accounts(); } }
                         MenuItem { height: 40px; text: "User Settings"; icon: @image-url("../icons/settings.svg"); clicked => { root.settings(); } }
                     }
                 }

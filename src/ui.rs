@@ -1290,7 +1290,7 @@ impl Layout {
         let default_theme = window
             .global::<ClientStyle>()
             .get_enabled()
-            .then_some("bonfire");
+            .then_some("yap");
         let (id, chosen) =
             theme::chosen(self.theme.as_deref().or(default_theme), &self.custom_themes);
         chosen.apply(window);

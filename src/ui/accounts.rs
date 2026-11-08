@@ -24,20 +24,20 @@ pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
                     app.discord_user.as_deref().unwrap_or_default(),
                     app.account_name.as_deref().unwrap_or_default(),
                     app.account_username.as_deref().unwrap_or_default(),
+                    app.account_avatar.as_deref().unwrap_or_default(),
                 )?;
                 match what.as_str() {
+                    "list" => {
+                        show_rows(&window, &adapter.root)?;
+                        Ok(false)
+                    }
+                    "remove" => {
+                        accounts::remove(&adapter.root, slot.as_str())?;
+                        show_rows(&window, &adapter.root)?;
+                        Ok(false)
+                    }
                     "open" => {
-                        let rows = accounts::list(&adapter.root)?
-                            .into_iter()
-                            .map(|a| SavedAccountRow {
-                                current: a.slot == accounts::active_slot(),
-                                slot: a.slot.into(),
-                                name: a.name.into(),
-                                username: a.username.into(),
-                            })
-                            .collect::<Vec<_>>();
-                        window.set_saved_accounts(ModelRc::new(VecModel::from(rows)));
-                        window.set_accounts_error(SharedString::default());
+                        show_rows(&window, &adapter.root)?;
                         let weak = window.as_weak();
                         slint::Timer::single_shot(std::time::Duration::ZERO, move || {
                             if let Some(window) = weak.upgrade() {
@@ -84,4 +84,32 @@ pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
         #[cfg(not(feature = "discord"))]
         let _ = (&state, what, slot, window);
     });
+}
+
+/// Puts the saved accounts in the switcher and clears its last error.
+#[cfg(feature = "discord")]
+fn show_rows(window: &StaticWindow, root: &std::path::Path) -> Result<()> {
+    use static_core::static_discord::accounts;
+    let rows = accounts::list(root)?
+        .into_iter()
+        .map(|a| {
+            let name = if a.name.is_empty() {
+                "New account".to_owned()
+            } else {
+                a.name
+            };
+            SavedAccountRow {
+                current: a.slot == accounts::active_slot(),
+                initial: initial(&name),
+                tint: tint(&name),
+                slot: a.slot.into(),
+                name: name.into(),
+                username: a.username.into(),
+                avatar: a.avatar.into(),
+            }
+        })
+        .collect::<Vec<_>>();
+    window.set_saved_accounts(ModelRc::new(VecModel::from(rows)));
+    window.set_accounts_error(SharedString::default());
+    Ok(())
 }

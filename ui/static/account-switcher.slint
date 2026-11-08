@@ -1,0 +1,123 @@
+import { Theme, Middle } from "../theme.slint";
+import { ActionButton, Avatar, MenuItem } from "../controls.slint";
+
+// An account saved on this device: names and avatar only, never its login.
+export struct SavedAccountRow { slot: string, name: string, username: string, avatar: string, initial: string, tint: color, current: bool }
+
+component AccountNames inherits VerticalLayout {
+    in property <SavedAccountRow> account;
+    in property <length> name-size: 14px;
+    alignment: center; horizontal-stretch: 1;
+    Text { text: root.account.name; color: Theme.text; font-size: root.name-size; font-weight: 600; overflow: elide; }
+    if root.account.username != "": Text { text: root.account.username; color: Theme.muted; font-size: 12px; overflow: elide; }
+}
+
+// A round blurple check, as Discord marks the account in use.
+component CurrentMark inherits Rectangle {
+    width: 20px; height: 20px; border-radius: 10px; background: Theme.accent;
+    Image { source: @image-url("../icons/check.svg"); width: 12px; height: 12px; image-fit: contain; colorize: Theme.on-accent; }
+}
+
+component AccountChoice inherits Rectangle {
+    in property <SavedAccountRow> account;
+    callback clicked;
+    height: 48px; border-radius: 6px;
+    background: touch.has-hover ? Theme.hover : transparent;
+    animate background { duration: Theme.quick; }
+    accessible-role: button;
+    accessible-label: root.account.name;
+    accessible-checked: root.account.current;
+    accessible-action-default => { root.clicked(); }
+    HorizontalLayout {
+        padding-left: 8px; padding-right: 8px; spacing: 10px;
+        Middle { Avatar { size: 32px; initial: root.account.initial; tint: root.account.tint; picture-url: root.account.avatar; } }
+        AccountNames { account: root.account; }
+        if root.account.current: Middle { CurrentMark { } }
+    }
+    touch := TouchArea { mouse-cursor: pointer; clicked => { root.clicked(); } }
+}
+
+// The menu beside the account popover, as Discord's Switch Accounts opens it.
+export component AccountSwitcher inherits Rectangle {
+    in property <[SavedAccountRow]> accounts;
+    callback select(string);
+    callback manage;
+    width: 260px; height: choices.preferred-height;
+    background: Theme.panel; border-radius: 8px;
+    border-width: 1px; border-color: Theme.line;
+    drop-shadow-blur: 24px; drop-shadow-color: #00000080; drop-shadow-offset-y: 8px;
+    accessible-role: list; accessible-label: "Switch Accounts";
+    choices := VerticalLayout {
+        padding: 8px; spacing: 2px;
+        for account in root.accounts: AccountChoice { account: account; clicked => { root.select(account.slot); } }
+        Rectangle { height: 9px; Rectangle { height: 1px; background: Theme.line; } }
+        MenuItem { height: 36px; text: "Manage Accounts"; icon: @image-url("../icons/users.svg"); clicked => { root.manage(); } }
+    }
+}
+
+// Discord's Manage Accounts card: each saved account, to switch to or
+// remove, and a way to add one.
+export component ManageAccounts inherits Rectangle {
+    in property <[SavedAccountRow]> accounts;
+    in property <string> error;
+    /// Whether the running account is signed in; if not, it can sign in again.
+    in property <bool> linked;
+    callback select(string);
+    callback remove(string);
+    callback add;
+    callback close;
+    height: body.preferred-height;
+    background: Theme.panel; border-radius: 12px;
+    border-width: 1px; border-color: Theme.line;
+    drop-shadow-blur: 32px; drop-shadow-color: #00000099; drop-shadow-offset-y: 12px;
+    accessible-role: groupbox; accessible-label: "Manage Accounts";
+    body := VerticalLayout {
+        padding: 24px; spacing: 16px;
+        HorizontalLayout {
+            spacing: 12px;
+            VerticalLayout {
+                spacing: 6px; horizontal-stretch: 1;
+                Text { text: "Manage Accounts"; color: Theme.text; font-size: 22px; font-weight: 700; }
+                Text { text: "Switch between accounts you've signed in to on this device. Switching restarts Static and ends any call."; color: Theme.muted; font-size: 13px; wrap: word-wrap; }
+            }
+            VerticalLayout {
+                alignment: start;
+                Rectangle {
+                    width: 28px; height: 28px; border-radius: 6px;
+                    background: close.has-hover ? Theme.hover : transparent;
+                    accessible-role: button; accessible-label: "Close";
+                    accessible-action-default => { root.close(); }
+                    Image { source: @image-url("../icons/x.svg"); width: 18px; height: 18px; image-fit: contain; colorize: close.has-hover ? Theme.text : Theme.muted; }
+                    close := TouchArea { mouse-cursor: pointer; clicked => { root.close(); } }
+                }
+            }
+        }
+        Rectangle {
+            background: Theme.raised; border-radius: 8px;
+            border-width: 1px; border-color: Theme.line;
+            height: rows.preferred-height;
+            rows := VerticalLayout {
+                for account[index] in root.accounts: VerticalLayout {
+                    if index > 0: Rectangle { height: 1px; background: Theme.line; }
+                    HorizontalLayout {
+                        padding: 12px; spacing: 12px;
+                        Middle { Avatar { size: 40px; initial: account.initial; tint: account.tint; picture-url: account.avatar; } }
+                        AccountNames { account: account; name-size: 15px; }
+                        if account.current && root.linked: Middle {
+                            HorizontalLayout {
+                                spacing: 6px;
+                                Middle { CurrentMark { } }
+                                Text { text: "Active"; color: Theme.secondary; font-size: 13px; font-weight: 600; vertical-alignment: center; }
+                            }
+                        }
+                        if account.current && !root.linked: Middle { ActionButton { text: "Sign in"; small: true; primary: true; clicked => { root.select(account.slot); } } }
+                        if !account.current: Middle { ActionButton { text: "Switch"; small: true; primary: true; clicked => { root.select(account.slot); } } }
+                        if !account.current: Middle { ActionButton { text: "Remove"; small: true; ghost: true; clicked => { root.remove(account.slot); } } }
+                    }
+                }
+            }
+        }
+        if root.error != "": Text { text: root.error; color: Theme.danger-text; font-size: 13px; wrap: word-wrap; }
+        ActionButton { text: "Add an account"; icon: @image-url("../icons/user-plus.svg"); primary: true; clicked => { root.add(); } }
+    }
+}

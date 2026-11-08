@@ -1,47 +1,47 @@
-// Layered graphite: the rail is darkest, the conversation lightest. Marigold marks
-// selection, primary actions and messages that mention you, red mention counts and
-// destructive actions, green live voice;
+// Discord's dark theme: a dark rail and channel list beside a softer conversation.
+// Blurple marks selection and primary actions, red mention counts and destructive
+// actions, green live voice;
 // a microphone's level goes from green through orange to red as it nears clipping.
 // These are Static's default colours; the application sets others from Rust
 // (src/ui/theme.rs), so the defaults here only paint the first frame.
 export global Theme {
-    in-out property <color> rail: #101216;
-    in-out property <color> sidebar: #1c2026;
-    in-out property <color> panel: #1c2026;
-    in-out property <color> chat: #101216;
-    in-out property <color> stage: #1c2026;
-    in-out property <color> raised: #252b32;
-    in-out property <color> field: #252b32;
-    in-out property <color> sunken: #101216;
-    in-out property <color> hover: #222329;
-    in-out property <color> active: #2c2d35;
-    in-out property <color> row-hover: #1a1b20;
-    in-out property <color> line: #2c2d34;
-    in-out property <color> edge: #0c0d0f;
+    in-out property <color> rail: #121214;
+    in-out property <color> sidebar: #121214;
+    in-out property <color> panel: #1a1a1e;
+    in-out property <color> chat: #1a1a1e;
+    in-out property <color> stage: #121214;
+    in-out property <color> raised: #242429;
+    in-out property <color> field: #222327;
+    in-out property <color> sunken: #0e0e10;
+    in-out property <color> hover: #1f1f23;
+    in-out property <color> active: #2b2b30;
+    in-out property <color> row-hover: #1d1d21;
+    in-out property <color> line: #29292e;
+    in-out property <color> edge: #08080a;
     /// The faint outline of the sidebar and the top of the window, and under the server name.
-    in-out property <color> outline: #2c2d34;
+    in-out property <color> outline: #222227;
     /// The lines on the conversation's side: under the channel name, and left of the member list.
-    in-out property <color> outline-chat: #2c2d34;
+    in-out property <color> outline-chat: #29292e;
     /// The outline of the message box.
-    in-out property <color> outline-field: #2c2d34;
+    in-out property <color> outline-field: #2f2f35;
     /// The ground of a context menu: on a dark theme Discord's panel, a step
     /// above the raised surfaces (40, 40, 45 on its own dark theme).
     out property <color> menu: self.dark ? self.raised.mix(#ffffff, 0.98) : self.raised;
     /// A context menu's outline (53, 53, 59 on Discord's dark theme).
     out property <color> menu-line: self.dark ? self.line.mix(#000000, 0.95) : self.line;
-    in-out property <color> text: #f0f2f5;
-    in-out property <color> secondary: #a8afb9;
-    in-out property <color> muted: #8d919c;
-    in-out property <color> faint: #5c606a;
-    in-out property <color> accent: #76e0be;
-    in-out property <color> accent-hover: #9aead0;
-    in-out property <color> on-accent: #101216;
-    in-out property <color> accent-soft: #76e0be26;
+    in-out property <color> text: #f0f1f3;
+    in-out property <color> secondary: #b5bac1;
+    in-out property <color> muted: #949ba4;
+    in-out property <color> faint: #6d6f78;
+    in-out property <color> accent: #5865f2;
+    in-out property <color> accent-hover: #6d78f4;
+    in-out property <color> on-accent: #ffffff;
+    in-out property <color> accent-soft: #5865f226;
     // A message that mentions you: Discord's hsl(39.4 100% 48.6%) at 12%, 16% under the pointer.
     in-out property <color> mentioned: #f8a5001f;
     in-out property <color> mentioned-hover: #f8a50029;
-    in-out property <color> danger: #f0545e;
-    in-out property <color> danger-hover: #f46f77;
+    in-out property <color> danger: #da373c;
+    in-out property <color> danger-hover: #e5585c;
     /// A destructive menu row's text and icon, Discord's lighter red on a dark theme.
     /// Discord's composer: a hair lighter than a plain field, with a dimmer placeholder.
     out property <color> composer: self.dark ? self.field.mix(#ffffff, 0.99) : self.field;
@@ -49,23 +49,23 @@ export global Theme {
     out property <color> danger-text: self.dark ? #fa777c : self.danger;
     /// Text and icons on a danger fill: badges, the LIVE pill, leaving a call.
     in-out property <color> on-danger: #ffffff;
-    in-out property <color> live: #3ecf7e;
-    in-out property <color> loud: #ff8c42;
-    in-out property <color> link: #7cc4ff;
+    in-out property <color> live: #23a55a;
+    in-out property <color> loud: #f0b232;
+    in-out property <color> link: #00a8fc;
     /// The neutral ActionButton face.
-    in-out property <color> button-default: #33343c;
-    in-out property <color> button-default-hover: #3c3d46;
+    in-out property <color> button-default: #2c2c32;
+    in-out property <color> button-default-hover: #36363d;
     /// Laid over any surface at a low alpha to lift it on hover, and behind an
     /// emoji still loading: white on a dark theme, black on a light one.
     in-out property <color> overlay: #ffffff;
     /// The light that sweeps across a skeleton while it loads.
-    in-out property <color> shimmer: #ffffff10;
+    in-out property <color> shimmer: #ffffff0d;
     /// The line from a reply's avatar to the message it answers.
-    in-out property <color> reply-spine: #4a4c56;
+    in-out property <color> reply-spine: #4e5058;
     /// The ground of the window's tooltip and the zoom level's note.
-    in-out property <color> tooltip: #0b0c0e;
+    in-out property <color> tooltip: #0b0b0d;
     /// An avatar's ground before Static knows the person's own tint.
-    in-out property <color> avatar: #6b7280;
+    in-out property <color> avatar: #5f6370;
     /// Whether the theme is dark, for the std-widgets that follow the system's scheme.
     in-out property <bool> dark: true;
     out property <duration> quick: 120ms;

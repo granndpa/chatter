@@ -24,7 +24,10 @@ fn entry() -> Result<Entry> {
 }
 
 fn named(account: &str) -> Result<Entry> {
-    let slot = crate::accounts::active_slot();
+    named_in(crate::accounts::active_slot(), account)
+}
+
+fn named_in(slot: &str, account: &str) -> Result<Entry> {
     let account = if slot == "default" {
         account.to_owned()
     } else {
@@ -136,6 +139,24 @@ pub fn forget() -> Result<()> {
     }
     for account in [ACCOUNT, EARLIER_ACCOUNT, CACHE_KEY] {
         match named(account)?.delete_credential() {
+            Ok(()) | Err(keyring::Error::NoEntry) => {}
+            Err(_) => bail!("could not remove the token from the OS credential store"),
+        }
+    }
+    Ok(())
+}
+
+/// Removes the token and cache key a saved account that isn't running keeps.
+pub fn forget_slot(slot: &str) -> Result<()> {
+    if crate::client::test_server().is_some() {
+        test_link()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .remove(slot);
+        return Ok(());
+    }
+    for account in [ACCOUNT, EARLIER_ACCOUNT, CACHE_KEY] {
+        match named_in(slot, account)?.delete_credential() {
             Ok(()) | Err(keyring::Error::NoEntry) => {}
             Err(_) => bail!("could not remove the token from the OS credential store"),
         }

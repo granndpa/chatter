@@ -18,6 +18,9 @@ pub struct Account {
     pub user_id: String,
     pub name: String,
     pub username: String,
+    /// The account's avatar URL, so the switcher shows it without a login.
+    #[serde(default)]
+    pub avatar: String,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -86,7 +89,13 @@ pub fn list(root: &Path) -> Result<Vec<Account>> {
 }
 
 /// Updates the current account's public identity without reading its login.
-pub fn remember(root: &Path, user_id: &str, name: &str, username: &str) -> Result<()> {
+pub fn remember(
+    root: &Path,
+    user_id: &str,
+    name: &str,
+    username: &str,
+    avatar: &str,
+) -> Result<()> {
     if user_id.is_empty() {
         return Ok(());
     }
@@ -96,6 +105,7 @@ pub fn remember(root: &Path, user_id: &str, name: &str, username: &str) -> Resul
         user_id: user_id.into(),
         name: name.into(),
         username: username.into(),
+        avatar: avatar.into(),
     };
     if let Some(old) = accounts.entries.iter_mut().find(|a| a.slot == account.slot) {
         if *old == account {
@@ -116,6 +126,24 @@ pub fn select(root: &Path, slot: &str) -> Result<()> {
         bail!("That account is no longer saved.");
     }
     accounts.selected = slot.into();
+    write(root, &accounts)
+}
+
+/// Forgets a saved account that isn't running, with its login.
+pub fn remove(root: &Path, slot: &str) -> Result<()> {
+    if slot == active_slot() {
+        bail!("Switch to another account before removing this one.");
+    }
+    let mut accounts = read(root)?;
+    let before = accounts.entries.len();
+    accounts.entries.retain(|a| a.slot != slot);
+    if accounts.entries.len() == before {
+        bail!("That account is no longer saved.");
+    }
+    crate::token::forget_slot(slot)?;
+    if accounts.selected == slot {
+        accounts.selected = active_slot().into();
+    }
     write(root, &accounts)
 }
 
@@ -151,7 +179,7 @@ mod tests {
     #[test]
     fn choices_keep_public_identity_and_do_not_change_the_running_scope() {
         let root = tempfile::tempdir().unwrap();
-        remember(root.path(), "1", "Alice", "alice").unwrap();
+        remember(root.path(), "1", "Alice", "alice", "").unwrap();
         add(root.path()).unwrap();
         assert_eq!(list(root.path()).unwrap().len(), 2);
         assert_ne!(read(root.path()).unwrap().selected, active_slot());
@@ -160,5 +188,13 @@ mod tests {
         let text = std::fs::read_to_string(root.path().join(FILE)).unwrap();
         assert!(!text.contains("token"));
         assert!(!text.contains("cache_key"));
+    }
+    #[test]
+    fn the_running_account_cannot_be_removed() {
+        let root = tempfile::tempdir().unwrap();
+        remember(root.path(), "1", "Alice", "alice", "").unwrap();
+        assert!(remove(root.path(), active_slot()).is_err());
+        assert!(remove(root.path(), "missing").is_err());
+        assert_eq!(list(root.path()).unwrap().len(), 1);
     }
 }

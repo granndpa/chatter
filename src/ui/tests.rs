@@ -6236,25 +6236,25 @@ fn a_chosen_theme_is_kept_and_survives_a_window_made_again() {
     bind_callbacks(&window, &adapter);
     assert_eq!(window.get_theme_id(), "yap");
     assert_eq!(window.get_themes().row_count(), theme::BUILT_IN.len());
-    let nord = theme::find("nord").unwrap().theme;
-    window.invoke_choose_theme("nord".into());
-    assert_eq!(window.get_theme_id(), "nord");
-    assert_eq!(theme::Theme::shown(&window), nord);
+    let ocean = theme::find("ocean").unwrap().theme;
+    window.invoke_choose_theme("ocean".into());
+    assert_eq!(window.get_theme_id(), "ocean");
+    assert_eq!(theme::Theme::shown(&window), ocean);
     assert_eq!(
         Layout::read(directory.path()).theme.as_deref(),
-        Some("nord")
+        Some("ocean")
     );
 
-    // Closing to the tray drops the window; the next one starts in Nord.
+    // Closing to the tray drops the window; the next one starts in Ocean.
     let again = classic_window();
     adapter.borrow_mut().attach(&again);
-    assert_eq!(theme::Theme::shown(&again), nord);
-    assert_eq!(again.get_theme_id(), "nord");
+    assert_eq!(theme::Theme::shown(&again), ocean);
+    assert_eq!(again.get_theme_id(), "ocean");
 
     // An id Static doesn't know changes nothing, and a stored one it no longer
     // has shows Static.
     again.invoke_choose_theme("missing".into());
-    assert_eq!(theme::Theme::shown(&again), nord);
+    assert_eq!(theme::Theme::shown(&again), ocean);
     let fresh = classic_window();
     Layout {
         theme: Some("gone".into()),
@@ -6305,7 +6305,7 @@ fn a_custom_theme_keeps_its_colours_by_name_and_falls_back_to_its_base() {
     let stored = serde_json::json!({
         "id": "custom:1",
         "name": "Mine",
-        "base": "nord",
+        "base": "ocean",
         "dark": false,
         "colours": {
             "chat": "#fafafa",
@@ -6315,21 +6315,21 @@ fn a_custom_theme_keeps_its_colours_by_name_and_falls_back_to_its_base() {
         },
     });
     let custom: theme::Custom = serde_json::from_value(stored).unwrap();
-    let nord = theme::find("nord").unwrap().theme;
-    assert_eq!(custom.base, "nord");
+    let ocean = theme::find("ocean").unwrap().theme;
+    assert_eq!(custom.base, "ocean");
     assert!(!custom.theme.dark);
     assert_eq!(custom.theme.chat, theme::parse("#fafafa").unwrap());
     assert_eq!(custom.theme.row_hover, theme::parse("#aabbcc").unwrap());
-    assert_eq!(custom.theme.link, nord.link, "a wrong colour is Nord's");
+    assert_eq!(custom.theme.link, ocean.link, "a wrong colour is Ocean's");
     assert_eq!(
-        custom.theme.accent, nord.accent,
-        "a missing colour is Nord's"
+        custom.theme.accent, ocean.accent,
+        "a missing colour is Ocean's"
     );
 
     // It's written back with every colour, by the names ui/theme.slint has.
     let written = serde_json::to_value(&custom).unwrap();
     assert_eq!(written["colours"]["row-hover"], "#aabbcc");
-    assert_eq!(written["colours"]["accent-soft"], "#88c0d026");
+    assert_eq!(written["colours"]["accent-soft"], "#38bdf826");
     assert_eq!(
         written["colours"].as_object().unwrap().len(),
         theme::Theme::NAMES.len()
@@ -6358,7 +6358,7 @@ fn custom_theme_ids_stay_apart_from_built_in_ones_and_each_other() {
     };
     let mut themes = vec![
         custom("custom:2"),
-        custom("nord"),
+        custom("ocean"),
         custom("custom:2"),
         custom(""),
         custom("custom:x"),
@@ -6385,13 +6385,13 @@ fn a_custom_theme_is_made_edited_and_deleted_in_appearance() {
     )
     .unwrap();
     bind_callbacks(&window, &adapter);
-    let nord = theme::find("nord").unwrap().theme;
-    window.invoke_choose_theme("nord".into());
+    let ocean = theme::find("ocean").unwrap().theme;
+    window.invoke_choose_theme("ocean".into());
 
     // A new theme starts as a copy of the one shown, and shows each change.
     window.invoke_new_theme();
     assert!(window.get_theme_editor());
-    assert_eq!(window.get_theme_name(), "Nord copy");
+    assert_eq!(window.get_theme_name(), "Ocean copy");
     assert_eq!(window.get_theme_start(), 4);
     assert_eq!(window.get_theme_starts().row_count(), theme::BUILT_IN.len());
     let colours = window.get_theme_colours();
@@ -6400,7 +6400,7 @@ fn a_custom_theme_is_made_edited_and_deleted_in_appearance() {
         .iter()
         .position(|name| *name == "chat")
         .unwrap();
-    assert_eq!(colours.row_data(chat).unwrap().hex, theme::hex(nord.chat));
+    assert_eq!(colours.row_data(chat).unwrap().hex, theme::hex(ocean.chat));
     window.invoke_theme_colour_edited(chat as i32, "#102030".into());
     assert_eq!(
         theme::Theme::shown(&window).chat,
@@ -6442,14 +6442,14 @@ fn a_custom_theme_is_made_edited_and_deleted_in_appearance() {
     let midnight = theme::Theme {
         dark: false,
         chat: theme::parse("#112233").unwrap(),
-        ..nord
+        ..ocean
     };
     assert_eq!(theme::Theme::shown(&window), midnight);
     let layout = Layout::read(directory.path());
     assert_eq!(layout.theme.as_deref(), Some("custom:1"));
     assert_eq!(layout.custom_themes.len(), 1);
     assert_eq!(layout.custom_themes[0].theme, midnight);
-    assert_eq!(layout.custom_themes[0].base, "nord");
+    assert_eq!(layout.custom_themes[0].base, "ocean");
 
     // A window made again starts in it.
     let again = classic_window();
@@ -6477,10 +6477,10 @@ fn a_custom_theme_is_made_edited_and_deleted_in_appearance() {
     window.invoke_new_theme();
     assert_eq!(window.get_theme_name(), "Midnight copy");
     window.invoke_theme_start_chosen(9);
-    assert_eq!(window.get_theme_name(), "Sakura copy");
+    assert_eq!(window.get_theme_name(), "Mocha copy");
     assert_eq!(
         theme::Theme::shown(&window),
-        theme::find("sakura").unwrap().theme
+        theme::find("mocha").unwrap().theme
     );
     window.set_theme_name("Blossom".into());
     window.invoke_theme_start_chosen(0);
@@ -7710,20 +7710,20 @@ fn static_navigation_matches_the_reference_column_width() {
 }
 
 #[test]
-fn static_defaults_to_bonfire_and_keeps_saved_appearance_choices() {
+fn static_defaults_to_discord_dark_and_keeps_saved_appearance_choices() {
     i_slint_backend_testing::init_no_event_loop();
     let window = StaticWindow::new().unwrap();
     Layout::default().apply_appearance(&window);
-    assert_eq!(window.get_theme_id(), "bonfire");
+    assert_eq!(window.get_theme_id(), "yap");
     assert_eq!(window.get_sidebar_width(), 304.0);
 
     let saved = Layout {
-        theme: Some("nord".into()),
+        theme: Some("ocean".into()),
         sidebar_width: Some(280.0),
         ..Default::default()
     };
     saved.apply_appearance(&window);
-    assert_eq!(window.get_theme_id(), "nord");
+    assert_eq!(window.get_theme_id(), "ocean");
     assert_eq!(window.get_sidebar_width(), 280.0);
 }
 

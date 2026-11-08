@@ -36,7 +36,8 @@ import { StagedFile, StagedTile, Composer, MentionRow, MentionList, EmojiSuggest
 import { EmojiCell, EmojiRow, EmojiSection, EmojiCard, EmojiCardView, MessageRow, ReactionToggle, EmojiButton, EmojiPicker, MessageMenu, MessageGallery, MessageStickers, FileCard, MessageContent, EmbedView, BotTag, NoConversation, ConversationStart, HistoryEdge, UnreadBar, PresentBar, ImageViewer, VideoViewer, VideoPlayer, Polls } from "messages.slint";
 import { SettingsRow, SettingsScreen, AccountSettings, AppearanceSettings, ThemeCard, ThemeColour, VoiceSettings, MessageSettings, NotificationSettings, SoundSettings, AdvancedSettings, DiscordLinkSettings, DiscordSettings, BlockedRow, GameActivitySettings, GameExecutable } from "settings.slint";
 import { ConnectionRow, ConnectionsSettings } from "connections.slint";
-export struct SavedAccountRow { slot: string, name: string, username: string, current: bool }
+import { SavedAccountRow, AccountSwitcher, ManageAccounts } from "static/account-switcher.slint";
+export { SavedAccountRow } from "static/account-switcher.slint";
 import { ActivityRow, MemberRow, ProfileData, ProfileServerRow, MemberPanel, ProfileCard, ProfileModal, ServerCard, RoleCard } from "people.slint";
 import { RequestRow, FriendRow, FriendsScreen, HeaderTab, RequestsScreen, AddFriendDialog } from "friends.slint";
 import { ContactRow, PlaceRow, ReactionPill, ReactorRow, StatusDialog, NewDmDialog, ForwardDialog, QuickSwitcher, ReactionsDialog, StatusMenu, PersonPrompt, PersonDialog, LeavingDialog, PollAnswerDraft, PollDialog } from "dialogs.slint";
@@ -1887,8 +1888,11 @@ export component StaticWindow inherits Window {
     }
     // The status menu opens above the account panel, along its left edge.
     property <bool> account-status-expanded;
+    /// The Switch Accounts menu beside the account popover.
+    property <bool> accounts-flyout;
     function open-status-menu() {
         root.account-status-expanded = false;
+        root.accounts-flyout = false;
         root.menu-x = account-panel.absolute-position.x + (ClientStyle.enabled ? 0px : 8px);
         root.menu-y = account-panel.absolute-position.y;
         root.game-duration-due();
@@ -1922,12 +1926,14 @@ export component StaticWindow inherits Window {
         }
     }
     status-menu := PopupWindow {
-        width: ClientStyle.enabled ? 300px : 248px; height: status-menu-content.preferred-height;
+        width: !ClientStyle.enabled ? 248px : root.accounts-flyout ? 568px : 300px; height: status-menu-content.preferred-height;
         x: max(8px, min(root.width - self.width - 8px, root.menu-x));
         y: max(8px, root.menu-y - self.height - 4px);
         close-policy: PopupClosePolicy.close-on-click-outside;
-        status-menu-content := VerticalLayout {
+        status-menu-content := HorizontalLayout {
+            spacing: 8px;
             if ClientStyle.enabled: AccountPopover {
+                width: 300px;
                 available-height: max(120px, root.menu-y - 12px);
                 name: root.account-name; initial: root.account-initial; tint: root.account-tint; picture: root.account-picture;
                 username: root.account-username; spotify: root.account-spotify;
@@ -1942,7 +1948,7 @@ export component StaticWindow inherits Window {
                 edit-profile => { root.edit-profile(); status-menu.close(); }
                 copy-id => { root.copy-text(root.account-user-id); status-menu.close(); }
                 open-link(url) => { root.open-link(url); }
-                switch-accounts => { root.accounts-action("open", ""); status-menu.close(); }
+                switch-accounts => { root.accounts-action("list", ""); root.accounts-flyout = !root.accounts-flyout; }
                 settings => { root.settings-section = 0; root.settings-open = true; status-menu.close(); }
             }
             if !ClientStyle.enabled: StatusMenu {
@@ -1952,6 +1958,14 @@ export component StaticWindow inherits Window {
                 choose(status) => { root.set-status(status); status-menu.close(); }
                 custom-status => { root.open-status(); status-menu.close(); }
                 edit-profile => { root.edit-profile(); status-menu.close(); }
+            }
+            if ClientStyle.enabled && root.accounts-flyout: VerticalLayout {
+                alignment: end;
+                AccountSwitcher {
+                    accounts: root.saved-accounts;
+                    select(slot) => { root.accounts-action("select", slot); status-menu.close(); }
+                    manage => { root.accounts-action("open", ""); status-menu.close(); }
+                }
             }
         }
     }
@@ -2244,24 +2258,16 @@ export component StaticWindow inherits Window {
         }
     }
     accounts-popup := PopupWindow {
-        width: 360px; height: account-choices.preferred-height;
+        width: min(440px, root.width - 16px); height: manage-accounts.height;
         x: max(8px, (root.width - self.width) / 2); y: max(8px, (root.height - self.height) / 2);
         close-policy: PopupClosePolicy.close-on-click-outside;
-        Rectangle {
-            background: Theme.panel; border-radius: 8px; border-width: 1px; border-color: Theme.line;
-            account-choices := VerticalLayout {
-                padding: 16px; spacing: 12px;
-                Text { text: "Switch Accounts"; color: Theme.text; font-size: 20px; font-weight: 700; }
-                Text { text: "Switching restarts Static and ends any current call. Each account keeps its own saved login."; color: Theme.muted; wrap: word-wrap; font-size: 13px; }
-                for account in root.saved-accounts: ActionButton {
-                    text: account.name + (account.username != "" ? " · " + account.username : "") + (account.current ? " (current)" : "");
-                    enabled: !account.current || !root.discord-linked;
-                    clicked => { root.accounts-action("select", account.slot); accounts-popup.close(); }
-                }
-                if root.accounts-error != "": Text { text: root.accounts-error; color: Theme.danger-text; wrap: word-wrap; }
-                ActionButton { text: "Add account"; primary: true; clicked => { root.accounts-action("add", ""); } }
-                ActionButton { text: "Cancel"; clicked => { accounts-popup.close(); } }
-            }
+        manage-accounts := ManageAccounts {
+            width: parent.width;
+            accounts: root.saved-accounts; error: root.accounts-error; linked: root.discord-linked;
+            select(slot) => { root.accounts-action("select", slot); accounts-popup.close(); }
+            remove(slot) => { root.accounts-action("remove", slot); }
+            add => { root.accounts-action("add", ""); }
+            close => { accounts-popup.close(); }
         }
     }
     // Sign in; see SignInScreen.
