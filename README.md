@@ -74,8 +74,11 @@ More detail is in [docs/building.md](docs/building.md).
 
 ## Credits
 
-- **[Yapfast](https://yapfast.com)** ([github.com/yapfast](https://github.com/yapfast)),
-  the client Chatter is built on. All credit for the core app goes to them.
+- **[Yapfast](https://yapfast.com)** ([github.com/yapfast](https://github.com/yapfast)):
+  huge thanks for the base of this build, and for being our motivation to make
+  Chatter in the first place. Voice, video, the Discord protocol and almost
+  everything under the hood is their work. Go check them out and show them some
+  love.
 - [Discord Userdoccers](https://docs.discord.food), for documenting Discord's
   user API.
 - [Slint](https://slint.dev), [Skia](https://skia.org),
