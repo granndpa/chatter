@@ -727,6 +727,58 @@ impl AppState {
         self.drafts.get(room).map_or("", String::as_str)
     }
 
+    /// Every conversation's unsent draft and reply in progress, for Discord
+    /// Tweaks to keep on disk. While a message is being edited, its room's
+    /// draft is the one from before the edit.
+    pub fn saved_drafts(&self) -> crate::tweaks::drafts::Drafts {
+        let mut saved = crate::tweaks::drafts::Drafts::default();
+        for (room, text) in &self.drafts {
+            let text = match self.compose.get(room) {
+                Some(Compose::Edit { draft, .. }) => draft,
+                _ => text,
+            };
+            if !text.trim().is_empty() {
+                saved.text.insert(room.clone(), text.clone());
+            }
+        }
+        for (room, compose) in &self.compose {
+            match compose {
+                Compose::Reply { item, author, body, ping } => {
+                    saved.replies.insert(
+                        room.clone(),
+                        crate::tweaks::drafts::Reply {
+                            item: item.clone(),
+                            author: author.clone(),
+                            body: body.clone(),
+                            ping: *ping,
+                        },
+                    );
+                }
+                Compose::Edit { draft, .. } => {
+                    if !draft.trim().is_empty() {
+                        saved.text.insert(room.clone(), draft.clone());
+                    }
+                }
+            }
+        }
+        saved
+    }
+
+    /// Brings back drafts kept on disk, leaving any written since alone.
+    pub fn restore_drafts(&mut self, saved: crate::tweaks::drafts::Drafts) {
+        for (room, text) in saved.text {
+            self.drafts.entry(room).or_insert(text);
+        }
+        for (room, reply) in saved.replies {
+            self.compose.entry(room).or_insert(Compose::Reply {
+                item: reply.item,
+                author: reply.author,
+                body: reply.body,
+                ping: reply.ping,
+            });
+        }
+    }
+
     /// The files waiting in the selected room's composer.
     pub fn staged(&self) -> &[chat::Staged] {
         self.selected

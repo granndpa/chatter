@@ -19,6 +19,13 @@ uses.
 - Silent typing
 - Spotify listening status, shown like Discord's own client shows it
 - Streamer Mode, turned on automatically while OBS runs
+- Bookmarks, message reminders and a Hall of Fame, in the Saved panel
+- Drafts that survive a restart
+- Translate messages in place, real timestamps, Read All
+- Full-size images with click to zoom, and saving avatars, banners and server icons
+- Voice log and fake deafen
+
+See [docs/tweaks.md](docs/tweaks.md) for how each one works.
 
 Everything else is still here: voice, cameras, Go Live,
 forums, polls, the GIF picker, server settings and more.

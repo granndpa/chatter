@@ -68,6 +68,7 @@ mod tiles;
 mod title_bar;
 
 use callbacks::bind_callbacks;
+mod tweaks;
 use messages::*;
 pub(crate) use pictures::picture as slint_image;
 use pictures::*;
@@ -1795,6 +1796,8 @@ struct Adapter {
     translations: HashMap<String, (String, String)>,
     /// Deleted messages the message logger kept that were closed, by item.
     dismissed: HashSet<String>,
+    /// Discord Tweaks' bookmarks, reminders and saved drafts; see `tweaks.rs`.
+    tweaks: tweaks::Tweaks,
     /// Discord Tweaks' voice log: the call it follows, who was in it at the
     /// last look, and what happened, newest last.
     voice_room: Option<String>,
@@ -2049,6 +2052,7 @@ impl Adapter {
                 revealed: HashSet::new(),
                 translations: HashMap::new(),
                 dismissed: HashSet::new(),
+                tweaks: tweaks::Tweaks::default(),
                 voice_room: None,
                 voice_people: Vec::new(),
                 voice_log: Vec::new(),

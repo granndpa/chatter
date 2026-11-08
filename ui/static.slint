@@ -32,6 +32,9 @@ import { GifPicker, GifTile, PickerTab } from "gifs.slint";
 import { ActionButton, IconButton, PingToggle, DeviceToggle, Avatar, TextField, MessagesSkeleton, ContextMenu, MenuItem, MenuRow, DeviceMenu, HeaderToggle, Banner, StatusText, PictureStore } from "controls.slint";
 import { PersonRow, CallLink, CallLinkCard, LinkTouch, SignalIcon, VoiceDock, StreamPip, CallInvite, JoinVoice, ParticipantGrid, CallControls, IncomingCall, SwitchDialog, InputLevel, ShareMenu, ShareScreen, VolumeMenu, Soundboard, SoundRow } from "voice.slint";
 import { ServerRow, RoomRow, StatusDot, ServerRail, ServerHeader, RoomList } from "rail.slint";
+import { SavedRow } from "tweaks/bookmarks.slint";
+import { ReminderRow, RemindPicker } from "tweaks/reminders.slint";
+import { SavedPanel } from "tweaks/panel.slint";
 import { StagedFile, StagedTile, Composer, MentionRow, MentionList, EmojiSuggestions, RequestBar } from "composer.slint";
 import { EmojiCell, EmojiRow, EmojiSection, EmojiCard, EmojiCardView, MessageRow, ReactionToggle, EmojiButton, EmojiPicker, MessageMenu, MessageGallery, MessageStickers, FileCard, MessageContent, EmbedView, BotTag, NoConversation, ConversationStart, HistoryEdge, UnreadBar, PresentBar, ImageViewer, VideoViewer, VideoPlayer, Polls } from "messages.slint";
 import { SettingsRow, SettingsScreen, AccountSettings, AppearanceSettings, ThemeCard, ThemeColour, VoiceSettings, MessageSettings, NotificationSettings, SoundSettings, AdvancedSettings, DiscordLinkSettings, DiscordSettings, BlockedRow, GameActivitySettings, GameExecutable } from "settings.slint";
@@ -1407,6 +1410,30 @@ export component StaticWindow inherits Window {
     // with none, the one most reacted with.
     callback view-reactions(string, string);
     callback translate-message(string);
+    // Discord Tweaks' Saved panel: Bookmarks (tab 0), Reminders (1) and the
+    // Hall of Fame (2); see src/ui/tweaks.rs.
+    in-out property <bool> saved-open;
+    in-out property <int> saved-tab;
+    in property <[SavedRow]> saved-rows;
+    in property <[string]> saved-collections;
+    in property <[ReminderRow]> reminder-rows;
+    in-out property <string> saved-note;
+    /// The message Remind Me is open for, and why a typed time didn't work.
+    in-out property <string> remind-item;
+    in-out property <string> remind-error;
+    callback saved-show(int);
+    callback saved-search(string, string, int);
+    callback bookmark-message(string, bool);
+    callback saved-activate(int);
+    callback saved-remove(int);
+    callback saved-shift(int, int);
+    callback saved-set-collection(int, string);
+    callback saved-set-caption(int, string);
+    callback saved-export(length, length, length, length);
+    callback remind-at(string, int, string);
+    callback reminder-activate(int);
+    callback reminder-cancel(int);
+    callback reminder-reschedule(int, string);
     callback show-original(string);
     callback dismiss-deleted(string);
     /// Discord Tweaks' voice log, one event per line.
@@ -2270,6 +2297,9 @@ export component StaticWindow inherits Window {
             view-thread(room) => { root.open-aside(room); message-menu.close(); }
             view-reactions(item) => { root.view-reactions(item, ""); message-menu.close(); }
             translate(item) => { root.translate-message(item); message-menu.close(); }
+            bookmark(item) => { root.bookmark-message(item, false); message-menu.close(); }
+            hall-of-fame(item) => { root.bookmark-message(item, true); message-menu.close(); }
+            remind(item) => { root.remind-error = ""; root.remind-item = item; message-menu.close(); }
             show-original(item) => { root.show-original(item); message-menu.close(); }
             dismiss-deleted(item) => { root.dismiss-deleted(item); message-menu.close(); }
             emoji-font: root.emoji-font; composer-enabled: root.composer-enabled; forward-allowed: root.forward-allowed; preview: root.preview;
@@ -2362,6 +2392,7 @@ export component StaticWindow inherits Window {
                         arrange(source, target, mode) => { root.arrange-servers(source, target, mode, ""); }
                         navigate-dms => { root.navigate-dms(); }
                         read-all => { root.read-all(); }
+                        open-saved => { root.saved-show(root.saved-tab); }
                         navigate-server(id) => { root.navigate-server(id); }
                         toggle-folder(id) => { root.toggle-folder(id); }
                         open-dm(id) => { root.open-conversation(id); }
@@ -4280,6 +4311,27 @@ export component StaticWindow inherits Window {
         }
     }
     // An image shown large over everything; see ImageViewer.
+    if root.saved-open: SavedPanel {
+        tab: root.saved-tab; rows: root.saved-rows; collections: root.saved-collections;
+        reminders: root.reminder-rows; note: root.saved-note;
+        show(tab) => { root.saved-show(tab); }
+        close => { root.saved-open = false; }
+        search(query, collection, sort) => { root.saved-search(query, collection, sort); }
+        activate(id) => { root.saved-activate(id); }
+        remove(id) => { root.saved-remove(id); }
+        shift(id, by) => { root.saved-shift(id, by); }
+        set-collection(id, name) => { root.saved-set-collection(id, name); }
+        set-caption(id, caption) => { root.saved-set-caption(id, caption); }
+        export(x, y, width, height) => { root.saved-export(x, y, width, height); }
+        reminder-activate(id) => { root.reminder-activate(id); }
+        reminder-cancel(id) => { root.reminder-cancel(id); }
+        reminder-reschedule(id, typed) => { root.reminder-reschedule(id, typed); }
+    }
+    if root.remind-item != "": RemindPicker {
+        item: root.remind-item; error: root.remind-error;
+        chosen(item, choice, typed) => { root.remind-at(item, choice, typed); }
+        cancel => { root.remind-item = ""; }
+    }
     if root.viewer-open: ImageViewer {
         y: root.title-height; height: root.height - root.title-height;
         viewer-image: root.viewer-image; viewer-frames: root.viewer-frames; viewer-delays: root.viewer-delays;

@@ -1,0 +1,174 @@
+// Discord Tweaks: bookmarked messages and the Hall of Fame, as the Saved
+// panel lists them.
+
+import { Theme } from "../theme.slint";
+import { TextField } from "../controls.slint";
+import { HallCard } from "hall-of-fame.slint";
+
+/// A saved message: a bookmark, or a Hall of Fame entry.
+export struct SavedRow {
+    id: int, author: string, place: string, time: string, body: string,
+    collection: string, caption: string, picture-url: string,
+    /// Its conversation is still there to open.
+    available: bool,
+}
+
+/// A small text button for rows; `selected` marks the chosen one of a set.
+export component RowButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> danger;
+    in property <bool> selected;
+    callback clicked;
+    width: label.preferred-width + 16px; height: 24px; border-radius: 4px;
+    background: root.selected ? Theme.accent : touch.has-hover ? Theme.active : Theme.field;
+    label := Text {
+        text: root.text; font-size: 12px; vertical-alignment: center; horizontal-alignment: center;
+        color: root.selected ? #ffffff : root.danger ? Theme.danger : Theme.text;
+    }
+    touch := TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.clicked(); } }
+}
+
+/// Up, Down, Collection, Remove, and for the Hall of Fame Caption and Export.
+component EntryButtons inherits HorizontalLayout {
+    in property <int> id;
+    in property <bool> hall;
+    callback shift(int, int);
+    callback edit(int);
+    callback export;
+    callback remove(int);
+    spacing: 6px; alignment: start;
+    RowButton { text: "Up"; clicked => { root.shift(root.id, -1); } }
+    RowButton { text: "Down"; clicked => { root.shift(root.id, 1); } }
+    RowButton { text: "Collection"; clicked => { root.edit(1); } }
+    if root.hall: RowButton { text: "Caption"; clicked => { root.edit(2); } }
+    if root.hall: RowButton { text: "Export"; clicked => { root.export(); } }
+    RowButton { text: "Remove"; danger: true; clicked => { root.remove(root.id); } }
+}
+
+/// One saved message in the list, with what can be done to it.
+component SavedEntry inherits VerticalLayout {
+    in property <SavedRow> entry;
+    in property <bool> hall;
+    callback activate(int);
+    callback remove(int);
+    callback shift(int, int);
+    callback set-collection(int, string);
+    callback set-caption(int, string);
+    callback export(length, length, length, length);
+    // Which of its fields is being typed: 0 none, 1 collection, 2 caption.
+    property <int> editing;
+    spacing: 6px;
+    if !root.hall: VerticalLayout {
+        spacing: 6px;
+        Rectangle {
+            border-radius: 8px;
+            background: entry-touch.has-hover ? Theme.active : Theme.raised;
+            entry-touch := TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.activate(root.entry.id); } }
+            VerticalLayout {
+                padding: 12px; spacing: 4px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    Text { text: root.entry.author; color: Theme.text; font-size: 14px; font-weight: 700; overflow: elide; }
+                    Text { text: root.entry.place; color: Theme.muted; font-size: 12px; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
+                    if root.entry.collection != "": Rectangle {
+                        width: chip.preferred-width + 12px; height: 18px; border-radius: 9px; background: Theme.accent.with-alpha(0.25);
+                        chip := Text { text: root.entry.collection; color: Theme.text; font-size: 11px; }
+                    }
+                }
+                if root.entry.body != "": Text { text: root.entry.body; color: Theme.text; font-size: 14px; wrap: word-wrap; }
+                Text { text: root.entry.available ? root.entry.time : root.entry.time + " (unavailable)"; color: Theme.muted; font-size: 11px; }
+            }
+        }
+        EntryButtons {
+            id: root.entry.id; hall: false;
+            shift(id, by) => { root.shift(id, by); }
+            edit(field) => { root.editing = root.editing == field ? 0 : field; }
+            remove(id) => { root.remove(id); }
+        }
+    }
+    if root.hall: VerticalLayout {
+        spacing: 6px;
+        card := HallCard {
+            author: root.entry.author; place: root.entry.place; time: root.entry.time; body: root.entry.body;
+            caption: root.entry.caption; picture-url: root.entry.picture-url; available: root.entry.available;
+            TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.activate(root.entry.id); } }
+        }
+        EntryButtons {
+            id: root.entry.id; hall: true;
+            shift(id, by) => { root.shift(id, by); }
+            edit(field) => { root.editing = root.editing == field ? 0 : field; }
+            export => { root.export(card.absolute-position.x, card.absolute-position.y, card.width, card.height); }
+            remove(id) => { root.remove(id); }
+        }
+    }
+    if root.editing == 1: TextField {
+        text: root.entry.collection; placeholder: "Collection name, then Enter (empty for none)"; text-size: 13px; min-height: 32px;
+        accepted => { root.set-collection(root.entry.id, self.text); root.editing = 0; }
+    }
+    if root.editing == 2: TextField {
+        text: root.entry.caption; placeholder: "Caption, then Enter"; text-size: 13px; min-height: 32px;
+        accepted => { root.set-caption(root.entry.id, self.text); root.editing = 0; }
+    }
+}
+
+/// The bookmarks or the Hall of Fame: search, collections, order and the list.
+export component SavedList inherits VerticalLayout {
+    in property <[SavedRow]> rows;
+    in property <[string]> collections;
+    in property <bool> hall;
+    callback search(string, string, int);
+    callback activate(int);
+    callback remove(int);
+    callback shift(int, int);
+    callback set-collection(int, string);
+    callback set-caption(int, string);
+    callback export(length, length, length, length);
+    property <string> query;
+    property <string> collection;
+    property <int> sort;
+    function changed-search() { root.search(root.query, root.collection, root.sort); }
+    spacing: 10px;
+    TextField {
+        placeholder: root.hall ? "Search the Hall of Fame" : "Search bookmarks"; text-size: 14px; min-height: 36px;
+        edited(text) => { root.query = text; root.changed-search(); }
+    }
+    HorizontalLayout {
+        spacing: 6px; alignment: start;
+        Text { text: "Sort"; color: Theme.muted; font-size: 12px; vertical-alignment: center; }
+        for name[index] in ["Saved", "Newest", "Oldest", "Author"]: RowButton {
+            text: name; selected: root.sort == index;
+            clicked => { root.sort = index; root.changed-search(); }
+        }
+    }
+    if root.collections.length > 0: HorizontalLayout {
+        spacing: 6px; alignment: start;
+        Text { text: "Collection"; color: Theme.muted; font-size: 12px; vertical-alignment: center; }
+        RowButton { text: "All"; selected: root.collection == ""; clicked => { root.collection = ""; root.changed-search(); } }
+        for name in root.collections: RowButton {
+            text: name; selected: root.collection == name;
+            clicked => { root.collection = name; root.changed-search(); }
+        }
+    }
+    Flickable {
+        vertical-stretch: 1;
+        content-height: max(self.height, list.preferred-height);
+        list := VerticalLayout {
+            width: parent.width;
+            alignment: start; spacing: 14px;
+            if root.rows.length == 0: Text {
+                text: root.hall ? "Nothing in the Hall of Fame yet. Right-click a message and choose Add to Hall of Fame."
+                    : "No bookmarks yet. Right-click a message and choose Bookmark Message.";
+                color: Theme.muted; font-size: 14px; wrap: word-wrap;
+            }
+            for row in root.rows: SavedEntry {
+                entry: row; hall: root.hall;
+                activate(id) => { root.activate(id); }
+                remove(id) => { root.remove(id); }
+                shift(id, by) => { root.shift(id, by); }
+                set-collection(id, name) => { root.set-collection(id, name); }
+                set-caption(id, caption) => { root.set-caption(id, caption); }
+                export(x, y, width, height) => { root.export(x, y, width, height); }
+            }
+        }
+    }
+}

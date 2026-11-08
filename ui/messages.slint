@@ -1023,6 +1023,9 @@ export component MessageMenu inherits Rectangle {
     callback view-thread(string);
     callback view-reactions(string);
     callback translate(string);
+    callback bookmark(string);
+    callback hall-of-fame(string);
+    callback remind(string);
     callback show-original(string);
     callback dismiss-deleted(string);
     callback copy-image(string, int);
@@ -1071,6 +1074,18 @@ export component MessageMenu inherits Rectangle {
         if root.menu-message.can-reply && root.menu-message.thread-room != "": MenuItem {
             text: "View Thread"; icon: @image-url("icons/thread.svg");
             clicked => { root.view-thread(root.menu-message.thread-room); }
+        }
+        if !root.menu-message.deleted: MenuItem {
+            text: "Bookmark Message"; icon: @image-url("icons/star.svg");
+            clicked => { root.bookmark(root.menu-message.item); }
+        }
+        if !root.menu-message.deleted: MenuItem {
+            text: "Add to Hall of Fame"; icon: @image-url("icons/trophy.svg");
+            clicked => { root.hall-of-fame(root.menu-message.item); }
+        }
+        if !root.menu-message.deleted: MenuItem {
+            text: "Remind Me"; icon: @image-url("icons/bell.svg");
+            clicked => { root.remind(root.menu-message.item); }
         }
         if root.menu-message.body != "" && root.menu-message.translation == "": MenuItem {
             text: "Translate"; icon: @image-url("icons/text-select.svg");

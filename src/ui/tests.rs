@@ -1686,8 +1686,8 @@ fn pointer_input_reaches_navigation_buttons() {
     click(32., 36.);
     assert!(window.get_dms_selected());
     assert_eq!(window.get_sidebar_title(), "Direct messages");
-    // Below Home and the Read All button.
-    click(32., 129.);
+    // Below Home and the Read All and Saved buttons.
+    click(32., 157.);
     assert!(!window.get_dms_selected());
     assert_eq!(window.get_sidebar_title(), "Friends");
     window.hide().unwrap();
@@ -8053,9 +8053,9 @@ fn static_server_rail_keeps_home_pinned_without_a_duplicate_separator() {
             });
         i_slint_backend_testing::mock_elapsed_time(Duration::from_millis(250));
     };
-    // Home 40px, gap 8px, Read All 20px, gap 8px, one 2px separator, gap 8px:
-    // server starts at 86px.
-    click(90.);
+    // Home 40px, gap 8px, Read All 20px, gap 8px, Saved 20px, gap 8px, one
+    // 2px separator, gap 8px: server starts at 114px.
+    click(118.);
     assert_eq!(*navigated.borrow(), ["0"]);
     scroll(-240.);
     click(20.);
@@ -8072,10 +8072,10 @@ fn static_server_rail_keeps_home_pinned_without_a_duplicate_separator() {
     );
     scroll(10000.);
     navigated.borrow_mut().clear();
-    // Unread DM at 86px, then its 8px gap and a 10px divider row.
-    click(138.);
+    // Unread DM at 114px, then its 8px gap and a 10px divider row.
+    click(166.);
     assert!(navigated.borrow().is_empty(), "keep the unread-DM boundary");
-    click(148.);
+    click(176.);
     assert_eq!(*navigated.borrow(), ["0"]);
     window.hide().unwrap();
 }

@@ -1,0 +1,35 @@
+// Discord Tweaks: a Hall of Fame card, which exports as a picture.
+
+import { Theme } from "../theme.slint";
+import { PictureStore } from "../controls.slint";
+
+export component HallCard inherits Rectangle {
+    in property <string> author;
+    in property <string> place;
+    in property <string> time;
+    in property <string> body;
+    in property <string> caption;
+    in property <string> picture-url;
+    in property <bool> available: true;
+    property <image> none;
+    property <image> picture: root.picture-url != "" ? PictureStore.picture(root.picture-url, PictureStore.revision) : root.none;
+    init => { if root.picture-url != "" { PictureStore.request(root.picture-url); } }
+    changed picture-url => { if root.picture-url != "" { PictureStore.request(root.picture-url); } }
+    background: Theme.raised; border-color: Theme.edge; border-width: 1px; border-radius: 10px;
+    VerticalLayout {
+        padding: 16px; spacing: 8px;
+        HorizontalLayout {
+            spacing: 8px;
+            Image { source: @image-url("../icons/trophy.svg"); width: 18px; height: 18px; colorize: #f0b232; }
+            Text { text: root.author; color: Theme.text; font-size: 15px; font-weight: 700; vertical-alignment: center; overflow: elide; }
+            Rectangle { horizontal-stretch: 1; }
+            if !root.available: Text { text: "Unavailable"; color: Theme.muted; font-size: 11px; vertical-alignment: center; }
+        }
+        if root.body != "": Text { text: root.body; color: Theme.text; font-size: 15px; wrap: word-wrap; }
+        if root.picture.width > 0: Image {
+            source: root.picture; image-fit: contain; height: min(240px, self.preferred-height); horizontal-alignment: left;
+        }
+        if root.caption != "": Text { text: "\"" + root.caption + "\""; color: Theme.secondary; font-size: 13px; font-italic: true; wrap: word-wrap; }
+        Text { text: root.place + (root.time != "" ? ", " + root.time : ""); color: Theme.muted; font-size: 11px; overflow: elide; }
+    }
+}

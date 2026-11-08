@@ -1,0 +1,76 @@
+// Discord Tweaks: the Saved panel, with Bookmarks, Reminders and the Hall of
+// Fame on its tabs.
+
+import { Theme } from "../theme.slint";
+import { IconButton } from "../controls.slint";
+import { SavedRow, SavedList, RowButton } from "bookmarks.slint";
+import { ReminderRow, ReminderList } from "reminders.slint";
+
+export component SavedPanel inherits Rectangle {
+    /// 0 Bookmarks, 1 Reminders, 2 Hall of Fame.
+    in property <int> tab;
+    in property <[SavedRow]> rows;
+    in property <[string]> collections;
+    in property <[ReminderRow]> reminders;
+    /// Why something didn't work, such as a conversation that's gone.
+    in property <string> note;
+    callback show(int);
+    callback close;
+    callback search(string, string, int);
+    callback activate(int);
+    callback remove(int);
+    callback shift(int, int);
+    callback set-collection(int, string);
+    callback set-caption(int, string);
+    callback export(length, length, length, length);
+    callback reminder-activate(int);
+    callback reminder-cancel(int);
+    callback reminder-reschedule(int, string);
+    background: #000000a0;
+    TouchArea { clicked => { root.close(); } }
+    FocusScope {
+        init => { self.focus(); }
+        key-pressed(event) => {
+            if event.text == Key.Escape { root.close(); return accept; }
+            return reject;
+        }
+    }
+    Rectangle {
+        width: min(760px, root.width - 48px); height: root.height - 96px;
+        border-radius: 12px; background: Theme.panel; border-color: Theme.edge; border-width: 1px;
+        TouchArea { }
+        VerticalLayout {
+            padding: 20px; spacing: 14px;
+            HorizontalLayout {
+                spacing: 8px;
+                Text { text: "Saved"; color: Theme.text; font-size: 20px; font-weight: 700; vertical-alignment: center; }
+                Rectangle { width: 12px; }
+                for name[index] in ["Bookmarks", "Reminders", "Hall of Fame"]: RowButton {
+                    text: name; selected: root.tab == index;
+                    clicked => { root.show(index); }
+                }
+                Rectangle { horizontal-stretch: 1; }
+                IconButton { icon: @image-url("../icons/x.svg"); label: "Close"; clicked => { root.close(); } }
+            }
+            if root.note != "": Text { text: root.note; color: Theme.danger; font-size: 13px; wrap: word-wrap; }
+            if root.tab != 1: SavedList {
+                vertical-stretch: 1;
+                rows: root.rows; collections: root.collections; hall: root.tab == 2;
+                search(query, collection, sort) => { root.search(query, collection, sort); }
+                activate(id) => { root.activate(id); }
+                remove(id) => { root.remove(id); }
+                shift(id, by) => { root.shift(id, by); }
+                set-collection(id, name) => { root.set-collection(id, name); }
+                set-caption(id, caption) => { root.set-caption(id, caption); }
+                export(x, y, width, height) => { root.export(x, y, width, height); }
+            }
+            if root.tab == 1: ReminderList {
+                vertical-stretch: 1;
+                rows: root.reminders;
+                activate(id) => { root.reminder-activate(id); }
+                cancel(id) => { root.reminder-cancel(id); }
+                reschedule(id, typed) => { root.reminder-reschedule(id, typed); }
+            }
+        }
+    }
+}

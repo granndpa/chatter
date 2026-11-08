@@ -485,7 +485,7 @@ export component VoiceDock inherits Rectangle {
                 Text { text: "Voice Log"; color: Theme.text; font-size: 14px; font-weight: 700; }
                 Flickable {
                     vertical-stretch: 1;
-                    viewport-height: max(self.height, log-text.preferred-height);
+                    content-height: max(self.height, log-text.preferred-height);
                     log-text := Text {
                         width: parent.width;
                         text: root.voice-log == "" ? "Nobody has joined or left yet." : root.voice-log;

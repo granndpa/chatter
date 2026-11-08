@@ -13,6 +13,8 @@ pub enum Choice {
     Quit,
     /// A tray came or went, which decides what closing the window does.
     Available,
+    /// A reminder's notification was clicked.
+    Reminder,
 }
 
 /// What the icon and its menu show.
@@ -43,6 +45,12 @@ impl Tray {
     /// Whether a tray shows the icon now, so the window can close into it.
     pub fn available(&self) -> bool {
         self.platform.available()
+    }
+
+    /// Shows a notification from the tray icon, such as a reminder's. Only on
+    /// Windows; clicking it chooses [`Choice::Reminder`].
+    pub fn balloon(&self, title: &str, text: &str) {
+        self.platform.balloon(title, text);
     }
 
     /// Shows the unread dot and the call's Disconnect, telling the tray only
@@ -142,6 +150,9 @@ mod linux {
         pub fn available(&self) -> bool {
             self.online.load(Ordering::Relaxed)
         }
+
+        /// A StatusNotifierItem shows no notifications of its own.
+        pub fn balloon(&self, _: &str, _: &str) {}
 
         pub fn show(&self, shown: Shown) {
             let _ = self.updates.send(shown);
@@ -262,7 +273,7 @@ mod windows {
             System::LibraryLoader::GetModuleHandleW,
             UI::{
                 Shell::{
-                    NIF_ICON, NIF_MESSAGE, NIF_TIP, NIM_ADD, NIM_DELETE, NIM_MODIFY,
+                    NIF_ICON, NIF_INFO, NIF_MESSAGE, NIF_TIP, NIIF_INFO, NIM_ADD, NIM_DELETE, NIM_MODIFY,
                     NOTIFY_ICON_MESSAGE, NOTIFYICONDATAW, Shell_NotifyIconW,
                 },
                 WindowsAndMessaging::{
@@ -285,6 +296,8 @@ mod windows {
     /// Keyboard selection, which the shell sends as `NIN_SELECT` and `NIN_KEYSELECT`.
     const NIN_SELECT: u32 = WM_USER;
     const NIN_KEYSELECT: u32 = WM_USER + 1;
+    /// A notification balloon was clicked.
+    const NIN_BALLOONUSERCLICK: u32 = WM_USER + 5;
     const OPEN: usize = 1;
     const DISCONNECT: usize = 2;
     const QUIT: usize = 3;
@@ -378,6 +391,20 @@ mod windows {
             ICON.with_borrow(|icon| icon.as_ref().is_some_and(|icon| icon.added))
         }
 
+        /// A notification from the icon, which Windows shows as a toast.
+        pub fn balloon(&self, title: &str, text: &str) {
+            let Some(mut data) = ICON.with_borrow(|icon| {
+                icon.as_ref().filter(|icon| icon.added).map(|icon| icon.data)
+            }) else {
+                return;
+            };
+            data.uFlags = NIF_INFO;
+            data.dwInfoFlags = NIIF_INFO;
+            fill(&mut data.szInfoTitle, title);
+            fill(&mut data.szInfo, text);
+            notify(NIM_MODIFY, &data);
+        }
+
         pub fn show(&self, shown: Shown) {
             let data = ICON.with_borrow_mut(|icon| {
                 let icon = icon.as_mut()?;
@@ -402,6 +429,16 @@ mod windows {
             }
             // SAFETY: the window is this tray's, on this thread.
             unsafe { DestroyWindow(self.window) };
+        }
+    }
+
+    /// Copies text into one of the icon's fixed buffers, cut to fit, ending
+    /// with a zero.
+    fn fill(buffer: &mut [u16], text: &str) {
+        buffer.fill(0);
+        let room = buffer.len().saturating_sub(1);
+        for (place, unit) in buffer[..room].iter_mut().zip(text.encode_utf16()) {
+            *place = unit;
         }
     }
 
@@ -448,6 +485,7 @@ mod windows {
         if message == ICON_MESSAGE {
             match lparam as u32 {
                 WM_LBUTTONUP | NIN_SELECT | NIN_KEYSELECT => choose(Choice::Open),
+                NIN_BALLOONUSERCLICK => choose(Choice::Reminder),
                 WM_RBUTTONUP | WM_CONTEXTMENU => menu(window),
                 _ => {}
             }
@@ -533,6 +571,8 @@ mod none {
         }
 
         pub fn show(&self, _: Shown) {}
+
+        pub fn balloon(&self, _: &str, _: &str) {}
     }
 }
 

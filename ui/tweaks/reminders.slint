@@ -1,0 +1,111 @@
+// Discord Tweaks: message reminders, and the Remind Me picker.
+
+import { Theme } from "../theme.slint";
+import { TextField } from "../controls.slint";
+import { RowButton } from "bookmarks.slint";
+
+export struct ReminderRow {
+    id: int, author: string, place: string, body: string,
+    /// When it's due, such as "Today at 18:30", or "Due now".
+    due: string,
+    /// Its notification was shown.
+    fired: bool,
+}
+
+component ReminderEntry inherits VerticalLayout {
+    in property <ReminderRow> entry;
+    callback activate(int);
+    callback cancel(int);
+    /// A new time; empty snoozes it.
+    callback reschedule(int, string);
+    property <bool> editing;
+    spacing: 6px;
+    Rectangle {
+        border-radius: 8px;
+        background: touch.has-hover ? Theme.active : Theme.raised;
+        border-width: root.entry.fired ? 1px : 0px; border-color: Theme.danger;
+        touch := TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.activate(root.entry.id); } }
+        VerticalLayout {
+            padding: 12px; spacing: 4px;
+            HorizontalLayout {
+                spacing: 8px;
+                Text { text: root.entry.due; color: root.entry.fired ? Theme.danger : Theme.accent; font-size: 13px; font-weight: 700; }
+                Text { text: root.entry.author + ", " + root.entry.place; color: Theme.muted; font-size: 12px; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
+            }
+            if root.entry.body != "": Text { text: root.entry.body; color: Theme.text; font-size: 14px; wrap: word-wrap; }
+        }
+    }
+    HorizontalLayout {
+        spacing: 6px; alignment: start;
+        if root.entry.fired: RowButton { text: "Snooze 10 min"; clicked => { root.reschedule(root.entry.id, ""); } }
+        RowButton { text: "Change time"; clicked => { root.editing = !root.editing; } }
+        RowButton { text: root.entry.fired ? "Done" : "Cancel"; danger: !root.entry.fired; clicked => { root.cancel(root.entry.id); } }
+    }
+    if root.editing: TextField {
+        placeholder: "New time, like 2026-11-09 18:30 or 18:30, then Enter"; text-size: 13px; min-height: 32px;
+        accepted => { root.reschedule(root.entry.id, self.text); root.editing = false; }
+    }
+}
+
+export component ReminderList inherits VerticalLayout {
+    in property <[ReminderRow]> rows;
+    callback activate(int);
+    callback cancel(int);
+    callback reschedule(int, string);
+    Flickable {
+        vertical-stretch: 1;
+        content-height: max(self.height, list.preferred-height);
+        list := VerticalLayout {
+            width: parent.width;
+            alignment: start; spacing: 14px;
+            if root.rows.length == 0: Text {
+                text: "No reminders. Right-click a message and choose Remind Me.";
+                color: Theme.muted; font-size: 14px; wrap: word-wrap;
+            }
+            for row in root.rows: ReminderEntry {
+                entry: row;
+                activate(id) => { root.activate(id); }
+                cancel(id) => { root.cancel(id); }
+                reschedule(id, typed) => { root.reschedule(id, typed); }
+            }
+        }
+    }
+}
+
+/// Remind Me's choices: presets, or a typed time.
+export component RemindPicker inherits Rectangle {
+    in property <string> item;
+    in property <string> error;
+    /// The item, a preset (0 15 minutes, 1 an hour, 2 three hours, 3
+    /// tomorrow at 9:00) or -1 for the typed time, and the typed time.
+    callback chosen(string, int, string);
+    callback cancel;
+    background: #000000a0;
+    TouchArea { clicked => { root.cancel(); } }
+    Rectangle {
+        width: 340px; height: picker.preferred-height;
+        border-radius: 10px; background: Theme.raised; border-color: Theme.edge; border-width: 1px;
+        TouchArea { }
+        picker := VerticalLayout {
+            padding: 18px; spacing: 10px;
+            Text { text: "Remind Me"; color: Theme.text; font-size: 18px; font-weight: 700; }
+            for choice[index] in ["In 15 minutes", "In 1 hour", "In 3 hours", "Tomorrow at 9:00"]: Rectangle {
+                height: 34px; border-radius: 6px;
+                background: choice-touch.has-hover ? Theme.active : Theme.field;
+                Text { x: 12px; text: choice; color: Theme.text; font-size: 14px; vertical-alignment: center; }
+                choice-touch := TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.chosen(root.item, index, ""); } }
+            }
+            Text { text: "Or a custom time"; color: Theme.muted; font-size: 12px; }
+            custom := TextField {
+                placeholder: "2026-11-09 18:30 or 18:30"; text-size: 14px; min-height: 36px;
+                accepted => { root.chosen(root.item, -1, self.text); }
+            }
+            if root.error != "": Text { text: root.error; color: Theme.danger; font-size: 12px; wrap: word-wrap; }
+            HorizontalLayout {
+                spacing: 8px; alignment: end;
+                RowButton { text: "Cancel"; clicked => { root.cancel(); } }
+                RowButton { text: "Set reminder"; selected: true; clicked => { root.chosen(root.item, -1, custom.text); } }
+            }
+        }
+    }
+}

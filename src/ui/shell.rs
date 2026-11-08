@@ -377,6 +377,12 @@ fn chosen(choice: Choice) {
             shell.open();
         }
         Choice::Disconnect => shell.act(Action::Voice(voice::Command::Leave)),
+        Choice::Reminder => {
+            shell.open();
+            if let Some(window) = shell.window() {
+                super::tweaks::open_last_reminder(&mut shell.adapter.borrow_mut(), &window);
+            }
+        }
         Choice::Quit => {
             let _ = slint::quit_event_loop();
         }

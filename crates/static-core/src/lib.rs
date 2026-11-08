@@ -11,6 +11,7 @@ use anyhow::Context;
 #[cfg(feature = "discord")]
 pub use static_discord;
 
+pub mod tweaks;
 pub mod application;
 mod audio_io;
 pub mod backend;
