@@ -1789,8 +1789,12 @@ struct Adapter {
     /// Spoilers clicked, and what was picked or shown on polls; see
     /// `message_row`.
     revealed: HashSet<String>,
-    /// Messages translated with Discord Tweaks, by item: what shows under each.
-    translations: HashMap<String, String>,
+    /// Messages translated with Discord Tweaks, by item: the note under each,
+    /// such as "(translated from Spanish)", and the text shown in place of
+    /// the message's own; empty when it couldn't translate.
+    translations: HashMap<String, (String, String)>,
+    /// Deleted messages the message logger kept that were closed, by item.
+    dismissed: HashSet<String>,
     /// Discord Tweaks' voice log: the call it follows, who was in it at the
     /// last look, and what happened, newest last.
     voice_room: Option<String>,
@@ -2044,6 +2048,7 @@ impl Adapter {
                 latest_due: false,
                 revealed: HashSet::new(),
                 translations: HashMap::new(),
+                dismissed: HashSet::new(),
                 voice_room: None,
                 voice_people: Vec::new(),
                 voice_log: Vec::new(),

@@ -278,6 +278,29 @@ impl Adapter {
         }
     }
 
+    /// Takes the deleted messages someone closed out of the timelines, each
+    /// time the message logger brings them back.
+    fn drop_dismissed(&mut self) {
+        if self.dismissed.is_empty() {
+            return;
+        }
+        let dismissed = &self.dismissed;
+        let gone = |message: &Arc<static_core::chat::ChatMessage>| {
+            message.deleted && dismissed.contains(&message.item)
+        };
+        let state = &mut self.app.state;
+        if state.messages.iter().any(gone) {
+            Arc::make_mut(&mut state.messages).retain(|message| !gone(message));
+            self.restyle = true;
+        }
+        if let Some(aside) = &mut state.aside
+            && aside.messages.iter().any(gone)
+        {
+            Arc::make_mut(&mut aside.messages).retain(|message| !gone(message));
+            self.aside_restyle = true;
+        }
+    }
+
     /// Notes who joins, leaves or moves out of the call this account is in,
     /// for the voice log. A new call starts a new log.
     fn track_voice_log(&mut self, window: &StaticWindow) {
@@ -338,6 +361,7 @@ impl Adapter {
     pub(super) fn refresh(&mut self, window: &StaticWindow) {
         refresh_avatar_sources(&self.app.state);
         self.track_voice_log(window);
+        self.drop_dismissed();
         window
             .global::<PictureStore>()
             .set_revision(self.app.state.picture_changes as i32);
@@ -3299,8 +3323,12 @@ impl Adapter {
                 &marks,
                 |message| {
                     let mut row = layout.restyle(message, message_row(message, marks.revealed));
-                    if let Some(translation) = translations.get(&message.item) {
-                        row.translation = translation.as_str().into();
+                    if let Some((note, text)) = translations.get(&message.item) {
+                        if !text.is_empty() {
+                            row.styled = slint::StyledText::from_plain_text(text);
+                            row.body = text.as_str().into();
+                        }
+                        row.translation = note.as_str().into();
                     }
                     row
                 },

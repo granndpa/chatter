@@ -175,9 +175,11 @@ fn wait_for_translation(
 ) {
     slint::Timer::single_shot(std::time::Duration::from_millis(100), move || {
         let shown = match answer.try_recv() {
-            Ok(Ok((_, language))) if language == "English" => "Already in English".to_owned(),
-            Ok(Ok((text, language))) => format!("Translated from {language}: {text}"),
-            Ok(Err(error)) => format!("Couldn't translate: {error}"),
+            Ok(Ok((_, language))) if language == "English" => {
+                ("(already in English)".to_owned(), String::new())
+            }
+            Ok(Ok((text, language))) => (format!("(translated from {language})"), text),
+            Ok(Err(error)) => (format!("(couldn't translate: {error})"), String::new()),
             Err(std::sync::mpsc::TryRecvError::Empty) => {
                 return wait_for_translation(answer, state, weak, item);
             }
@@ -1758,6 +1760,23 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
             let _ = sent.send(crate::translate::to_english(&body));
         });
         wait_for_translation(answer, state.clone(), weak.clone(), item);
+    });
+    let state = adapter.clone();
+    let weak = window.as_weak();
+    window.on_show_original(move |item| {
+        let Some(window) = weak.upgrade() else { return };
+        let mut adapter = state.borrow_mut();
+        adapter.translations.remove(item.as_str());
+        adapter.restyle = true;
+        adapter.refresh(&window);
+    });
+    let state = adapter.clone();
+    let weak = window.as_weak();
+    window.on_dismiss_deleted(move |item| {
+        let Some(window) = weak.upgrade() else { return };
+        let mut adapter = state.borrow_mut();
+        adapter.dismissed.insert(item.to_string());
+        adapter.refresh(&window);
     });
     // The channel's composer and the thread beside's pick files alike.
     let pick = |state: Rc<RefCell<Adapter>>, stage: fn(Vec<PathBuf>) -> Action| {

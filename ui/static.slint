@@ -1407,6 +1407,8 @@ export component StaticWindow inherits Window {
     // with none, the one most reacted with.
     callback view-reactions(string, string);
     callback translate-message(string);
+    callback show-original(string);
+    callback dismiss-deleted(string);
     /// Discord Tweaks' voice log, one event per line.
     in property <string> voice-log;
     callback select-reaction(string);
@@ -2268,6 +2270,8 @@ export component StaticWindow inherits Window {
             view-thread(room) => { root.open-aside(room); message-menu.close(); }
             view-reactions(item) => { root.view-reactions(item, ""); message-menu.close(); }
             translate(item) => { root.translate-message(item); message-menu.close(); }
+            show-original(item) => { root.show-original(item); message-menu.close(); }
+            dismiss-deleted(item) => { root.dismiss-deleted(item); message-menu.close(); }
             emoji-font: root.emoji-font; composer-enabled: root.composer-enabled; forward-allowed: root.forward-allowed; preview: root.preview;
             react(item, key) => { root.react(item, key); message-menu.close(); }
             open-picker(item) => { root.open-picker(item); message-menu.close(); }

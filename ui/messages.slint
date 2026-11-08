@@ -1023,6 +1023,8 @@ export component MessageMenu inherits Rectangle {
     callback view-thread(string);
     callback view-reactions(string);
     callback translate(string);
+    callback show-original(string);
+    callback dismiss-deleted(string);
     callback copy-image(string, int);
     callback save-attachment(string, int);
     callback open-link(string);
@@ -1070,9 +1072,17 @@ export component MessageMenu inherits Rectangle {
             text: "View Thread"; icon: @image-url("icons/thread.svg");
             clicked => { root.view-thread(root.menu-message.thread-room); }
         }
-        if root.menu-message.body != "": MenuItem {
+        if root.menu-message.body != "" && root.menu-message.translation == "": MenuItem {
             text: "Translate"; icon: @image-url("icons/text-select.svg");
             clicked => { root.translate(root.menu-message.item); }
+        }
+        if root.menu-message.translation != "": MenuItem {
+            text: "Show Original"; icon: @image-url("icons/x.svg");
+            clicked => { root.show-original(root.menu-message.item); }
+        }
+        if root.menu-message.deleted: MenuItem {
+            text: "Close Deleted Message"; icon: @image-url("icons/x.svg");
+            clicked => { root.dismiss-deleted(root.menu-message.item); }
         }
         if root.menu-message.body != "": MenuItem {
             text: "Copy text"; icon: @image-url("icons/copy.svg");
@@ -2233,7 +2243,7 @@ export component MessageContent inherits VerticalLayout {
             // As MessageLogger shows an edit: what the message said before, small
             // and grey under it, then (edited).
             if message.edit-history != "": Text { text: message.edit-history; color: Theme.muted; font-size: root.message-font-size - 3px; wrap: word-wrap; }
-            if message.translation != "": Text { text: message.translation; color: Theme.muted; font-size: root.message-font-size - 3px; font-italic: true; wrap: word-wrap; }
+            if message.translation != "": Text { text: message.translation; color: Theme.muted; font-size: root.message-font-size - 4px; wrap: word-wrap; }
             if message.edited && !message.deleted: Text { text: "(edited)"; color: Theme.muted; font-size: root.message-font-size - 4px; }
             // Fixed-size children sit beside a spacer, so they do not cap the column's width.
             if message.images.length > 0: MessageGallery {
