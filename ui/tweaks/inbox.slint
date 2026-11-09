@@ -1,0 +1,64 @@
+// Discord Tweaks: the Mentions Inbox, on the Saved panel.
+
+import { Theme } from "../theme.slint";
+import { RowButton } from "bookmarks.slint";
+
+export struct InboxRow {
+    id: int, author: string, place: string, time: string, body: string, read: bool,
+}
+
+export component InboxList inherits VerticalLayout {
+    in property <[InboxRow]> rows;
+    in property <bool> unread-only;
+    callback filter(bool);
+    callback activate(int);
+    callback mark(int, bool);
+    callback mark-all;
+    spacing: 10px;
+    HorizontalLayout {
+        spacing: 6px; alignment: start;
+        RowButton { text: "Unread"; selected: root.unread-only; clicked => { root.filter(true); } }
+        RowButton { text: "All"; selected: !root.unread-only; clicked => { root.filter(false); } }
+        Rectangle { width: 12px; }
+        RowButton { text: "Mark All Read"; clicked => { root.mark-all(); } }
+    }
+    Flickable {
+        vertical-stretch: 1;
+        content-height: max(self.height, list.preferred-height);
+        list := VerticalLayout {
+            width: parent.width;
+            alignment: start; spacing: 10px;
+            if root.rows.length == 0: Text {
+                text: root.unread-only ? "You're all caught up." : "Mentions, replies and DMs you get show up here.";
+                color: Theme.muted; font-size: 14px; wrap: word-wrap;
+            }
+            for row in root.rows: VerticalLayout {
+                spacing: 6px;
+                Rectangle {
+                    border-radius: 8px;
+                    background: touch.has-hover ? Theme.active : Theme.raised;
+                    border-width: row.read ? 0px : 1px; border-color: Theme.accent;
+                    touch := TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.activate(row.id); } }
+                    VerticalLayout {
+                        padding: 12px; spacing: 4px;
+                        HorizontalLayout {
+                            spacing: 8px;
+                            if !row.read: VerticalLayout {
+                                alignment: center;
+                                Rectangle { width: 8px; height: 8px; border-radius: 4px; background: Theme.accent; }
+                            }
+                            Text { text: row.author; color: Theme.text; font-size: 14px; font-weight: 700; overflow: elide; }
+                            Text { text: row.place; color: Theme.muted; font-size: 12px; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
+                        }
+                        if row.body != "": Text { text: row.body; color: Theme.text; font-size: 14px; wrap: word-wrap; }
+                        Text { text: row.time; color: Theme.muted; font-size: 11px; }
+                    }
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    RowButton { text: row.read ? "Mark Unread" : "Mark Read"; clicked => { root.mark(row.id, !row.read); } }
+                }
+            }
+        }
+    }
+}

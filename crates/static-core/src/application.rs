@@ -3489,6 +3489,7 @@ impl Application {
             body,
             avatar,
             mention,
+            item,
         } = notification;
         let place = self.state.rooms.iter().find(|known| known.id == room);
         let server = self
@@ -3497,16 +3498,18 @@ impl Application {
             .iter()
             .find(|server| server.channels.contains(&room));
         let title = match (place, server) {
-            (Some(place), _) if place.direct && place.person.is_some() => author,
+            (Some(place), _) if place.direct && place.person.is_some() => author.clone(),
             (Some(place), Some(server)) if server.discord => {
                 format!("{author} in #{} ({})", place.name, server.name)
             }
             (Some(place), _) => format!("{author} in {}", place.name),
-            (None, _) => author,
+            (None, _) => author.clone(),
         };
         let picture = avatar.and_then(|avatar| self.state.pictures.get(&avatar).cloned());
         chat::Alert {
             room,
+            item,
+            author,
             title,
             body,
             picture,

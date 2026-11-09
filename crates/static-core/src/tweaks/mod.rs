@@ -5,6 +5,7 @@
 
 pub mod bookmarks;
 pub mod drafts;
+pub mod inbox;
 pub mod pins;
 pub mod reminders;
 

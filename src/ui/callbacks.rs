@@ -225,6 +225,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
     super::tweaks::bind(window, adapter);
     super::updates::bind(window, adapter);
     super::discover::bind(window, adapter);
+    super::connection::start();
     super::games::bind(window, adapter);
     super::connections::bind(window, adapter);
     super::accounts::bind(window, adapter);

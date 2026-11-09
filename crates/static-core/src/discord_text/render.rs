@@ -69,6 +69,7 @@ pub(super) fn notification(
             snapshot.user_id.as_deref().unwrap_or_default(),
             server.map(|server| &*server.marks),
         ),
+        item: Some(format!("d:{}", message.id)),
     }
 }
 

@@ -194,6 +194,7 @@ fn notifications_name_the_place_and_open_it() {
     let mut app = connected();
     let notify = |app: &mut Application, room: &str| {
         let effects = app.apply(Event::Notify(chat::Notification {
+            item: None,
             room: room.into(),
             author: "Sam".into(),
             body: "Thinking co-op".into(),
@@ -2507,6 +2508,7 @@ fn calls_sound_as_people_come_and_go_but_not_while_reconnecting_or_ringing() {
 fn notifications_say_whether_they_mention_this_account() {
     let mut app = connected();
     let effects = app.apply(Event::Notify(chat::Notification {
+            item: None,
         room: "games".into(),
         author: "Sam".into(),
         body: "@alice co-op?".into(),
@@ -4919,6 +4921,7 @@ fn sets_the_status_and_holds_notifications_while_busy() {
     assert_eq!(app.state.discord_presence.as_deref(), Some("dnd"));
     let notify = |app: &mut Application| {
         app.apply(Event::Notify(chat::Notification {
+            item: None,
             room: "dm".into(),
             author: "Sam".into(),
             body: "Around?".into(),

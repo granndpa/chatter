@@ -4384,6 +4384,8 @@ pub struct Notification {
     pub avatar: Option<String>,
     /// It mentions this account, rather than notifying as any message there does.
     pub mention: bool,
+    /// The message's timeline item, when its network says.
+    pub item: Option<String>,
 }
 
 /// A notification ready to show: its conversation, a title naming who wrote where, the
@@ -4391,6 +4393,9 @@ pub struct Notification {
 #[derive(Clone, Debug)]
 pub struct Alert {
     pub room: String,
+    /// The message's timeline item and its author, for the Mentions Inbox.
+    pub item: Option<String>,
+    pub author: String,
     pub title: String,
     pub body: String,
     pub picture: Option<Arc<Picture>>,

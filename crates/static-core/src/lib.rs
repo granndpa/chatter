@@ -12,6 +12,9 @@ use anyhow::Context;
 pub use static_discord;
 
 pub mod tweaks;
+/// Whether this computer is online; see `static_discord::gateway::network`.
+#[cfg(feature = "discord")]
+pub use static_discord::gateway::network as discord_network;
 pub mod application;
 mod audio_io;
 pub mod backend;

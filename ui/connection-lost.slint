@@ -77,7 +77,12 @@ component Character inherits Rectangle {
 /// Covers the window while the connection is down; the rest of Chatter comes
 /// back as it was once it reconnects.
 export component ConnectionLost inherits Rectangle {
+    /// Back online: the character cheers while the screen fades away.
+    in property <bool> reconnected;
     property <float> t: Math.mod(animation-tick() / 1ms, 4800) / 4800;
+    // How far into the cheer, from 0 to 1.
+    property <float> cheer: root.reconnected ? 1 : 0;
+    animate cheer { duration: 700ms; easing: ease-out; }
     background: Theme.chat;
     accessible-role: groupbox;
     accessible-label: "Connection lost. Trying to reconnect.";
@@ -87,12 +92,24 @@ export component ConnectionLost inherits Rectangle {
         alignment: center; spacing: 18px;
         HorizontalLayout {
             alignment: center;
-            Character { t: root.t; size: 150px; }
+            Rectangle {
+                width: character.width; height: character.height;
+                // A happy hop: up and back down as the cheer plays.
+                character := Character {
+                    // Awake and looking ahead while it cheers.
+                    t: root.reconnected ? 0.9 : root.t;
+                    size: 150px;
+                    y: -36px * Math.sin(root.cheer * 180deg);
+                }
+            }
         }
         Rectangle { height: 6px; }
-        Text { text: "Connection lost"; color: Theme.text; font-size: 22px; font-weight: 700; horizontal-alignment: center; }
         Text {
-            text: "Trying to reconnect...";
+            text: root.reconnected ? "Connected!" : "Connection lost";
+            color: root.reconnected ? #3ba55d : Theme.text; font-size: 22px; font-weight: 700; horizontal-alignment: center;
+        }
+        Text {
+            text: root.reconnected ? "Welcome back." : "Trying to reconnect...";
             color: Theme.muted; font-size: 15px; horizontal-alignment: center;
         }
     }

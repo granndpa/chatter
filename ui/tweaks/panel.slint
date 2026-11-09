@@ -5,6 +5,7 @@ import { Theme } from "../theme.slint";
 import { IconButton } from "../controls.slint";
 import { SavedRow, SavedList, RowButton } from "bookmarks.slint";
 import { ReminderRow, ReminderList } from "reminders.slint";
+import { InboxRow, InboxList } from "inbox.slint";
 
 export component SavedPanel inherits Rectangle {
     /// 0 Bookmarks, 1 Reminders, 2 Hall of Fame.
@@ -12,6 +13,10 @@ export component SavedPanel inherits Rectangle {
     in property <[SavedRow]> rows;
     in property <[string]> collections;
     in property <[ReminderRow]> reminders;
+    in property <[InboxRow]> inbox;
+    in property <bool> inbox-unread-only;
+    /// Unread inbox entries, on its tab.
+    in property <string> inbox-badge;
     /// Why something didn't work, such as a conversation that's gone.
     in property <string> note;
     callback show(int);
@@ -26,6 +31,10 @@ export component SavedPanel inherits Rectangle {
     callback reminder-activate(int);
     callback reminder-cancel(int);
     callback reminder-reschedule(int, string);
+    callback inbox-filter(bool);
+    callback inbox-activate(int);
+    callback inbox-mark(int, bool);
+    callback inbox-mark-all;
     background: #000000a0;
     TouchArea { clicked => { root.close(); } }
     FocusScope {
@@ -45,15 +54,24 @@ export component SavedPanel inherits Rectangle {
                 spacing: 8px;
                 Text { text: "Saved"; color: Theme.text; font-size: 20px; font-weight: 700; vertical-alignment: center; }
                 Rectangle { width: 12px; }
-                for name[index] in ["Bookmarks", "Reminders", "Hall of Fame"]: RowButton {
-                    text: name; selected: root.tab == index;
+                for name[index] in ["Bookmarks", "Reminders", "Hall of Fame", "Inbox"]: RowButton {
+                    text: index == 3 && root.inbox-badge != "" ? name + " (" + root.inbox-badge + ")" : name;
+                    selected: root.tab == index;
                     clicked => { root.show(index); }
                 }
                 Rectangle { horizontal-stretch: 1; }
                 IconButton { icon: @image-url("../icons/x.svg"); label: "Close"; clicked => { root.close(); } }
             }
             if root.note != "": Text { text: root.note; color: Theme.danger; font-size: 13px; wrap: word-wrap; }
-            if root.tab != 1: SavedList {
+            if root.tab == 3: InboxList {
+                vertical-stretch: 1;
+                rows: root.inbox; unread-only: root.inbox-unread-only;
+                filter(unread) => { root.inbox-filter(unread); }
+                activate(id) => { root.inbox-activate(id); }
+                mark(id, read) => { root.inbox-mark(id, read); }
+                mark-all => { root.inbox-mark-all(); }
+            }
+            if root.tab == 0 || root.tab == 2: SavedList {
                 vertical-stretch: 1;
                 rows: root.rows; collections: root.collections; hall: root.tab == 2;
                 search(query, collection, sort) => { root.search(query, collection, sort); }

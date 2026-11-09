@@ -8,6 +8,7 @@ use static_core::tweaks::{
     self, SavedMessage,
     bookmarks::{self, Bookmarks, Sort},
     drafts::{self, Drafts},
+    inbox::{self, Inbox},
     pins::{self, Pins},
     reminders::{self, Reminders},
 };
@@ -29,6 +30,9 @@ pub(super) struct Tweaks {
     reminders: Reminders,
     /// Pinned servers and friends, which the rail shows first.
     pub(super) pins: Pins,
+    inbox: Inbox,
+    /// The inbox shows only unread entries; on unless switched.
+    inbox_all: bool,
     /// The drafts as last written to disk.
     drafts: Drafts,
     /// The message the last reminder was about, which clicking its
@@ -60,12 +64,14 @@ pub(super) fn sync_account(adapter: &mut Adapter) {
     tweaks.bookmarks = Bookmarks::default();
     tweaks.reminders = Reminders::default();
     tweaks.pins = Pins::default();
+    tweaks.inbox = Inbox::default();
     tweaks.drafts = Drafts::default();
     tweaks.collection.clear();
     if let Some(dir) = dir {
         tweaks.bookmarks = tweaks::load(&dir, bookmarks::FILE);
         tweaks.reminders = tweaks::load(&dir, reminders::FILE);
         tweaks.pins = tweaks::load(&dir, pins::FILE);
+        tweaks.inbox = tweaks::load(&dir, inbox::FILE);
         let saved: Drafts = tweaks::load(&dir, drafts::FILE);
         adapter.app.state.restore_drafts(saved);
         adapter.tweaks.drafts = adapter.app.state.saved_drafts();
@@ -160,6 +166,52 @@ fn save_bookmarks(adapter: &Adapter) {
         && let Err(error) = tweaks::save(dir, bookmarks::FILE, &adapter.tweaks.bookmarks)
     {
         tracing::warn!(%error, "could not save bookmarks");
+    }
+}
+
+fn save_inbox(adapter: &Adapter) {
+    if let Some(dir) = &adapter.tweaks.dir
+        && let Err(error) = tweaks::save(dir, inbox::FILE, &adapter.tweaks.inbox)
+    {
+        tracing::warn!(%error, "could not save the inbox");
+    }
+}
+
+/// Puts a notification's message in the Mentions Inbox when it mentions or
+/// replies to this account, or came in a DM.
+pub(super) fn record_alert(adapter: &mut Adapter, alert: &static_core::chat::Alert) {
+    if alert.call {
+        return;
+    }
+    let Some(item) = alert.item.clone() else {
+        return;
+    };
+    sync_account(adapter);
+    let state = &adapter.app.state;
+    let room = state.rooms.iter().find(|found| found.id == alert.room);
+    if !alert.mention && !room.is_some_and(|room| room.direct) {
+        return;
+    }
+    let message = SavedMessage {
+        room: alert.room.clone(),
+        item,
+        server: state
+            .servers
+            .iter()
+            .find(|server| server.channels.contains(&alert.room))
+            .map(|server| server.name.clone())
+            .unwrap_or_default(),
+        channel: room.map(|room| room.name.clone()).unwrap_or_default(),
+        author: alert.author.clone(),
+        body: alert.body.clone(),
+        sent: now(),
+        picture: None,
+    };
+    if adapter.tweaks.inbox.add(message) {
+        save_inbox(adapter);
+        if let Some(window) = adapter.window.upgrade() {
+            show(adapter, &window);
+        }
     }
 }
 
@@ -308,6 +360,29 @@ fn show(adapter: &Adapter, window: &StaticWindow) {
         })
         .collect();
     window.set_reminder_rows(ModelRc::new(VecModel::from(reminders)));
+    let unread_only = !tweaks.inbox_all;
+    let inbox: Vec<InboxRow> = tweaks
+        .inbox
+        .listed(unread_only)
+        .map(|entry| InboxRow {
+            id: entry.id as i32,
+            author: entry.message.author.as_str().into(),
+            place: place(&entry.message).into(),
+            time: static_core::clock::full(entry.message.sent, twelve_hour).into(),
+            body: entry.message.body.as_str().into(),
+            read: entry.read,
+        })
+        .collect();
+    window.set_inbox_rows(ModelRc::new(VecModel::from(inbox)));
+    window.set_inbox_unread_only(unread_only);
+    let unread = tweaks.inbox.unread();
+    window.set_saved_badge(if unread == 0 {
+        SharedString::default()
+    } else if unread > 99 {
+        "99+".into()
+    } else {
+        unread.to_string().into()
+    });
 }
 
 /// Opens a saved message where it was, unless that conversation is gone.
@@ -554,6 +629,49 @@ pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
             adapter.tweaks.reminders.set_due(id as u64, due);
             save_reminders(&adapter);
             window.set_saved_note(SharedString::default());
+            show(&adapter, &window);
+        });
+    }
+    {
+        let (state, weak) = with(adapter, &weak);
+        window.on_inbox_filter(move |unread_only| {
+            let Some(window) = weak.upgrade() else { return };
+            let mut adapter = state.borrow_mut();
+            adapter.tweaks.inbox_all = !unread_only;
+            show(&adapter, &window);
+        });
+    }
+    {
+        let (state, weak) = with(adapter, &weak);
+        window.on_inbox_activate(move |id| {
+            let Some(window) = weak.upgrade() else { return };
+            let mut adapter = state.borrow_mut();
+            let message = adapter.tweaks.inbox.get(id as u64).map(|entry| entry.message.clone());
+            adapter.tweaks.inbox.mark(id as u64, true);
+            save_inbox(&adapter);
+            show(&adapter, &window);
+            if let Some(message) = message {
+                open(&mut adapter, &window, message);
+            }
+        });
+    }
+    {
+        let (state, weak) = with(adapter, &weak);
+        window.on_inbox_mark(move |id, read| {
+            let Some(window) = weak.upgrade() else { return };
+            let mut adapter = state.borrow_mut();
+            adapter.tweaks.inbox.mark(id as u64, read);
+            save_inbox(&adapter);
+            show(&adapter, &window);
+        });
+    }
+    {
+        let (state, weak) = with(adapter, &weak);
+        window.on_inbox_mark_all(move || {
+            let Some(window) = weak.upgrade() else { return };
+            let mut adapter = state.borrow_mut();
+            adapter.tweaks.inbox.mark_all();
+            save_inbox(&adapter);
             show(&adapter, &window);
         });
     }

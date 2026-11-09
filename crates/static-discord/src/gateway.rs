@@ -17,6 +17,58 @@ use std::{
     time::Duration,
 };
 
+/// Whether this computer has a network connection, as the app last found:
+/// losing it ends the session straight away, and getting it back cuts the
+/// wait before connecting again.
+pub mod network {
+    use std::sync::{
+        OnceLock,
+        atomic::{AtomicBool, Ordering},
+    };
+
+    use tokio::sync::Notify;
+
+    static UP: AtomicBool = AtomicBool::new(true);
+
+    fn changes() -> &'static Notify {
+        static CHANGES: OnceLock<Notify> = OnceLock::new();
+        CHANGES.get_or_init(Notify::new)
+    }
+
+    /// Says whether the network is up, waking whoever waits on a change.
+    pub fn set(up: bool) {
+        if UP.swap(up, Ordering::Relaxed) != up {
+            changes().notify_waiters();
+        }
+    }
+
+    pub fn up() -> bool {
+        UP.load(Ordering::Relaxed)
+    }
+
+    /// Returns once the network goes away from now on; a network already
+    /// down when this starts waits for it to come back and go again.
+    pub async fn lost() {
+        loop {
+            changes().notified().await;
+            if !up() {
+                return;
+            }
+        }
+    }
+
+    /// Returns once the network comes back.
+    pub async fn back() {
+        loop {
+            let changed = changes().notified();
+            if up() {
+                return;
+            }
+            changed.await;
+        }
+    }
+}
+
 /// Fake deafen: others see this account muted and deafened in voice, while
 /// Chatter keeps playing the call as usual.
 pub static FAKE_DEAFEN: AtomicBool = AtomicBool::new(false);

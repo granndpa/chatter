@@ -111,6 +111,11 @@ pub(super) async fn run(
                 let started = tokio::time::Instant::now();
                 let ended = tokio::select! {
                     ended = connected_session(gateway, ready, &mut requests, &mut shared) => ended,
+                    // The computer went offline: end the session now rather
+                    // than waiting for a missed heartbeat to say so.
+                    () = crate::gateway::network::lost() => {
+                        Ended::Failed(anyhow::anyhow!("This computer went offline."))
+                    }
                     changed = auth_rejected.changed() => {
                         if changed.is_ok() && *auth_rejected.borrow_and_update() {
                             shared.lists.disconnected();
@@ -164,9 +169,14 @@ pub(super) async fn run(
         });
         let wait = tokio::time::sleep(reconnects.wait(&error, up));
         tokio::pin!(wait);
+        // Offline, the network coming back ends the wait straight away.
+        let offline = !crate::gateway::network::up();
+        let back = crate::gateway::network::back();
+        tokio::pin!(back);
         loop {
             tokio::select! {
                 () = &mut wait => break,
+                () = &mut back, if offline => break,
                 changed = auth_rejected.changed() => {
                     if changed.is_ok() && *auth_rejected.borrow_and_update() {
                         mark_relink_required(&snapshots);

@@ -35,6 +35,7 @@ import { ServerRow, RoomRow, StatusDot, ServerRail, ServerHeader, RoomList } fro
 import { SavedRow } from "tweaks/bookmarks.slint";
 import { ReminderRow, RemindPicker } from "tweaks/reminders.slint";
 import { SavedPanel } from "tweaks/panel.slint";
+import { InboxRow } from "tweaks/inbox.slint";
 import { ConnectionLost } from "connection-lost.slint";
 import { DiscoverRow, CreateServerDialog, DiscoverScreen } from "discover.slint";
 import { StagedFile, StagedTile, Composer, MentionRow, MentionList, EmojiSuggestions, RequestBar } from "composer.slint";
@@ -1445,6 +1446,14 @@ export component StaticWindow inherits Window {
     in property <[SavedRow]> saved-rows;
     in property <[string]> saved-collections;
     in property <[ReminderRow]> reminder-rows;
+    // The Mentions Inbox (tab 3), and its unread count on the Saved button.
+    in property <[InboxRow]> inbox-rows;
+    in property <bool> inbox-unread-only;
+    in property <string> saved-badge;
+    callback inbox-filter(bool);
+    callback inbox-activate(int);
+    callback inbox-mark(int, bool);
+    callback inbox-mark-all;
     in-out property <string> saved-note;
     /// The message Remind Me is open for, and why a typed time didn't work.
     in-out property <string> remind-item;
@@ -2420,7 +2429,8 @@ export component StaticWindow inherits Window {
                         arrange(source, target, mode) => { root.arrange-servers(source, target, mode, ""); }
                         navigate-dms => { root.navigate-dms(); }
                         read-all => { root.read-all(); }
-                        open-saved => { root.saved-show(root.saved-tab); }
+                        open-saved => { root.saved-show(root.saved-badge != "" ? 3 : root.saved-tab); }
+                        saved-badge: root.saved-badge;
                         navigate-server(id) => { root.navigate-server(id); }
                         toggle-folder(id) => { root.toggle-folder(id); }
                         open-dm(id) => { root.open-conversation(id); }
@@ -2456,13 +2466,12 @@ export component StaticWindow inherits Window {
                                     verified: root.header-verified; on-banner: header-box.banner;
                                     clicked => { root.open-header-menu(self.absolute-position.x, self.absolute-position.y + self.height + 6px); }
                                 }
-                                if header-box.banner && root.header-server != "" && root.header-invite: Rectangle {
-                                    x: parent.width - 40px; y: 8px; width: 32px; height: 32px; border-radius: 16px;
-                                    background: #00000080;
-                                }
                                 if root.header-server != "" && root.header-invite: IconButton {
-                                    x: parent.width - self.width - 8px; y: 8px;
+                                    x: parent.width - self.width - 8px; y: 8px; height: 32px;
+                                    // On a banner it gets a dark backing so it shows on any picture.
                                     tint: header-box.banner ? #ffffff : Theme.secondary;
+                                    fill: header-box.banner ? #00000099 : transparent;
+                                    radius: header-box.banner ? 16px : 6px;
                                     icon: @image-url("icons/user-plus.svg"); label: "Invite people"; size: 32px; glyph: 20px; tip-side: 2;
                                     clicked => { root.open-invite(root.header-server); }
                                 }
@@ -4359,12 +4368,23 @@ export component StaticWindow inherits Window {
         join(code) => { root.join-discovered(code); }
         close => { root.close-discover(); }
     }
-    if root.connection-lost: ConnectionLost {
+    // Fades in when the connection drops; once it's back it cheers for a
+    // moment, then fades out.
+    property <float> offline-amount: root.connection-lost ? 1 : 0;
+    animate offline-amount { delay: root.connection-lost ? 0ms : 900ms; duration: root.connection-lost ? 250ms : 450ms; easing: ease-in-out; }
+    if root.offline-amount > 0: ConnectionLost {
         y: root.title-height; width: root.width; height: root.height - root.title-height;
+        opacity: root.offline-amount;
+        reconnected: !root.connection-lost;
     }
     if root.saved-open: SavedPanel {
         tab: root.saved-tab; rows: root.saved-rows; collections: root.saved-collections;
         reminders: root.reminder-rows; note: root.saved-note;
+        inbox: root.inbox-rows; inbox-unread-only: root.inbox-unread-only; inbox-badge: root.saved-badge;
+        inbox-filter(unread) => { root.inbox-filter(unread); }
+        inbox-activate(id) => { root.inbox-activate(id); }
+        inbox-mark(id, read) => { root.inbox-mark(id, read); }
+        inbox-mark-all => { root.inbox-mark-all(); }
         show(tab) => { root.saved-show(tab); }
         close => { root.saved-open = false; }
         search(query, collection, sort) => { root.saved-search(query, collection, sort); }

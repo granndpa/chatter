@@ -852,6 +852,8 @@ export component ServerRail inherits Rectangle {
     callback read-all;
     /// Open Discord Tweaks' Saved panel.
     callback open-saved;
+    /// Unread Mentions Inbox entries, shown on the Saved button.
+    in property <string> saved-badge;
     callback navigate-server(string);
     callback toggle-folder(string);
     in property <bool> can-arrange;
@@ -916,8 +918,8 @@ export component ServerRail inherits Rectangle {
             height: 20px;
             Rectangle {
                 width: 52px; height: 20px; border-radius: 10px;
-                background: saved-touch.has-hover ? Theme.active : Theme.raised;
-                Text { text: "Saved"; color: Theme.text; font-size: 10px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
+                background: root.saved-badge != "" ? Theme.danger : saved-touch.has-hover ? Theme.active : Theme.raised;
+                Text { text: root.saved-badge != "" ? "Saved " + root.saved-badge : "Saved"; color: root.saved-badge != "" ? #ffffff : Theme.text; font-size: 10px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
                 saved-touch := TouchArea {
                     mouse-cursor: MouseCursor.pointer;
                     clicked => { root.open-saved(); }

@@ -1780,6 +1780,7 @@ async fn notification_of(
             .actions
             .iter()
             .any(|action| action.is_highlight()),
+        item: None,
     })
 }
 

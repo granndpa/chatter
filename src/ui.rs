@@ -68,6 +68,7 @@ mod tiles;
 mod title_bar;
 
 use callbacks::bind_callbacks;
+mod connection;
 mod discover;
 mod tweaks;
 mod updates;
@@ -2450,6 +2451,7 @@ impl Adapter {
                     }
                 }
                 Effect::Notify(alert) => {
+                    tweaks::record_alert(self, &alert);
                     // A message sounds unless it's in the conversation in front;
                     // a call rings instead.
                     let reading =

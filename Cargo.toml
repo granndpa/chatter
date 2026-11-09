@@ -1,6 +1,6 @@
 [package]
 name = "static-desktop"
-version = "0.5.5"
+version = "0.5.6"
 edition = "2024"
 rust-version = "1.97"
 publish = false
@@ -89,7 +89,7 @@ xkeysym = { version = "0.2.1", optional = true }
 # later start sets to show the window, and the clipboard's files and pictures
 # for a paste. Already in the tree through winit.
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_System_Console", "Win32_System_Com", "Win32_System_DataExchange", "Win32_System_Diagnostics_ToolHelp", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_Security", "Win32_System_Registry", "Win32_System_Threading", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"], optional = true }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_Networking_WinInet", "Win32_System_Console", "Win32_System_Com", "Win32_System_DataExchange", "Win32_System_Diagnostics_ToolHelp", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_Security", "Win32_System_Registry", "Win32_System_Threading", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"], optional = true }
 # The GPU setting draws through Direct3D 12 on Windows: NVIDIA's OpenGL driver
 # spins a core while it waits for the screen. See src/graphics.rs.
 i-slint-renderer-skia = { version = "=1.19.0", features = ["wgpu-30"], optional = true }
