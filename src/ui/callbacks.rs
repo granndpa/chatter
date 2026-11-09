@@ -2090,6 +2090,65 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
     });
     let state = adapter.clone();
     let weak = window.as_weak();
+    window.on_command_chip(move |name| {
+        let Some(window) = weak.upgrade() else { return };
+        let caret = {
+            let mut adapter = state.borrow_mut();
+            let mut text = adapter.composer_text(false);
+            let key = format!("{name}:");
+            if !text.split_whitespace().any(|word| word.starts_with(&key)) {
+                if !text.ends_with(' ') {
+                    text.push(' ');
+                }
+                text.push_str(&key);
+            }
+            let caret = text.len();
+            adapter.set_composer_text(&window, false, text);
+            caret
+        };
+        place_composer_caret(&window, (false, caret));
+    });
+    let state = adapter.clone();
+    let weak = window.as_weak();
+    window.on_command_choice(move |choice| {
+        let Some(window) = weak.upgrade() else { return };
+        let caret = {
+            let mut adapter = state.borrow_mut();
+            let Some(hint) = adapter.app.state.command_hint() else { return };
+            let mut text = adapter.composer_text(false);
+            match hint.options.iter().find(|option| option.current) {
+                // A subcommand to pick.
+                None => {
+                    let word = text.rsplit(' ').next().unwrap_or("").to_owned();
+                    if !word.is_empty() && choice.starts_with(word.as_str()) {
+                        text.truncate(text.len() - word.len());
+                    }
+                    text.push_str(&choice);
+                    text.push(' ');
+                }
+                Some(option) => {
+                    let key = format!("{}:", option.name);
+                    match text.rfind(&key) {
+                        Some(at) => text.truncate(at + key.len()),
+                        None => {
+                            if !text.ends_with(' ') {
+                                text.push(' ');
+                            }
+                            text.push_str(&key);
+                        }
+                    }
+                    text.push_str(&choice);
+                    text.push(' ');
+                }
+            }
+            let caret = text.len();
+            adapter.set_composer_text(&window, false, text);
+            caret
+        };
+        place_composer_caret(&window, (false, caret));
+    });
+    let state = adapter.clone();
+    let weak = window.as_weak();
     window.on_emoji_suggestion_chosen(move |index| {
         let Some(window) = weak.upgrade() else { return };
         let caret = {

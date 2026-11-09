@@ -42,7 +42,7 @@ import { DiscoverRow, CreateServerDialog, DiscoverScreen } from "discover.slint"
 import { ChatTab, ChatTabs } from "chat-tabs.slint";
 import { GalleryItem, GalleryScreen } from "gallery.slint";
 export { VoiceOverlay, OverlayPerson } from "voice-overlay.slint";
-import { StagedFile, StagedTile, Composer, MentionRow, MentionList, EmojiSuggestions, RequestBar } from "composer.slint";
+import { StagedFile, StagedTile, Composer, MentionRow, MentionList, EmojiSuggestions, RequestBar, CommandBar, CommandChip } from "composer.slint";
 import { EmojiCell, EmojiRow, EmojiSection, EmojiCard, EmojiCardView, MessageRow, ReactionToggle, EmojiButton, EmojiPicker, MessageMenu, MessageGallery, MessageStickers, FileCard, MessageContent, EmbedView, BotTag, NoConversation, ConversationStart, HistoryEdge, UnreadBar, PresentBar, ImageViewer, VideoViewer, VideoPlayer, Polls } from "messages.slint";
 import { SettingsRow, SettingsScreen, AccountSettings, AppearanceSettings, ThemeCard, ThemeColour, VoiceSettings, MessageSettings, NotificationSettings, SoundSettings, AdvancedSettings, DiscordLinkSettings, DiscordSettings, BlockedRow, GameActivitySettings, GameExecutable } from "settings.slint";
 import { DataPrivacySettings, MessagingSettings } from "settings/privacy.slint";
@@ -533,6 +533,15 @@ export component StaticWindow inherits Window {
     // Who the `@` word being typed may mention; the chosen one is highlighted.
     in property <[MentionRow]> mentions;
     in-out property <int> mention-index;
+    // The slash command menu's apps, and the bar of the command being typed.
+    in property <[MentionRow]> command-apps;
+    in property <bool> command-shown;
+    in property <string> command-name;
+    in property <string> command-description;
+    in property <[CommandChip]> command-chips;
+    in property <[string]> command-choices;
+    callback command-chip(string);
+    callback command-choice(string);
     callback composer-caret(string, int);
     callback aside-composer-caret(string, int);
     // The suggestions are for the thread's composer beside the channel, which
@@ -3957,8 +3966,17 @@ export component StaticWindow inherits Window {
         x: composer-box.absolute-position.x;
         width: composer-box.width;
         y: composer-box.absolute-position.y - (root.compose-label != "" ? 36px : 0px) - self.height - 8px;
-        mentions: root.mentions; mention-index: root.mention-index;
+        mentions: root.mentions; mention-index: root.mention-index; apps: root.command-apps;
         mention-chosen(index) => { root.mention-chosen(index); }
+    }
+    if root.command-shown && root.mentions.length == 0 && root.composer-enabled && !root.suggesting-aside: CommandBar {
+        x: composer-box.absolute-position.x;
+        width: composer-box.width;
+        y: composer-box.absolute-position.y - (root.compose-label != "" ? 36px : 0px) - self.height - 8px;
+        command: root.command-name; description: root.command-description;
+        chips: root.command-chips; choices: root.command-choices;
+        chip-clicked(name) => { root.command-chip(name); }
+        choice-clicked(choice) => { root.command-choice(choice); }
     }
     // Emoji suggestions, in the same place; see EmojiSuggestions.
     if root.emoji-suggestions.length > 0 && root.mentions.length == 0 && root.composer-enabled && !root.suggesting-aside: EmojiSuggestions {

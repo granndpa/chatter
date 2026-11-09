@@ -3137,7 +3137,30 @@ impl Adapter {
         window.set_sending(state.sending.is_some());
         window.set_typing(state.typing_line().into());
         let suggestions = state.mention_suggestions();
-        let mentions: Vec<MentionRow> = suggestions
+        let commands = matches!(state.mention_query, Some(('/', _)));
+        let (mentions, apps) = if commands { command_rows(&suggestions) } else { (Vec::new(), Vec::new()) };
+        window.set_command_apps(ModelRc::new(VecModel::from(apps)));
+        let hint = state.command_hint();
+        window.set_command_shown(hint.is_some());
+        if let Some(hint) = hint {
+            window.set_command_name(hint.command.into());
+            window.set_command_description(hint.description.into());
+            window.set_command_chips(ModelRc::new(VecModel::from(
+                hint.options
+                    .into_iter()
+                    .map(|option| static_ui::CommandChip {
+                        name: option.name.into(),
+                        required: option.required,
+                        filled: option.filled,
+                        current: option.current,
+                    })
+                    .collect::<Vec<_>>(),
+            )));
+            window.set_command_choices(ModelRc::new(VecModel::from(
+                hint.choices.into_iter().map(SharedString::from).collect::<Vec<_>>(),
+            )));
+        }
+        let mentions: Vec<MentionRow> = if commands { mentions } else { suggestions
             .iter()
             .enumerate()
             .map(|(index, candidate)| {
@@ -3167,9 +3190,10 @@ impl Adapter {
                         _ => candidate.username.clone().unwrap_or_default().into(),
                     },
                     name: candidate.name.as_str().into(),
+                    ..Default::default()
                 }
             })
-            .collect();
+            .collect() };
         if window.get_mention_index() >= mentions.len() as i32 {
             window.set_mention_index(0);
         }
@@ -5071,4 +5095,51 @@ fn hidden_phone(phone: &str) -> String {
     }
     let last: String = digits[digits.len() - 4..].iter().collect();
     format!("{}{last}", "*".repeat(digits.len() - 4))
+}
+
+/// The slash command menu: its rows, each app's under the app's name, and the
+/// rail of apps with where each one's commands start in the list.
+fn command_rows(suggestions: &[static_core::mention::Candidate]) -> (Vec<MentionRow>, Vec<MentionRow>) {
+    const PADDING: f32 = 6.;
+    const HEADING: f32 = 28.;
+    const ROW: f32 = 52.;
+    let mut rows = Vec::new();
+    let mut apps: Vec<MentionRow> = Vec::new();
+    let mut y = PADDING;
+    let mut previous: Option<&str> = None;
+    for candidate in suggestions {
+        let app_key = candidate.mention.trim_start_matches('/');
+        let (app_id, app) = app_key.split_once('\n').unwrap_or((app_key, ""));
+        let built_in = app_id == static_core::commands::BUILT_IN;
+        let initial = if built_in { SharedString::from("/") } else { initial(app) };
+        let picture_url: SharedString = candidate.avatar.clone().unwrap_or_default().into();
+        let starts = previous != Some(app_key);
+        if starts {
+            apps.push(MentionRow {
+                name: app.into(),
+                initial: initial.clone(),
+                tint: tint(app),
+                picture_url: picture_url.clone(),
+                offset: y,
+                command: true,
+                ..Default::default()
+            });
+            y += HEADING;
+        }
+        previous = Some(app_key);
+        rows.push(MentionRow {
+            heading: if starts { app.into() } else { SharedString::default() },
+            name: candidate.name.as_str().into(),
+            detail: candidate.username.clone().unwrap_or_default().into(),
+            initial,
+            tint: tint(app),
+            picture_url,
+            app: app.into(),
+            command: true,
+            offset: y,
+            ..Default::default()
+        });
+        y += ROW;
+    }
+    (rows, apps)
 }

@@ -1127,45 +1127,30 @@ impl AppState {
             return vec![];
         };
         if *sigil == '/' {
+            // Discord's command menu: each app's commands and subcommands,
+            // then the built-in ones. The mention carries the app's id and
+            // name for the menu's headings and rail.
             let query = query.to_lowercase();
-            let built_in = crate::commands::BUILT_IN.iter().map(|(name, about)| Candidate {
-                name: (*name).to_owned(),
-                username: Some(format!("{about} (Built-in)")),
-                mention: format!("/{name}"),
-                avatar: None,
-                color: None,
-                group: false,
-                channel: false,
-                voice: false,
-            });
-            let apps = self
-                .selected
-                .as_ref()
-                .and_then(|room| self.commands.get(room))
-                .into_iter()
-                .flatten()
-                .map(|command| Candidate {
-                    name: command.name.clone(),
-                    username: Some({
-                        let usage = crate::commands::usage(command);
-                        let about = if usage.is_empty() {
-                            command.description.clone()
-                        } else {
-                            format!("{usage}  {}", command.description)
-                        };
-                        if command.app.is_empty() { about } else { format!("{about} ({})", command.app) }
-                    }),
-                    mention: format!("/{}", command.id),
-                    avatar: None,
-                    color: None,
-                    group: false,
-                    channel: false,
-                    voice: false,
-                });
-            return apps
-                .chain(built_in)
-                .filter(|candidate| candidate.name.to_lowercase().starts_with(&query))
-                .take(MENTION_SUGGESTIONS)
+            return self
+                .slash_commands()
+                .iter()
+                .flat_map(|command| {
+                    crate::commands::entries(command).into_iter().map(move |entry| Candidate {
+                        name: entry.label,
+                        username: Some(entry.description),
+                        mention: format!("/{}\n{}", command.application_id, command.app),
+                        avatar: command.icon.clone(),
+                        color: None,
+                        group: false,
+                        channel: false,
+                        voice: false,
+                    })
+                })
+                .filter(|candidate| {
+                    let name = candidate.name.to_lowercase();
+                    name.starts_with(&query) || name.split(' ').any(|word| word.starts_with(&query))
+                })
+                .take(200)
                 .collect();
         }
         let (groups, people): (Vec<Candidate>, Vec<Candidate>) = self
@@ -1182,6 +1167,25 @@ impl AppState {
         let people = mention::matching(&people, query, MENTION_SUGGESTIONS);
         let groups = mention::matching(&groups, query, MENTION_GROUPS);
         people.into_iter().chain(groups).cloned().collect()
+    }
+
+    /// The slash commands of the selected room: its apps', then Discord's
+    /// built-in ones.
+    pub fn slash_commands(&self) -> Vec<crate::commands::AppCommand> {
+        let Some(room) = self.selected.as_deref() else { return Vec::new() };
+        let in_server = discord::parse_room(room).is_some_and(|(guild, _)| guild != discord::DM_GUILD);
+        let mut list = self.commands.get(room).cloned().unwrap_or_default();
+        list.extend(crate::commands::built_ins(in_server));
+        list
+    }
+
+    /// The bar over the composer while a slash command is being typed.
+    pub fn command_hint(&self) -> Option<crate::commands::Hint> {
+        let draft = self.draft();
+        if !draft.starts_with('/') || self.mention_query.is_some() {
+            return None;
+        }
+        crate::commands::hint(draft, &self.slash_commands())
     }
 
     /// Text, or files to go with it; an edit changes only the text.
@@ -3778,9 +3782,22 @@ impl Application {
             Event::CommandsListed { room, result } => {
                 match result {
                     Ok(commands) => {
+                        let icons: Vec<String> = commands
+                            .iter()
+                            .filter_map(|command| command.icon.clone())
+                            .collect::<std::collections::BTreeSet<_>>()
+                            .into_iter()
+                            .collect();
                         self.state.commands.insert(room, commands);
+                        if !icons.is_empty() {
+                            return self.dispatch(Action::LoadPictures(icons));
+                        }
                     }
-                    Err(error) => tracing::warn!(%error, "could not list slash commands"),
+                    Err(error) => {
+                        tracing::warn!(%error, "could not list slash commands");
+                        // Asked again the next time `/` starts a message.
+                        self.state.commands.remove(&room);
+                    }
                 }
             }
             Event::CommandRan { result } => {

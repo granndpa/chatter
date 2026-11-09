@@ -62,12 +62,13 @@ impl Application {
         if !draft.starts_with('/') || matches!(self.state.compose.get(id), Some(Compose::Edit { .. })) {
             return None;
         }
-        if let Some(text) = crate::commands::built_in(&draft) {
-            self.state.drafts.insert(id.to_owned(), text);
-            return None;
-        }
         let (guild, channel) = discord::parse_room(id)?;
-        let command = crate::commands::named(&draft, self.state.commands.get(id)?)?.clone();
+        let apps = self.state.commands.get(id).cloned().unwrap_or_default();
+        let Some(command) = crate::commands::named(&draft, &apps).cloned() else {
+            let built_ins = crate::commands::built_ins(guild != discord::DM_GUILD);
+            let command = crate::commands::named(&draft, &built_ins)?.clone();
+            return Some(self.built_in(id, &command, &draft));
+        };
         if self.state.preview {
             return None;
         }
@@ -92,6 +93,54 @@ impl Application {
                 Some(vec![])
             }
         }
+    }
+
+    /// Carries out one of Discord's built-in commands typed in a room.
+    fn built_in(&mut self, id: &str, command: &crate::commands::AppCommand, draft: &str) -> Vec<Effect> {
+        use crate::{chat::MemberChange, commands::BuiltIn};
+        let wired = mention::wire(draft, &self.state.mention_candidates());
+        let done = match crate::commands::run_built_in(command, &wired) {
+            Ok(done) => done,
+            Err(error) => {
+                self.state.notice = Some(format!("/{}: {error}", command.name));
+                return vec![];
+            }
+        };
+        if let BuiltIn::Text(text) = done {
+            self.state.drafts.insert(id.to_owned(), text);
+            return self.send_in(id.to_owned());
+        }
+        self.state.drafts.remove(id);
+        self.state.mention_query = None;
+        self.state.notice = None;
+        let me = self.state.discord_user.clone().unwrap_or_default();
+        let member = |user: String, change: MemberChange| Action::ChangeMember {
+            place: id.to_owned(),
+            user,
+            change,
+        };
+        let action = match done {
+            BuiltIn::Text(_) => unreachable!(),
+            BuiltIn::Nick(name) => member(me, MemberChange::Nickname(name)),
+            BuiltIn::Leave => Action::AskLeaveGroup(id.to_owned()),
+            BuiltIn::Kick { user, reason } => member(user, MemberChange::Kick { reason }),
+            BuiltIn::Ban { user, delete_seconds, reason } => {
+                member(user, MemberChange::Ban { delete_seconds, reason })
+            }
+            BuiltIn::Timeout { user, seconds, reason } => member(
+                user,
+                MemberChange::Timeout {
+                    until_ms: Some(crate::clock::now_ms() + seconds * 1000),
+                    reason,
+                },
+            ),
+        };
+        let mut effects = self.dispatch(action);
+        effects.push(Effect::Backend(Command::SaveDraft {
+            room: id.to_owned(),
+            body: String::new(),
+        }));
+        effects
     }
 
     pub(super) fn set_draft(&mut self, body: String) -> Vec<Effect> {

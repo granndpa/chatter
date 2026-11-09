@@ -2315,8 +2315,18 @@ impl Discord {
             Some(guild) => format!("/guilds/{guild}/application-command-index"),
             None => format!("/channels/{channel}/application-command-index"),
         };
-        let mut index = self.api.get_json(&path).await?;
-        if let Ok(own) = self.api.get_json("/users/@me/application-command-index").await {
+        let own = self.api.get_json("/users/@me/application-command-index").await;
+        let mut index = match self.api.get_json(&path).await {
+            Ok(index) => index,
+            Err(error) => match &own {
+                Ok(_) => {
+                    tracing::debug!(error = format!("{error:#}"), "no command index here; using the account's apps");
+                    serde_json::json!({})
+                }
+                Err(_) => return Err(error),
+            },
+        };
+        if let Ok(own) = own {
             for key in ["applications", "application_commands"] {
                 if let (Some(list), Some(more)) = (index[key].as_array_mut(), own[key].as_array()) {
                     list.extend(more.iter().cloned());
