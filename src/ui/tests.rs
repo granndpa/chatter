@@ -4490,6 +4490,7 @@ fn a_discord_servers_menus_show_and_change_its_notifications() {
             "Copy link",
             "Copy ID",
             "Create Folder",
+            "Media Gallery",
             "Pin Server"
         ]
     );
@@ -4704,7 +4705,8 @@ fn pinned_channels_leave_their_categories_for_the_top() {
             "Copy link",
             "Mute channel",
             "Notification settings",
-            "Copy ID"
+            "Copy ID",
+            "Media Gallery"
         ]
     );
 }
@@ -4764,7 +4766,8 @@ fn a_community_server_lists_the_channels_followed_and_offers_following() {
             "Copy link",
             "Mute channel",
             "Notification settings",
-            "Copy ID"
+            "Copy ID",
+            "Media Gallery"
         ]
     );
 }

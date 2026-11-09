@@ -543,6 +543,8 @@ pub struct AppState {
     /// The `@` or `#` word being typed in the composer, if any: its sigil and
     /// what follows it.
     pub mention_query: Option<(char, String)>,
+    /// The slash commands bots and apps offer in each room, once asked for.
+    pub commands: HashMap<String, Vec<crate::commands::AppCommand>>,
     /// What the selected room's messages may mention besides people: Discord's
     /// roles, @everyone and @here, and its server's channels.
     pub mention_groups: Vec<MentionGroup>,
@@ -1124,6 +1126,48 @@ impl AppState {
         let Some((sigil, query)) = &self.mention_query else {
             return vec![];
         };
+        if *sigil == '/' {
+            let query = query.to_lowercase();
+            let built_in = crate::commands::BUILT_IN.iter().map(|(name, about)| Candidate {
+                name: (*name).to_owned(),
+                username: Some(format!("{about} (Built-in)")),
+                mention: format!("/{name}"),
+                avatar: None,
+                color: None,
+                group: false,
+                channel: false,
+                voice: false,
+            });
+            let apps = self
+                .selected
+                .as_ref()
+                .and_then(|room| self.commands.get(room))
+                .into_iter()
+                .flatten()
+                .map(|command| Candidate {
+                    name: command.name.clone(),
+                    username: Some({
+                        let usage = crate::commands::usage(command);
+                        let about = if usage.is_empty() {
+                            command.description.clone()
+                        } else {
+                            format!("{usage}  {}", command.description)
+                        };
+                        if command.app.is_empty() { about } else { format!("{about} ({})", command.app) }
+                    }),
+                    mention: format!("/{}", command.id),
+                    avatar: None,
+                    color: None,
+                    group: false,
+                    channel: false,
+                    voice: false,
+                });
+            return apps
+                .chain(built_in)
+                .filter(|candidate| candidate.name.to_lowercase().starts_with(&query))
+                .take(MENTION_SUGGESTIONS)
+                .collect();
+        }
         let (groups, people): (Vec<Candidate>, Vec<Candidate>) = self
             .mention_candidates()
             .into_iter()
@@ -3731,6 +3775,19 @@ impl Application {
             Event::ServerJoined { code, result } => return self.server_joined(code, result),
             Event::ServerCreated { result } => return self.server_created(result),
             Event::DiscoverJoined { result } => return self.discover_joined(result),
+            Event::CommandsListed { room, result } => {
+                match result {
+                    Ok(commands) => {
+                        self.state.commands.insert(room, commands);
+                    }
+                    Err(error) => tracing::warn!(%error, "could not list slash commands"),
+                }
+            }
+            Event::CommandRan { result } => {
+                if let Err(error) = result {
+                    self.state.notice = Some(error);
+                }
+            }
             Event::Discovered { query, offset, result } => {
                 return self.discovered(query, offset, result);
             }

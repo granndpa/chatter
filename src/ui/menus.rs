@@ -182,6 +182,12 @@ pub(super) fn menu(adapter: &Adapter, id: &str, person: bool) -> Menu {
             vec![],
         );
     }
+    // The roles a profile card's + offers, ticked for those they hold.
+    if let Some(user) = id.strip_prefix("roles:") {
+        let rows = role_rows(adapter, user);
+        let none = vec![Vec::new(); rows.len()];
+        return (rows, none);
+    }
     if let Some(place) = id.strip_prefix(BELL) {
         return Notify::of(adapter, place)
             .map_or_else(Menu::default, |notify| notify.bell(adapter));
@@ -970,6 +976,20 @@ pub(super) fn choose(
     person: bool,
     id: &str,
 ) {
+    // A profile card's roles: the + menu's ticks, and a role's x.
+    if let Some(user) = target.strip_prefix("roles:") {
+        let user = user.to_owned();
+        let Some(place) = adapter.app.state.selected.clone() else { return };
+        let change = if let Some(role) = id.strip_prefix("role-remove:") {
+            MemberChange::Role { role: role.to_owned(), add: false }
+        } else if let (Some(role), Some(add)) = (id.strip_prefix(ROLE), toggle(window, id)) {
+            MemberChange::Role { role: role.to_owned(), add }
+        } else {
+            return;
+        };
+        adapter.action(window, Action::ChangeMember { place, user, change });
+        return;
+    }
     if matches!(id, "folder-create" | "folder-rename") {
         window.set_folder_edit_target(target.clone().into());
         window.set_folder_edit_mode(if id == "folder-create" { 3 } else { 4 });

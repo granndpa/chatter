@@ -19,6 +19,17 @@ impl Application {
 
     pub(super) fn mention_query(&mut self, query: Option<(char, String)>) -> Vec<Effect> {
         self.state.mention_query = query.clone();
+        // A bot's commands are asked for the first time `/` starts a message.
+        if let (Some(room), Some(('/', _))) = (self.state.selected.clone(), &query) {
+            if !self.state.preview
+                && discord::parse_room(&room).is_some()
+                && !self.state.commands.contains_key(&room)
+            {
+                self.state.commands.insert(room.clone(), Vec::new());
+                return vec![Effect::Backend(Command::Discord(DiscordCommand::ListCommands { room }))];
+            }
+            return vec![];
+        }
         // Discord servers list only some members; ask for the rest by name.
         let (Some(room), Some(('@', query))) = (self.state.selected.clone(), query) else {
             return vec![];
@@ -42,6 +53,45 @@ impl Application {
         vec![Effect::Backend(Command::Discord(
             DiscordCommand::SearchMembers { room, query },
         ))]
+    }
+
+    /// A draft starting with a slash command: a built-in one rewrites the
+    /// draft, which then goes as a message; a bot's runs as an interaction.
+    fn slash_command(&mut self, id: &str) -> Option<Vec<Effect>> {
+        let draft = self.state.drafts.get(id)?.clone();
+        if !draft.starts_with('/') || matches!(self.state.compose.get(id), Some(Compose::Edit { .. })) {
+            return None;
+        }
+        if let Some(text) = crate::commands::built_in(&draft) {
+            self.state.drafts.insert(id.to_owned(), text);
+            return None;
+        }
+        let (guild, channel) = discord::parse_room(id)?;
+        let command = crate::commands::named(&draft, self.state.commands.get(id)?)?.clone();
+        if self.state.preview {
+            return None;
+        }
+        let wired = mention::wire(&draft, &self.state.mention_candidates());
+        let guild = (guild != discord::DM_GUILD).then_some(guild);
+        let nonce = crate::commands::nonce(crate::clock::now_ms());
+        match crate::commands::interaction(&command, &wired, guild, channel, &nonce) {
+            Ok(body) => {
+                self.state.drafts.remove(id);
+                self.state.mention_query = None;
+                self.state.notice = None;
+                Some(vec![
+                    Effect::Backend(Command::Discord(DiscordCommand::RunCommand { body })),
+                    Effect::Backend(Command::SaveDraft {
+                        room: id.to_owned(),
+                        body: String::new(),
+                    }),
+                ])
+            }
+            Err(error) => {
+                self.state.notice = Some(format!("/{}: {error}", command.name));
+                Some(vec![])
+            }
+        }
     }
 
     pub(super) fn set_draft(&mut self, body: String) -> Vec<Effect> {
@@ -199,6 +249,9 @@ impl Application {
     pub(super) fn send_in(&mut self, id: String) -> Vec<Effect> {
         if !self.state.can_send_in(&id) {
             return vec![];
+        }
+        if let Some(effects) = self.slash_command(&id) {
+            return effects;
         }
         let draft = self.state.drafts.get(&id).cloned().unwrap_or_default();
         let compose = self.state.compose.get(&id).cloned();

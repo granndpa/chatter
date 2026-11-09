@@ -2307,6 +2307,43 @@ impl Discord {
         self.api.discoverable_guilds(query, offset).await
     }
 
+    /// The slash commands offered in a server's channel (`guild`) or a DM
+    /// `channel`, with the account's own installed apps, as Discord's
+    /// `application-command-index` lists them.
+    pub async fn command_index(&self, guild: Option<&str>, channel: &str) -> Result<Value> {
+        let path = match guild {
+            Some(guild) => format!("/guilds/{guild}/application-command-index"),
+            None => format!("/channels/{channel}/application-command-index"),
+        };
+        let mut index = self.api.get_json(&path).await?;
+        if let Ok(own) = self.api.get_json("/users/@me/application-command-index").await {
+            for key in ["applications", "application_commands"] {
+                if let (Some(list), Some(more)) = (index[key].as_array_mut(), own[key].as_array()) {
+                    list.extend(more.iter().cloned());
+                } else if index[key].is_null() {
+                    index[key] = own[key].clone();
+                }
+            }
+        }
+        Ok(index)
+    }
+
+    /// Runs a slash command from this gateway session; `body` is
+    /// `POST /interactions`'s without the session id.
+    pub async fn run_command(&self, mut body: Value) -> Result<()> {
+        let (reply, answer) = oneshot::channel();
+        self.requests
+            .send(Request::Session(reply))
+            .map_err(|_| anyhow!("Discord isn't connected. Restart Chatter and try again."))?;
+        let session = answer
+            .await
+            .ok()
+            .flatten()
+            .context("Discord isn't connected yet. Try again in a moment.")?;
+        body["session_id"] = Value::String(session);
+        self.api.interact(&body).await
+    }
+
     /// Joins a server Discover lists, by its id.
     pub async fn join_discoverable(&self, guild: &str) -> Result<()> {
         let (reply, answer) = oneshot::channel();

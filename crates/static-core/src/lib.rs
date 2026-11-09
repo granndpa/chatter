@@ -27,6 +27,7 @@ pub mod cli;
 #[cfg(feature = "discord")]
 pub mod clip;
 pub mod clock;
+pub mod commands;
 #[cfg(feature = "discord")]
 mod declick;
 #[cfg(feature = "discord")]

@@ -2157,6 +2157,18 @@ impl Api {
             .await
     }
 
+    /// Any JSON Discord gives at `path`.
+    pub async fn get_json(&self, path: &str) -> Result<Value> {
+        self.json(self.request(Method::GET, path)).await
+    }
+
+    /// Sends an interaction, such as a slash command, as Discord's client
+    /// does; Discord answers in the channel, or with INTERACTION_FAILURE.
+    pub async fn interact(&self, body: &Value) -> Result<()> {
+        self.empty(with_json(self.request(Method::POST, "/interactions"), body))
+            .await
+    }
+
     /// A channel object, as `GET /channels/{id}` gives it.
     pub async fn channel(&self, channel: &str) -> Result<Value> {
         let path = format!("/channels/{channel}");

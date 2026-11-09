@@ -4334,6 +4334,8 @@ export component StaticWindow inherits Window {
             close => { root.close-profile(); }
             befriend => { root.befriend(root.profile.id); }
             more(x, y) => { root.open-context-menu(root.profile.id, true, x, y); }
+            role-add(x, y) => { root.open-context-menu("roles:" + root.profile.id, true, x, y); }
+            role-remove(role) => { root.choose-menu("roles:" + root.profile.id, true, "role-remove:" + role); }
             open-link(link) => { root.open-link(link); }
             send-message(text) => { root.message-from-profile(root.profile.id, text); }
         }

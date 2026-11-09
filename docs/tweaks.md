@@ -79,3 +79,8 @@ login tokens. Delete the folder to start over.
 - **Voice Overlay**: a small always-on-top, click-through list of who is in your call, shown while Chatter is in the background. Turn it on in Settings, with corner, size, opacity and avatars options.
 - **Discord Wrapped**: a new Wrapped tab in Saved. Messages sent, time in voice, top servers, channels and emoji, most active day, as animated cards for the last week, month, year or all time. Export as a picture, hide names, pause tracking or delete everything. Counted only on this computer, starting when you turn it on.
 
+
+## Slash commands and roles
+
+- Type / at the start of a message to list the commands of the bots and apps in that server or DM. Options go as name:value, or the whole rest for the first option. Built-in /shrug, /tableflip, /unflip, /lenny, /me and /spoiler work too.
+- On a profile card, + gives a role and the x on a hovered role takes it away, when this account may manage them.

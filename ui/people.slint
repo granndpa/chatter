@@ -150,7 +150,7 @@ export component MemberPanel inherits Rectangle {
     }
 }
 
-export struct ProfileRole { name: string, color: color, has-color: bool }
+export struct ProfileRole { name: string, color: color, has-color: bool, id: string, removable: bool }
 /// A profile card's roles a row at a time, laid out to fit the card.
 export struct ProfileRoleRow { roles: [ProfileRole] }
 /// A server a profile's person shares with this account, and their nickname there.
@@ -205,6 +205,8 @@ export struct ProfileData {
     activities: [ActivityRow],
     bio: styled-text, has-bio: bool,
     role-rows: [ProfileRoleRow], role-rows-large: [ProfileRoleRow],
+    /// This account may give them a role they don't have: the + chip shows.
+    can-add-roles: bool,
     /// Dates: on Discord since, and in this server since.
     created: string, joined: string,
     servers: [ProfileServerRow], friends: [ProfileFriendRow],
@@ -483,6 +485,9 @@ export component ProfileCard inherits Rectangle {
     /// The card's "..." was clicked, at this place in the window: it opens
     /// the person's menu.
     callback more(length, length);
+    /// The roles' + was clicked, at this place in the window; a role's x was.
+    callback role-add(length, length);
+    callback role-remove(string);
     /// A mutual server or friend was clicked, with where its row is in the window.
     callback open-server(ProfileServerRow, length, length, length, length);
     callback open-friend(string, length, length, length, length);
@@ -696,7 +701,7 @@ export component ProfileCard inherits Rectangle {
                             if root.data.joined != "": Text { text: root.data.joined; color: Theme.secondary; font-size: 14px; vertical-alignment: center; }
                         }
                     }
-                    if (root.large && !root.side ? root.data.role-rows-large : root.data.role-rows).length > 0: VerticalLayout {
+                    if (root.large && !root.side ? root.data.role-rows-large : root.data.role-rows).length > 0 || root.data.can-add-roles: VerticalLayout {
                         spacing: 6px;
                         // The card's chips speak for themselves.
                         if root.full: ProfileTitle { text: "Roles"; }
@@ -705,10 +710,34 @@ export component ProfileCard inherits Rectangle {
                             for role in row.roles: Rectangle {
                                 height: 24px; border-radius: 8px; background: transparent;
                                 border-width: 1px; border-color: Theme.text.transparentize(0.8);
+                                chip-touch := TouchArea {
+                                    enabled: role.removable;
+                                    mouse-cursor: role.removable ? MouseCursor.pointer : MouseCursor.default;
+                                    clicked => { root.role-remove(role.id); }
+                                }
                                 HorizontalLayout {
                                     padding-left: 6px; padding-right: 8px; spacing: 6px;
-                                    Middle { Rectangle { width: 12px; height: 12px; border-radius: 6px; background: role.has-color ? role.color : Theme.faint; } }
+                                    Middle { Rectangle {
+                                        width: 12px; height: 12px; border-radius: 6px; background: role.has-color ? role.color : Theme.faint;
+                                        if role.removable && chip-touch.has-hover: Text {
+                                            text: "\u{d7}"; color: #000000; font-size: 11px; font-weight: 800;
+                                            horizontal-alignment: center; vertical-alignment: center;
+                                        }
+                                    } }
                                     Text { text: role.name; color: Theme.text; font-size: 12px; font-weight: 600; vertical-alignment: center; }
+                                }
+                            }
+                        }
+                        if root.data.can-add-roles: HorizontalLayout {
+                            alignment: start;
+                            Rectangle {
+                                width: 24px; height: 24px; border-radius: 8px;
+                                border-width: 1px; border-color: Theme.text.transparentize(0.8);
+                                background: add-role-touch.has-hover ? Theme.text.transparentize(0.9) : transparent;
+                                Text { text: "+"; color: Theme.text; font-size: 16px; horizontal-alignment: center; vertical-alignment: center; }
+                                add-role-touch := TouchArea {
+                                    mouse-cursor: MouseCursor.pointer;
+                                    clicked => { root.role-add(self.absolute-position.x, self.absolute-position.y + self.height); }
                                 }
                             }
                         }

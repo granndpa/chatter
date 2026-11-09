@@ -190,6 +190,29 @@ pub(super) fn status_key(status: &static_core::chat::CustomStatus) -> Option<Str
     }
 }
 
+/// Lets this account give and take a member's roles from their card, as
+/// Discord does: the + where it may give one, the x on those it may take.
+pub(super) fn editable_roles(app: &Application, user: &str, data: &mut ProfileData) {
+    let Some(place) = app.state.selected.as_deref() else { return };
+    let choices = app.role_choices(place, user);
+    data.can_add_roles = choices.iter().any(|choice| choice.grantable && !choice.held);
+    for rows in [&data.role_rows, &data.role_rows_large] {
+        for row in rows.iter() {
+            for index in 0..row.roles.row_count() {
+                let Some(mut role) = row.roles.row_data(index) else { continue };
+                if let Some(choice) = choices
+                    .iter()
+                    .find(|choice| choice.held && choice.role.name == role.name.as_str())
+                {
+                    role.id = choice.role.id.clone().into();
+                    role.removable = choice.grantable;
+                    row.roles.set_row_data(index, role);
+                }
+            }
+        }
+    }
+}
+
 /// Role rows, each holding a list of its own, compared as `same_list` does.
 pub(super) fn same_role_rows(
     old: &ModelRc<ProfileRoleRow>,
@@ -273,6 +296,7 @@ pub(super) fn profile_data(
         has_bio: !profile.bio.trim().is_empty(),
         role_rows: role_rows(&profile.roles, PROFILE_CARD_WIDTH),
         role_rows_large: role_rows(&profile.roles, PROFILE_LARGE_WIDTH),
+        can_add_roles: false,
         created: profile.created.clone().unwrap_or_default().into(),
         joined: profile.joined.clone().unwrap_or_default().into(),
         servers: ModelRc::new(VecModel::from(
@@ -393,6 +417,8 @@ pub(super) fn role_rows(roles: &[ProfileRole], width: f32) -> ModelRc<ProfileRol
         }
         if let Some(row) = rows.last_mut() {
             row.push(static_ui::ProfileRole {
+                id: SharedString::default(),
+                removable: false,
                 name: role.name.clone().into(),
                 color: role_color(role.color),
                 has_color: role.color.is_some(),

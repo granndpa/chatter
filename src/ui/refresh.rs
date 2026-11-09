@@ -3146,6 +3146,7 @@ impl Adapter {
                 let starts_section = index == 0 || suggestions[index - 1].group != candidate.group;
                 MentionRow {
                     heading: match (starts_section, candidate.group, candidate.channel) {
+                        _ if candidate.sigil() == '/' => if index == 0 { "COMMANDS" } else { "" },
                         (false, ..) => "",
                         (true, false, _) => "MEMBERS",
                         (true, true, false) => "ROLES",
@@ -4026,7 +4027,8 @@ impl Adapter {
         } else {
             view.profile.id.clone().into()
         });
-        let data = profile_data(&mut self.pictures, state, view);
+        let mut data = profile_data(&mut self.pictures, state, view);
+        super::profile::editable_roles(&self.app, &view.profile.id, &mut data);
         if let Some(data) = changed_profile(&window.get_profile(), data) {
             window.set_profile(data);
         }

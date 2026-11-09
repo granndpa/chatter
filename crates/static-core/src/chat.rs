@@ -2457,6 +2457,12 @@ pub enum DiscordCommand {
     /// Join a server Discover listed, by its id. [`Event::DiscoverJoined`]
     /// follows.
     JoinDiscoverable { guild: String },
+    /// The slash commands bots and apps offer in a room.
+    /// [`Event::CommandsListed`] follows.
+    ListCommands { room: String },
+    /// Runs a slash command: the body of `POST /interactions`, without the
+    /// session id. [`Event::CommandRan`] follows.
+    RunCommand { body: serde_json::Value },
     /// A page of Discover's public servers, searched for `query` when it
     /// isn't empty. [`Event::Discovered`] follows.
     Discover { query: String, offset: u32 },
@@ -3847,6 +3853,13 @@ pub enum Event {
     ServerCreated { result: Result<String, String> },
     /// Whether [`DiscordCommand::JoinDiscoverable`] joined.
     DiscoverJoined { result: Result<(), String> },
+    /// What [`DiscordCommand::ListCommands`] found.
+    CommandsListed {
+        room: String,
+        result: Result<Vec<crate::commands::AppCommand>, String>,
+    },
+    /// Whether [`DiscordCommand::RunCommand`] went to Discord.
+    CommandRan { result: Result<(), String> },
     /// A page [`DiscordCommand::Discover`] asked for.
     Discovered {
         query: String,

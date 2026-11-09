@@ -28,7 +28,13 @@ pub struct Candidate {
 impl Candidate {
     /// What the composer writes before the name: `#` for a channel, else `@`.
     pub fn sigil(&self) -> char {
-        if self.channel { '#' } else { '@' }
+        if self.mention.starts_with('/') {
+            '/'
+        } else if self.channel {
+            '#'
+        } else {
+            '@'
+        }
     }
 }
 
@@ -221,6 +227,13 @@ const MAX_QUERY: usize = 32;
 /// sigil is, which one, and what follows it.
 pub fn query(text: &str, cursor: usize) -> Option<(usize, char, &str)> {
     let before = text.get(..cursor)?;
+    // A slash command: `/` first in the message, its name not finished yet.
+    if let Some(name) = before.strip_prefix('/')
+        && !name.contains(char::is_whitespace)
+        && name.len() <= MAX_QUERY
+    {
+        return Some((0, '/', name));
+    }
     let at = before.rfind(['@', '#'])?;
     let sigil = if before[at..].starts_with('#') {
         '#'

@@ -1139,6 +1139,52 @@ pub(super) fn command(
         }
         return None;
     }
+    if let Command::Discord(DiscordCommand::ListCommands { room }) = command {
+        let Some((guild, channel)) = crate::discord::parse_room(&room).map(|(g, c)| (g.to_owned(), c.to_owned())) else {
+            return None;
+        };
+        match discord {
+            Ok(discord) => {
+                let (discord, events) = (discord.clone(), events.clone());
+                tokio::spawn(async move {
+                    let guild = (guild != crate::discord::DM_GUILD).then_some(guild);
+                    let result = discord
+                        .command_index(guild.as_deref(), &channel)
+                        .await
+                        .map(|index| crate::commands::parse_index(&index))
+                        .map_err(|error| format!("{error:#}"));
+                    let _ = events.send(Event::CommandsListed { room, result });
+                });
+            }
+            Err(error) => {
+                let _ = events.send(Event::CommandsListed {
+                    room,
+                    result: Err(error.into()),
+                });
+            }
+        }
+        return None;
+    }
+    if let Command::Discord(DiscordCommand::RunCommand { body }) = command {
+        match discord {
+            Ok(discord) => {
+                let (discord, events) = (discord.clone(), events.clone());
+                tokio::spawn(async move {
+                    let result = discord.run_command(body).await.map_err(|error| {
+                        tracing::warn!(error = format!("{error:#}"), "could not run a slash command");
+                        format!("The command didn't go through: {error}")
+                    });
+                    let _ = events.send(Event::CommandRan { result });
+                });
+            }
+            Err(error) => {
+                let _ = events.send(Event::CommandRan {
+                    result: Err(error.into()),
+                });
+            }
+        }
+        return None;
+    }
     if let Command::Discord(DiscordCommand::JoinDiscoverable { guild }) = command {
         match discord {
             Ok(discord) => {
