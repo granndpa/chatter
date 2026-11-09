@@ -72,3 +72,10 @@ Bookmarks, reminders and drafts are JSON files in the data folder, under
 `tweaks/<Discord user id>/`, one folder per account: `bookmarks.json`,
 `reminders.json`, `drafts.json` and `pins.json`. They never leave the computer and hold no
 login tokens. Delete the folder to start over.
+
+## Media Gallery, Voice Overlay and Wrapped
+
+- **Media Gallery**: right-click a channel or DM, then Media Gallery. Browse images, videos, files and links in a grid, filter, sort newest or oldest, jump to the message or save the file.
+- **Voice Overlay**: a small always-on-top, click-through list of who is in your call, shown while Chatter is in the background. Turn it on in Settings, with corner, size, opacity and avatars options.
+- **Discord Wrapped**: a new Wrapped tab in Saved. Messages sent, time in voice, top servers, channels and emoji, most active day, as animated cards for the last week, month, year or all time. Export as a picture, hide names, pause tracking or delete everything. Counted only on this computer, starting when you turn it on.
+

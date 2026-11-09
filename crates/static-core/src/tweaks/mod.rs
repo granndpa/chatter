@@ -8,6 +8,7 @@ pub mod drafts;
 pub mod inbox;
 pub mod pins;
 pub mod reminders;
+pub mod stats;
 
 use std::{
     fs, io,

@@ -27,6 +27,9 @@ pub(super) const SIDEBAR: &str = "thread-sidebar:";
 /// `avatar`, `banner`, `icon` or `server-banner`.
 const SAVE_PICTURE: &str = "save-picture:";
 
+/// A Discord Tweaks row that opens the Media Gallery of its place.
+const GALLERY: &str = "media-gallery";
+
 /// A Discord Tweaks row that pins or moves a pin: this, then `server`,
 /// `friend`, `up` or `down`.
 const PIN: &str = "pin-tweak:";
@@ -80,10 +83,15 @@ fn full_size(url: &str) -> (String, &'static str) {
 /// Asks where to save a picture, then downloads it there.
 fn save_picture(url: &str, name: &str) {
     let (url, ext) = full_size(url);
-    let name = format!("{name}.{ext}");
+    save_file(&url, &format!("{name}.{ext}"));
+}
+
+/// Asks where to save a file, by the name it suggests, then downloads it.
+pub(super) fn save_file(url: &str, name: &str) {
+    let (url, name) = (url.to_owned(), name.to_owned());
     std::thread::spawn(move || {
         let Some(path) = rfd::FileDialog::new()
-            .set_title("Save picture")
+            .set_title("Save")
             .set_file_name(&name)
             .save_file()
         else {
@@ -440,6 +448,15 @@ pub(super) fn menu(adapter: &Adapter, id: &str, person: bool) -> Menu {
     }
     // A server header's dropdown keeps to Discord's rows.
     let tweak_rows = !id_is_header;
+    if tweak_rows && !person && super::gallery::offered(state, id) {
+        rows.push(MenuRow {
+            id: GALLERY.into(),
+            text: "Media Gallery".into(),
+            separated: true,
+            plain,
+            ..Default::default()
+        });
+    }
     for (index, (kind, text)) in super::tweaks::pin_rows(adapter, id, person)
         .into_iter()
         .filter(|_| tweak_rows)
@@ -1034,6 +1051,10 @@ pub(super) fn choose(
                 change,
             },
         );
+        return;
+    }
+    if id == GALLERY {
+        super::gallery::open(adapter, window, &target);
         return;
     }
     if let Some(kind) = id.strip_prefix(PIN) {

@@ -1,0 +1,50 @@
+// Discord Tweaks' voice overlay: who's in the call, in a small window of its
+// own that sits over games and lets clicks through.
+
+import { Theme } from "theme.slint";
+import { Avatar } from "controls.slint";
+
+export struct OverlayPerson {
+    name: string, initial: string, picture-url: string,
+    speaking: bool, muted: bool, deafened: bool,
+}
+
+export component VoiceOverlay inherits Window {
+    in property <[OverlayPerson]> people;
+    in property <bool> avatars: true;
+    /// 0.8 small, 1 normal, 1.25 large.
+    in property <float> scale: 1;
+    /// The panel's darkness, from 0 to 1.
+    in property <float> backing: 0.55;
+    title: "Chatter voice overlay";
+    no-frame: true;
+    always-on-top: true;
+    background: transparent;
+    width: 240px * root.scale;
+    height: max(40px, list.preferred-height);
+    list := VerticalLayout {
+        alignment: start; spacing: 4px * root.scale; padding: 4px * root.scale;
+        for person in root.people: Rectangle {
+            height: 30px * root.scale;
+            width: row.preferred-width;
+            border-radius: 15px * root.scale;
+            background: rgba(0, 0, 0, root.backing);
+            border-width: person.speaking ? 2px : 0px;
+            border-color: #3ba55d;
+            row := HorizontalLayout {
+                padding-left: 4px * root.scale; padding-right: 10px * root.scale; spacing: 6px * root.scale;
+                if root.avatars: VerticalLayout {
+                    alignment: center;
+                    Avatar { size: 22px * root.scale; initial: person.initial; picture-url: person.picture-url; }
+                }
+                Text {
+                    text: person.name; vertical-alignment: center; overflow: elide;
+                    font-size: 13px * root.scale; font-weight: person.speaking ? 700 : 500;
+                    color: person.speaking ? #ffffff : #ffffffcc;
+                }
+                if person.deafened: Image { source: @image-url("icons/headphone-off.svg"); width: 14px * root.scale; image-fit: contain; colorize: #f23f43; }
+                if person.muted && !person.deafened: Image { source: @image-url("icons/mic-off.svg"); width: 14px * root.scale; image-fit: contain; colorize: #f23f43; }
+            }
+        }
+    }
+}

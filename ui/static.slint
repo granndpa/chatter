@@ -36,9 +36,12 @@ import { SavedRow } from "tweaks/bookmarks.slint";
 import { ReminderRow, RemindPicker } from "tweaks/reminders.slint";
 import { SavedPanel } from "tweaks/panel.slint";
 import { InboxRow } from "tweaks/inbox.slint";
+import { WrappedCard } from "tweaks/wrapped.slint";
 import { ConnectionLost } from "connection-lost.slint";
 import { DiscoverRow, CreateServerDialog, DiscoverScreen } from "discover.slint";
 import { ChatTab, ChatTabs } from "chat-tabs.slint";
+import { GalleryItem, GalleryScreen } from "gallery.slint";
+export { VoiceOverlay, OverlayPerson } from "voice-overlay.slint";
 import { StagedFile, StagedTile, Composer, MentionRow, MentionList, EmojiSuggestions, RequestBar } from "composer.slint";
 import { EmojiCell, EmojiRow, EmojiSection, EmojiCard, EmojiCardView, MessageRow, ReactionToggle, EmojiButton, EmojiPicker, MessageMenu, MessageGallery, MessageStickers, FileCard, MessageContent, EmbedView, BotTag, NoConversation, ConversationStart, HistoryEdge, UnreadBar, PresentBar, ImageViewer, VideoViewer, VideoPlayer, Polls } from "messages.slint";
 import { SettingsRow, SettingsScreen, AccountSettings, AppearanceSettings, ThemeCard, ThemeColour, VoiceSettings, MessageSettings, NotificationSettings, SoundSettings, AdvancedSettings, DiscordLinkSettings, DiscordSettings, BlockedRow, GameActivitySettings, GameExecutable } from "settings.slint";
@@ -1424,6 +1427,29 @@ export component StaticWindow inherits Window {
     /// the window until it does.
     in property <bool> connection-lost;
     // Discord Tweaks' chat tabs; see src/ui/tabs.rs.
+    // Discord Tweaks' Media Gallery; see src/ui/gallery.rs.
+    in-out property <bool> gallery-open;
+    in property <[GalleryItem]> gallery-items;
+    in property <int> gallery-kind;
+    in property <bool> gallery-oldest-first;
+    in property <bool> gallery-loading;
+    in property <bool> gallery-more;
+    in property <string> gallery-error;
+    in property <string> gallery-place;
+    callback gallery-kind-chosen(int);
+    callback gallery-order(bool);
+    callback gallery-filter(string);
+    callback gallery-load-more;
+    callback gallery-open-message(string, string);
+    callback gallery-save(string, string);
+    callback gallery-close;
+    // The voice overlay's settings; see src/ui/overlay.rs.
+    in-out property <bool> overlay-enabled;
+    in-out property <int> overlay-corner: 1;
+    in-out property <int> overlay-scale: 1;
+    in-out property <int> overlay-opacity: 1;
+    in-out property <bool> overlay-avatars: true;
+    callback overlay-changed(bool, int, int, int, bool);
     in property <bool> chat-tabs-enabled;
     in property <[ChatTab]> chat-tabs;
     callback chat-tab-open(string);
@@ -1461,6 +1487,17 @@ export component StaticWindow inherits Window {
     in property <[InboxRow]> inbox-rows;
     in property <bool> inbox-unread-only;
     in property <string> saved-badge;
+    // Wrapped (tab 4).
+    in property <bool> wrapped-tracking;
+    in property <string> wrapped-since;
+    in property <int> wrapped-period;
+    in property <bool> wrapped-hidden;
+    in property <[WrappedCard]> wrapped-cards;
+    callback wrapped-choose-period(int);
+    callback wrapped-set-tracking(bool);
+    callback wrapped-hide(bool);
+    callback wrapped-delete;
+    callback wrapped-export(length, length, length, length);
     callback inbox-filter(bool);
     callback inbox-activate(int);
     callback inbox-mark(int, bool);
@@ -4107,6 +4144,10 @@ export component StaticWindow inherits Window {
             fake-deafen: root.fake-deafen;
             auto-update: root.auto-update;
             chat-tabs: root.chat-tabs-enabled;
+            overlay-enabled <=> root.overlay-enabled; overlay-corner <=> root.overlay-corner;
+            overlay-scale <=> root.overlay-scale; overlay-opacity <=> root.overlay-opacity;
+            overlay-avatars <=> root.overlay-avatars;
+            overlay-changed => { root.overlay-changed(root.overlay-enabled, root.overlay-corner, root.overlay-scale, root.overlay-opacity, root.overlay-avatars); }
             chat-tabs-toggled(on) => { root.chat-tabs-toggled(on); }
             auto-update-toggled(on) => { root.auto-update = on; root.auto-update-toggled(on); }
             fake-deafen-toggled(fake) => { root.fake-deafen = fake; root.fake-deafen-toggled(fake); }
@@ -4375,6 +4416,17 @@ export component StaticWindow inherits Window {
         }
     }
     // An image shown large over everything; see ImageViewer.
+    if root.gallery-open: GalleryScreen {
+        items: root.gallery-items; kind: root.gallery-kind; oldest-first: root.gallery-oldest-first;
+        loading: root.gallery-loading; more: root.gallery-more; error: root.gallery-error; place: root.gallery-place;
+        kind-chosen(kind) => { root.gallery-kind-chosen(kind); }
+        order(oldest) => { root.gallery-order(oldest); }
+        filter(text) => { root.gallery-filter(text); }
+        load-more => { root.gallery-load-more(); }
+        open-message(room, item) => { root.gallery-open-message(room, item); }
+        save(url, name) => { root.gallery-save(url, name); }
+        close => { root.gallery-close(); }
+    }
     if root.create-server-open: CreateServerDialog {
         busy: root.create-server-busy; error: root.create-server-error;
         icon: root.create-server-icon;
@@ -4407,6 +4459,13 @@ export component StaticWindow inherits Window {
         inbox-activate(id) => { root.inbox-activate(id); }
         inbox-mark(id, read) => { root.inbox-mark(id, read); }
         inbox-mark-all => { root.inbox-mark-all(); }
+        wrapped-tracking: root.wrapped-tracking; wrapped-since: root.wrapped-since; wrapped-period: root.wrapped-period;
+        wrapped-hidden: root.wrapped-hidden; wrapped-cards: root.wrapped-cards;
+        wrapped-period-chosen(period) => { root.wrapped-choose-period(period); }
+        wrapped-tracking-toggled(on) => { root.wrapped-set-tracking(on); }
+        wrapped-hide(hidden) => { root.wrapped-hide(hidden); }
+        wrapped-delete => { root.wrapped-delete(); }
+        wrapped-export(x, y, width, height) => { root.wrapped-export(x, y, width, height); }
         show(tab) => { root.saved-show(tab); }
         close => { root.saved-open = false; }
         search(query, collection, sort) => { root.saved-search(query, collection, sort); }

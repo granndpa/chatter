@@ -1520,6 +1520,12 @@ export component DiscordSettings inherits VerticalLayout {
     in property <bool> fake-deafen;
     in property <bool> auto-update;
     in property <bool> chat-tabs;
+    in-out property <bool> overlay-enabled;
+    in-out property <int> overlay-corner;
+    in-out property <int> overlay-scale;
+    in-out property <int> overlay-opacity;
+    in-out property <bool> overlay-avatars;
+    callback overlay-changed;
     in property <bool> show-idle;
     in property <bool> hide-blocked;
     /// Those the account blocked, by name.
@@ -1576,6 +1582,35 @@ export component DiscordSettings inherits VerticalLayout {
         description: "Each conversation you open gets a tab above it, like a browser. Click to switch, middle-click or x to close, scroll over a tab to move it. Tabs come back after a restart.";
         checked: root.chat-tabs;
         toggled(on) => { root.chat-tabs-toggled(on); }
+    }
+    SettingsSwitch {
+        text: "Voice overlay";
+        description: "While you're in a call and Chatter isn't in front, a small list of who's in it shows on top of your screen: who's speaking, and who's muted or deafened. Clicks go through it. Works over borderless and windowed games; exclusive fullscreen games draw over it.";
+        checked: root.overlay-enabled;
+        toggled(on) => { root.overlay-enabled = on; root.overlay-changed(); }
+    }
+    if root.overlay-enabled: VerticalLayout {
+        spacing: 8px;
+        Choices {
+            label: "Overlay position"; options: ["Top left", "Top right", "Bottom left", "Bottom right"];
+            current: root.overlay-corner;
+            chosen(index) => { root.overlay-corner = index; root.overlay-changed(); }
+        }
+        Choices {
+            label: "Overlay size"; options: ["Small", "Normal", "Large"];
+            current: root.overlay-scale;
+            chosen(index) => { root.overlay-scale = index; root.overlay-changed(); }
+        }
+        Choices {
+            label: "Overlay background"; options: ["Dark", "Normal", "Light"];
+            current: root.overlay-opacity;
+            chosen(index) => { root.overlay-opacity = index; root.overlay-changed(); }
+        }
+        SettingsSwitch {
+            text: "Show avatars in the overlay";
+            checked: root.overlay-avatars;
+            toggled(on) => { root.overlay-avatars = on; root.overlay-changed(); }
+        }
     }
     SettingsSwitch {
         text: "Update automatically";

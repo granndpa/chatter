@@ -70,6 +70,8 @@ mod title_bar;
 use callbacks::bind_callbacks;
 mod connection;
 mod discover;
+mod gallery;
+mod overlay;
 mod tabs;
 mod tweaks;
 mod updates;
@@ -1041,6 +1043,14 @@ struct Layout {
     chat_tabs: bool,
     #[serde(default)]
     open_tabs: Vec<String>,
+    /// The voice overlay, off unless turned on; where it sits (top right
+    /// unless chosen), how big, how dark, and whether it shows avatars.
+    #[serde(default)]
+    overlay: bool,
+    overlay_corner: Option<i32>,
+    overlay_scale: Option<i32>,
+    overlay_opacity: Option<i32>,
+    overlay_avatars: Option<bool>,
     /// Discord shows this account idle after 10 minutes nobody uses Static;
     /// on unless turned off.
     show_idle: Option<bool>,
@@ -1441,6 +1451,11 @@ impl Layout {
         window.set_share_typing(self.share_typing.unwrap_or(true));
         window.set_fake_deafen(self.fake_deafen);
         window.set_auto_update(self.auto_update.unwrap_or(true));
+        window.set_overlay_enabled(self.overlay);
+        window.set_overlay_corner(self.overlay_corner.unwrap_or(1));
+        window.set_overlay_scale(self.overlay_scale.unwrap_or(1));
+        window.set_overlay_opacity(self.overlay_opacity.unwrap_or(1));
+        window.set_overlay_avatars(self.overlay_avatars.unwrap_or(true));
         window.set_notifications(self.notifications.unwrap_or(true));
         window.set_notification_text(self.notification_text.unwrap_or(true));
         window.set_sound_set(choice(&SoundSet::ALL, self.sound_set));
@@ -1810,6 +1825,10 @@ struct Adapter {
     dismissed: HashSet<String>,
     /// Discord Tweaks' bookmarks, reminders and saved drafts; see `tweaks.rs`.
     tweaks: tweaks::Tweaks,
+    /// Discord Tweaks' Media Gallery; see `gallery.rs`.
+    gallery: gallery::Gallery,
+    /// Discord Tweaks' voice overlay; see `overlay.rs`.
+    overlay: overlay::Overlay,
     /// Discord has been online since Chatter started, so going offline is a
     /// lost connection rather than still starting up.
     seen_online: bool,
@@ -2070,6 +2089,8 @@ impl Adapter {
                 translations: HashMap::new(),
                 dismissed: HashSet::new(),
                 tweaks: tweaks::Tweaks::default(),
+                gallery: gallery::Gallery::default(),
+                overlay: overlay::Overlay::default(),
                 seen_online: false,
                 updates: updates::Updates::default(),
                 voice_room: None,
@@ -2606,6 +2627,10 @@ impl Adapter {
         // A keystroke in the composer changes only the composer, and one in
         // the profile editor only the editor; the rest of the window
         // stays as it is.
+        if matches!(action, Action::Send) {
+            let draft = self.app.state.draft().to_owned();
+            tweaks::record_sent(self, &draft);
+        }
         let composing = matches!(action, Action::SetDraft(_) | Action::MentionQuery(_));
         let profiling = matches!(action, Action::WriteProfile { .. });
         // Typing on Roles changes only the settings, too.

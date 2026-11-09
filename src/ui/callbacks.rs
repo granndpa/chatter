@@ -226,6 +226,21 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
     super::updates::bind(window, adapter);
     super::discover::bind(window, adapter);
     super::tabs::bind(window, adapter);
+    super::gallery::bind(window, adapter);
+    {
+        let state = adapter.clone();
+        window.on_overlay_changed(move |enabled, corner, scale, opacity, avatars| {
+            let mut adapter = state.borrow_mut();
+            let layout = &mut adapter.layout;
+            layout.overlay = enabled;
+            layout.overlay_corner = Some(corner);
+            layout.overlay_scale = Some(scale);
+            layout.overlay_opacity = Some(opacity);
+            layout.overlay_avatars = Some(avatars);
+            adapter.layout.write(&adapter.root);
+            super::overlay::show(&mut adapter);
+        });
+    }
     super::connection::start();
     super::games::bind(window, adapter);
     super::connections::bind(window, adapter);

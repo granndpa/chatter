@@ -1,0 +1,91 @@
+// Discord Tweaks: Discord Wrapped, a recap of what Chatter saw you do, as
+// cards that rise in one after another.
+
+import { Theme } from "../theme.slint";
+import { RowButton } from "bookmarks.slint";
+
+export struct WrappedCard {
+    title: string,
+    /// The big number or name.
+    value: string,
+    /// Lines under it, such as a top five.
+    lines: [string],
+    /// Its colours.
+    from: color, to: color,
+}
+
+component Card inherits Rectangle {
+    in property <WrappedCard> card;
+    in property <int> order;
+    // Rises and fades in, each card a little after the one before.
+    property <float> shown: 0;
+    init => { self.shown = 1; }
+    animate shown { delay: root.order * 110ms; duration: 450ms; easing: ease-out; }
+    opacity: root.shown;
+    border-radius: 14px;
+    background: @linear-gradient(135deg, root.card.from 0%, root.card.to 100%);
+    VerticalLayout {
+        y: (1 - root.shown) * 24px;
+        padding: 16px; spacing: 4px; alignment: start;
+        Text { text: root.card.title; color: #ffffffcc; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; }
+        Text { text: root.card.value; color: #ffffff; font-size: 26px; font-weight: 800; wrap: word-wrap; }
+        for line in root.card.lines: Text { text: line; color: #ffffffe6; font-size: 13px; overflow: elide; }
+    }
+}
+
+export component WrappedPage inherits VerticalLayout {
+    in property <bool> tracking;
+    /// Such as "Tracking since 9 November 2026".
+    in property <string> since;
+    in property <int> period;
+    in property <bool> hide-sensitive;
+    in property <[WrappedCard]> cards;
+    callback period-chosen(int);
+    callback tracking-toggled(bool);
+    callback hide-toggled(bool);
+    callback delete-stats;
+    callback export(length, length, length, length);
+    property <bool> confirm-delete;
+    spacing: 10px;
+    if !root.tracking && root.cards.length == 0: VerticalLayout {
+        spacing: 10px; alignment: start;
+        Text {
+            text: "Wrapped recaps what you do in Chatter: time in voice, messages sent, your top servers, channels and emoji, and your busiest days. It only counts from the moment you turn it on, only on this computer, and nothing is fetched from Discord.";
+            color: Theme.secondary; font-size: 14px; wrap: word-wrap;
+        }
+        HorizontalLayout { alignment: start; RowButton { text: "Start tracking"; selected: true; clicked => { root.tracking-toggled(true); } } }
+    }
+    if root.tracking || root.cards.length > 0: VerticalLayout {
+        spacing: 10px; vertical-stretch: 1;
+        HorizontalLayout {
+            spacing: 6px; alignment: start;
+            for name[index] in ["This week", "This month", "This year", "All time"]: RowButton {
+                text: name; selected: root.period == index; clicked => { root.period-chosen(index); }
+            }
+            Rectangle { width: 12px; }
+            RowButton { text: "Hide names"; selected: root.hide-sensitive; clicked => { root.hide-toggled(!root.hide-sensitive); } }
+            RowButton { text: "Export"; clicked => { root.export(cards-box.absolute-position.x, cards-box.absolute-position.y, cards-box.width, cards-box.height); } }
+        }
+        Text { text: root.since; color: Theme.muted; font-size: 12px; }
+        cards-box := Rectangle {
+            vertical-stretch: 1;
+            background: Theme.panel;
+            property <int> columns: max(1, floor(self.width / 220px));
+            property <length> card-width: (self.width - (self.columns - 1) * 12px) / self.columns;
+            for card[index] in root.cards: Card {
+                card: card; order: index;
+                x: Math.mod(index, cards-box.columns) * (cards-box.card-width + 12px);
+                y: floor(index / cards-box.columns) * 172px;
+                width: cards-box.card-width; height: 160px;
+            }
+        }
+        HorizontalLayout {
+            spacing: 6px; alignment: start;
+            RowButton { text: root.tracking ? "Stop tracking" : "Start tracking"; clicked => { root.tracking-toggled(!root.tracking); } }
+            RowButton {
+                text: root.confirm-delete ? "Really delete everything?" : "Delete my stats"; danger: true;
+                clicked => { if root.confirm-delete { root.delete-stats(); root.confirm-delete = false; } else { root.confirm-delete = true; } }
+            }
+        }
+    }
+}

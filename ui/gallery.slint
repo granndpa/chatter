@@ -1,0 +1,124 @@
+// Discord Tweaks' Media Gallery: a grid of a channel's or server's media.
+
+import { Theme } from "theme.slint";
+import { IconButton, TextField, PictureStore, ActionButton } from "controls.slint";
+import { RowButton } from "tweaks/bookmarks.slint";
+
+export struct GalleryItem {
+    room: string, item: string,
+    /// The file's name, or the link.
+    name: string,
+    sender: string, date: string,
+    /// A picture's address for its thumbnail; empty for other files.
+    picture-url: string,
+    /// Where the file is, which Save downloads.
+    url: string,
+}
+
+component GalleryCell inherits Rectangle {
+    in property <GalleryItem> entry;
+    callback open;
+    callback save;
+    property <image> none;
+    property <image> thumbnail: root.entry.picture-url != "" ? PictureStore.picture(root.entry.picture-url, PictureStore.revision) : root.none;
+    init => { if root.entry.picture-url != "" { PictureStore.request(root.entry.picture-url); } }
+    border-radius: 8px; background: touch.has-hover ? Theme.active : Theme.raised; clip: true;
+    touch := TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.open(); } }
+    Rectangle {
+        x: 0; y: 0; width: parent.width; height: parent.height - 52px; background: Theme.sunken;
+        if root.thumbnail.width > 0: Image { width: parent.width; height: parent.height; source: root.thumbnail; image-fit: cover; }
+        if root.thumbnail.width == 0: Text {
+            text: root.entry.picture-url != "" ? "Loading..." : root.entry.name;
+            color: Theme.muted; font-size: 12px; wrap: word-wrap; horizontal-alignment: center; width: parent.width - 16px;
+        }
+    }
+    VerticalLayout {
+        x: 8px; y: parent.height - 50px; width: parent.width - 44px; height: 46px; alignment: center; spacing: 1px;
+        Text { text: root.entry.name; color: Theme.text; font-size: 12px; overflow: elide; }
+        Text { text: root.entry.sender; color: Theme.secondary; font-size: 11px; overflow: elide; }
+        Text { text: root.entry.date; color: Theme.muted; font-size: 10px; overflow: elide; }
+    }
+    IconButton {
+        x: parent.width - 34px; y: parent.height - 44px; height: 30px; size: 30px; glyph: 16px;
+        icon: @image-url("icons/download.svg"); label: "Save " + root.entry.name;
+        clicked => { root.save(); }
+    }
+}
+
+export component GalleryScreen inherits Rectangle {
+    in property <[GalleryItem]> items;
+    in property <int> kind;
+    in property <bool> oldest-first;
+    in property <bool> loading;
+    in property <bool> more;
+    in property <string> error;
+    /// "#general" or "Whole server".
+    in property <string> place;
+    callback kind-chosen(int);
+    callback order(bool);
+    callback filter(string);
+    callback load-more;
+    callback open-message(string, string);
+    callback save(string, string);
+    callback close;
+    background: #00000099;
+    TouchArea { clicked => { root.close(); } }
+    Rectangle {
+        width: min(980px, root.width - 48px); height: root.height - 64px;
+        background: Theme.panel; border-color: Theme.edge; border-width: 1px; border-radius: 12px;
+        TouchArea { }
+        FocusScope {
+            key-pressed(event) => {
+                if event.text == Key.Escape { root.close(); return accept; }
+                return reject;
+            }
+            VerticalLayout {
+                padding: 20px; spacing: 12px;
+                HorizontalLayout {
+                    spacing: 10px;
+                    Text { text: "Media Gallery"; color: Theme.text; font-size: 20px; font-weight: 700; vertical-alignment: center; }
+                    Text { text: root.place; color: Theme.muted; font-size: 14px; vertical-alignment: center; horizontal-stretch: 1; }
+                    IconButton { icon: @image-url("icons/x.svg"); label: "Close"; clicked => { root.close(); } }
+                }
+                HorizontalLayout {
+                    spacing: 6px; alignment: start;
+                    for name[index] in ["Images", "Videos", "Files", "Links"]: RowButton {
+                        text: name; selected: root.kind == index; clicked => { root.kind-chosen(index); }
+                    }
+                    Rectangle { width: 16px; }
+                    RowButton { text: "Newest"; selected: !root.oldest-first; clicked => { root.order(false); } }
+                    RowButton { text: "Oldest"; selected: root.oldest-first; clicked => { root.order(true); } }
+                }
+                TextField {
+                    min-height: 34px; text-size: 13px; pad: 10px;
+                    placeholder: "Filter by name or sender"; label: "Filter";
+                    edited(text) => { root.filter(text); }
+                }
+                if root.error != "": Text { text: root.error; color: Theme.danger; font-size: 13px; wrap: word-wrap; }
+                grid := Flickable {
+                    vertical-stretch: 1;
+                    property <int> columns: max(1, floor(self.width / 176px));
+                    property <length> cell: (self.width - (self.columns - 1) * 10px) / self.columns;
+                    content-height: max(self.height, ceil(root.items.length / self.columns) * (grid.cell * 0.75 + 62px) + 60px);
+                    for entry[index] in root.items: GalleryCell {
+                        x: Math.mod(index, grid.columns) * (grid.cell + 10px);
+                        y: floor(index / grid.columns) * (grid.cell * 0.75 + 62px);
+                        width: grid.cell; height: grid.cell * 0.75 + 52px;
+                        entry: entry;
+                        open => { root.open-message(entry.room, entry.item); }
+                        save => { root.save(entry.url, entry.name); }
+                    }
+                    if root.items.length == 0 && !root.loading: Text {
+                        y: 8px; text: "Nothing here yet."; color: Theme.muted; font-size: 14px;
+                    }
+                    if root.loading || root.more: HorizontalLayout {
+                        y: ceil(root.items.length / grid.columns) * (grid.cell * 0.75 + 62px) + 8px; width: parent.width; height: 40px;
+                        alignment: center;
+                        if root.loading: Text { text: "Loading..."; color: Theme.muted; font-size: 13px; vertical-alignment: center; }
+                        if !root.loading && root.more: ActionButton { text: "Load more"; clicked => { root.load-more(); } }
+                    }
+                }
+            }
+        }
+    }
+}

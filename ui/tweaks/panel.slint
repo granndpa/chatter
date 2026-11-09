@@ -6,6 +6,7 @@ import { IconButton } from "../controls.slint";
 import { SavedRow, SavedList, RowButton } from "bookmarks.slint";
 import { ReminderRow, ReminderList } from "reminders.slint";
 import { InboxRow, InboxList } from "inbox.slint";
+import { WrappedCard, WrappedPage } from "wrapped.slint";
 
 export component SavedPanel inherits Rectangle {
     /// 0 Bookmarks, 1 Reminders, 2 Hall of Fame.
@@ -17,6 +18,16 @@ export component SavedPanel inherits Rectangle {
     in property <bool> inbox-unread-only;
     /// Unread inbox entries, on its tab.
     in property <string> inbox-badge;
+    in property <bool> wrapped-tracking;
+    in property <string> wrapped-since;
+    in property <int> wrapped-period;
+    in property <bool> wrapped-hidden;
+    in property <[WrappedCard]> wrapped-cards;
+    callback wrapped-period-chosen(int);
+    callback wrapped-tracking-toggled(bool);
+    callback wrapped-hide(bool);
+    callback wrapped-delete;
+    callback wrapped-export(length, length, length, length);
     /// Why something didn't work, such as a conversation that's gone.
     in property <string> note;
     callback show(int);
@@ -54,7 +65,7 @@ export component SavedPanel inherits Rectangle {
                 spacing: 8px;
                 Text { text: "Saved"; color: Theme.text; font-size: 20px; font-weight: 700; vertical-alignment: center; }
                 Rectangle { width: 12px; }
-                for name[index] in ["Bookmarks", "Reminders", "Hall of Fame", "Inbox"]: RowButton {
+                for name[index] in ["Bookmarks", "Reminders", "Hall of Fame", "Inbox", "Wrapped"]: RowButton {
                     text: index == 3 && root.inbox-badge != "" ? name + " (" + root.inbox-badge + ")" : name;
                     selected: root.tab == index;
                     clicked => { root.show(index); }
@@ -63,6 +74,16 @@ export component SavedPanel inherits Rectangle {
                 IconButton { icon: @image-url("../icons/x.svg"); label: "Close"; clicked => { root.close(); } }
             }
             if root.note != "": Text { text: root.note; color: Theme.danger; font-size: 13px; wrap: word-wrap; }
+            if root.tab == 4: WrappedPage {
+                vertical-stretch: 1;
+                tracking: root.wrapped-tracking; since: root.wrapped-since; period: root.wrapped-period;
+                hide-sensitive: root.wrapped-hidden; cards: root.wrapped-cards;
+                period-chosen(period) => { root.wrapped-period-chosen(period); }
+                tracking-toggled(on) => { root.wrapped-tracking-toggled(on); }
+                hide-toggled(hidden) => { root.wrapped-hide(hidden); }
+                delete-stats => { root.wrapped-delete(); }
+                export(x, y, width, height) => { root.wrapped-export(x, y, width, height); }
+            }
             if root.tab == 3: InboxList {
                 vertical-stretch: 1;
                 rows: root.inbox; unread-only: root.inbox-unread-only;

@@ -11,6 +11,7 @@ use static_core::tweaks::{
     inbox::{self, Inbox},
     pins::{self, Pins},
     reminders::{self, Reminders},
+    stats::{self, Stats},
 };
 
 use super::*;
@@ -31,6 +32,13 @@ pub(super) struct Tweaks {
     /// Pinned servers and friends, which the rail shows first.
     pub(super) pins: Pins,
     inbox: Inbox,
+    /// Wrapped's numbers, whether they changed since saved, the conversation
+    /// last counted as opened, the period shown and whether names hide.
+    stats: Stats,
+    stats_changed: bool,
+    last_visit: Option<String>,
+    wrapped_period: i32,
+    wrapped_hidden: bool,
     /// The inbox shows only unread entries; on unless switched.
     inbox_all: bool,
     /// The drafts as last written to disk.
@@ -65,6 +73,7 @@ pub(super) fn sync_account(adapter: &mut Adapter) {
     tweaks.reminders = Reminders::default();
     tweaks.pins = Pins::default();
     tweaks.inbox = Inbox::default();
+    tweaks.stats = Stats::default();
     tweaks.drafts = Drafts::default();
     tweaks.collection.clear();
     if let Some(dir) = dir {
@@ -72,6 +81,7 @@ pub(super) fn sync_account(adapter: &mut Adapter) {
         tweaks.reminders = tweaks::load(&dir, reminders::FILE);
         tweaks.pins = tweaks::load(&dir, pins::FILE);
         tweaks.inbox = tweaks::load(&dir, inbox::FILE);
+        tweaks.stats = tweaks::load(&dir, stats::FILE);
         let saved: Drafts = tweaks::load(&dir, drafts::FILE);
         adapter.app.state.restore_drafts(saved);
         adapter.tweaks.drafts = adapter.app.state.saved_drafts();
@@ -237,6 +247,15 @@ fn tick(adapter: &mut Adapter, window: &StaticWindow) {
         }
         adapter.tweaks.drafts = drafts;
     }
+    if adapter.app.state.voice.active() {
+        adapter.tweaks.stats.voice(now(), TICK.as_secs());
+        adapter.tweaks.stats_changed |= adapter.tweaks.stats.enabled;
+    }
+    if std::mem::take(&mut adapter.tweaks.stats_changed)
+        && let Err(error) = tweaks::save(&dir, stats::FILE, &adapter.tweaks.stats)
+    {
+        tracing::warn!(%error, "could not save Wrapped's numbers");
+    }
     let due = adapter.tweaks.reminders.take_due(now());
     if let Some(last) = due.last() {
         save_reminders(adapter);
@@ -257,6 +276,100 @@ fn tick(adapter: &mut Adapter, window: &StaticWindow) {
         adapter.tweaks.last_fired = Some(message.clone());
         show(adapter, window);
     }
+}
+
+/// Counts a message sent, with its emoji, for Wrapped.
+pub(super) fn record_sent(adapter: &mut Adapter, text: &str) {
+    if adapter.tweaks.stats.enabled && !text.trim().is_empty() {
+        adapter.tweaks.stats.message(now(), text);
+        adapter.tweaks.stats_changed = true;
+    }
+}
+
+/// Counts the conversation open now, once per time it's opened, for Wrapped.
+pub(super) fn record_visit(adapter: &mut Adapter) {
+    let state = &adapter.app.state;
+    if !adapter.tweaks.stats.enabled || state.selected == adapter.tweaks.last_visit {
+        return;
+    }
+    adapter.tweaks.last_visit = state.selected.clone();
+    let Some(room) = state.selected_room() else { return };
+    let server = state
+        .servers
+        .iter()
+        .find(|server| server.channels.contains(&room.id))
+        .map(|server| (server.id.clone(), server.name.clone()));
+    let name = if room.direct { room.name.clone() } else { format!("#{}", room.name) };
+    let id = room.id.clone();
+    adapter.tweaks.stats.visit(
+        now(),
+        (&id, &name),
+        server.as_ref().map(|(id, name)| (id.as_str(), name.as_str())),
+    );
+    adapter.tweaks.stats_changed = true;
+}
+
+/// "2 h 05 min" from seconds.
+fn duration(seconds: u64) -> String {
+    let minutes = seconds / 60;
+    if minutes < 60 {
+        format!("{minutes} min")
+    } else {
+        format!("{} h {:02} min", minutes / 60, minutes % 60)
+    }
+}
+
+/// Wrapped's cards for the period shown.
+fn wrapped_cards(tweaks: &Tweaks) -> Vec<WrappedCard> {
+    let days = [Some(7), Some(31), Some(366), None][tweaks.wrapped_period.clamp(0, 3) as usize];
+    let recap = tweaks.stats.recap(now(), days);
+    let hide = tweaks.wrapped_hidden;
+    let listed = |list: &[(String, u32)], kind: &str| -> Vec<SharedString> {
+        list.iter()
+            .enumerate()
+            .map(|(index, (name, count))| {
+                let name = if hide { format!("{kind} {}", index + 1) } else { name.clone() };
+                format!("{}. {name} ({count})", index + 1).into()
+            })
+            .collect()
+    };
+    let colour = |rgb: u32| slint::Color::from_rgb_u8((rgb >> 16) as u8, (rgb >> 8) as u8, rgb as u8);
+    let card = |title: &str, value: String, lines: Vec<SharedString>, from: u32, to: u32| WrappedCard {
+        title: title.into(),
+        value: value.into(),
+        lines: ModelRc::new(VecModel::from(lines)),
+        from: colour(from),
+        to: colour(to),
+    };
+    let first = |list: &[(String, u32)], kind: &str| {
+        list.first()
+            .map(|(name, _)| if hide { format!("{kind} 1") } else { name.clone() })
+            .unwrap_or_else(|| "Nothing yet".into())
+    };
+    vec![
+        card("MESSAGES SENT", recap.messages.to_string(), vec![format!("on {} active days", recap.active_days).into()], 0x975AF0, 0x5865F2),
+        card("TIME IN VOICE", duration(recap.voice_seconds), vec![], 0x23A55A, 0x1A7F8E),
+        card("TOP SERVER", first(&recap.servers, "Server"), listed(&recap.servers, "Server").into_iter().skip(1).collect(), 0xF0B232, 0xE8603C),
+        card("TOP CHANNEL", first(&recap.channels, "Channel"), listed(&recap.channels, "Channel").into_iter().skip(1).collect(), 0xEB459E, 0x975AF0),
+        card(
+            "TOP EMOJI",
+            recap.emojis.first().map(|(emoji, _)| emoji.clone()).unwrap_or_else(|| "None yet".into()),
+            listed(&recap.emojis, "Emoji").into_iter().skip(1).collect(),
+            0x5865F2,
+            0x00A8FC,
+        ),
+        card(
+            "MOST ACTIVE DAY",
+            recap.weekday.clone().unwrap_or_else(|| "Not yet".into()),
+            recap
+                .busiest
+                .iter()
+                .map(|(date, count)| format!("Busiest: {date} ({count} messages)").into())
+                .collect(),
+            0xE8603C,
+            0xEB459E,
+        ),
+    ]
 }
 
 /// The message with this item, as a tweak saves it, from the open
@@ -375,6 +488,26 @@ fn show(adapter: &Adapter, window: &StaticWindow) {
         .collect();
     window.set_inbox_rows(ModelRc::new(VecModel::from(inbox)));
     window.set_inbox_unread_only(unread_only);
+    window.set_wrapped_tracking(tweaks.stats.enabled);
+    window.set_wrapped_period(tweaks.wrapped_period);
+    window.set_wrapped_hidden(tweaks.wrapped_hidden);
+    window.set_wrapped_since(
+        if tweaks.stats.started == 0 {
+            String::new()
+        } else {
+            format!(
+                "Counting since {}{}. Only what Chatter saw on this computer.",
+                static_core::clock::day(tweaks.stats.started),
+                if tweaks.stats.enabled { "" } else { " (paused)" }
+            )
+        }
+        .into(),
+    );
+    window.set_wrapped_cards(if tweaks.stats.started == 0 {
+        ModelRc::default()
+    } else {
+        ModelRc::new(VecModel::from(wrapped_cards(tweaks)))
+    });
     let unread = tweaks.inbox.unread();
     window.set_saved_badge(if unread == 0 {
         SharedString::default()
@@ -433,8 +566,8 @@ fn export(window: &StaticWindow, x: f32, y: f32, width: f32, height: f32) {
     let (card_width, card_height) = (right - left, bottom - top);
     std::thread::spawn(move || {
         let Some(path) = rfd::FileDialog::new()
-            .set_title("Export Hall of Fame card")
-            .set_file_name("hall-of-fame.png")
+            .set_title("Export picture")
+            .set_file_name("chatter.png")
             .save_file()
         else {
             return;
@@ -673,6 +806,62 @@ pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
             adapter.tweaks.inbox.mark_all();
             save_inbox(&adapter);
             show(&adapter, &window);
+        });
+    }
+    {
+        let (state, weak) = with(adapter, &weak);
+        window.on_wrapped_choose_period(move |period| {
+            let Some(window) = weak.upgrade() else { return };
+            let mut adapter = state.borrow_mut();
+            adapter.tweaks.wrapped_period = period;
+            show(&adapter, &window);
+        });
+    }
+    {
+        let (state, weak) = with(adapter, &weak);
+        window.on_wrapped_hide(move |hidden| {
+            let Some(window) = weak.upgrade() else { return };
+            let mut adapter = state.borrow_mut();
+            adapter.tweaks.wrapped_hidden = hidden;
+            show(&adapter, &window);
+        });
+    }
+    {
+        let (state, weak) = with(adapter, &weak);
+        window.on_wrapped_set_tracking(move |on| {
+            let Some(window) = weak.upgrade() else { return };
+            let mut adapter = state.borrow_mut();
+            sync_account(&mut adapter);
+            if on {
+                adapter.tweaks.stats.start(now());
+            } else {
+                adapter.tweaks.stats.stop();
+            }
+            adapter.tweaks.stats_changed = true;
+            if let Some(dir) = adapter.tweaks.dir.clone() {
+                let _ = tweaks::save(&dir, stats::FILE, &adapter.tweaks.stats);
+            }
+            show(&adapter, &window);
+        });
+    }
+    {
+        let (state, weak) = with(adapter, &weak);
+        window.on_wrapped_delete(move || {
+            let Some(window) = weak.upgrade() else { return };
+            let mut adapter = state.borrow_mut();
+            adapter.tweaks.stats.delete();
+            if let Some(dir) = adapter.tweaks.dir.clone() {
+                let _ = std::fs::remove_file(dir.join(stats::FILE));
+            }
+            show(&adapter, &window);
+        });
+    }
+    {
+        let weak = weak.clone();
+        window.on_wrapped_export(move |x, y, width, height| {
+            if let Some(window) = weak.upgrade() {
+                export(&window, x, y, width, height);
+            }
         });
     }
     let timer = Rc::new(slint::Timer::default());
