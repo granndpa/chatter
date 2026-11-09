@@ -127,6 +127,9 @@ pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
     if cfg!(test) {
         return;
     }
+    if !STARTED.load(Ordering::Relaxed) {
+        std::thread::spawn(updater::clean_up);
+    }
     check(Rc::downgrade(adapter), window.as_weak());
     let timer = Rc::new(slint::Timer::default());
     let (state, weak) = (Rc::downgrade(adapter), window.as_weak());

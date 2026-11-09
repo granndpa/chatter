@@ -1,6 +1,6 @@
 //! Updates from Chatter's GitHub releases: asks GitHub for the latest
-//! release, and on Windows downloads its ZIP, swaps the executable once
-//! Chatter has quit, and starts the new one.
+//! release, and on Windows downloads its ZIP, puts the new executable in
+//! place, and starts it once Chatter has quit.
 
 use std::{path::PathBuf, process::Command};
 
@@ -76,10 +76,14 @@ fn newer(latest: &str, current: &str) -> bool {
     parts(latest) > parts(current)
 }
 
-/// Downloads the release and readies the swap; Chatter must quit right
-/// after, which lets the swap replace its executable and start the new one.
+/// Downloads the release and puts its executable in place of this one,
+/// which Windows lets a running program rename out of the way. Chatter
+/// quits right after, and a hidden PowerShell starts the new one once it's
+/// gone. Nothing shows a window.
 #[cfg(windows)]
 pub fn install(release: &Release) -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+    const NO_WINDOW: u32 = 0x0800_0000;
     let url = release.download.as_deref().ok_or("this release has no Windows download")?;
     let work: PathBuf = std::env::temp_dir().join("chatter-update");
     let _ = std::fs::remove_dir_all(&work);
@@ -94,12 +98,8 @@ pub fn install(release: &Release) -> Result<(), String> {
     if !downloaded.success() {
         return Err("the download failed".into());
     }
-    let mut tar = Command::new("tar");
-    {
-        use std::os::windows::process::CommandExt;
-        tar.creation_flags(0x0800_0000);
-    }
-    let unpacked = tar
+    let unpacked = Command::new("tar")
+        .creation_flags(NO_WINDOW)
         .arg("-xf")
         .arg(&zip)
         .arg("-C")
@@ -111,32 +111,44 @@ pub fn install(release: &Release) -> Result<(), String> {
         return Err("the download had no chatter.exe".into());
     }
     let current = std::env::current_exe().map_err(|error| error.to_string())?;
-    let pid = std::process::id();
-    // Waits for this Chatter to quit, swaps the executable, starts it again.
-    let script = format!(
-        "@echo off\r\n\
-         :wait\r\n\
-         tasklist /FI \"PID eq {pid}\" | find \"{pid}\" >nul && (timeout /t 1 /nobreak >nul & goto wait)\r\n\
-         copy /y \"{fresh}\" \"{current}\" >nul\r\n\
-         start \"\" \"{current}\"\r\n\
-         rmdir /s /q \"{work}\"\r\n",
-        fresh = fresh.display(),
-        current = current.display(),
-        work = work.display(),
-    );
-    let runner = std::env::temp_dir().join("chatter-update.cmd");
-    std::fs::write(&runner, script).map_err(|error| error.to_string())?;
-    let mut swap = Command::new("cmd");
-    {
-        use std::os::windows::process::CommandExt;
-        // Detached and without a window, so it outlives Chatter.
-        swap.creation_flags(0x0800_0000 | 0x0000_0008);
+    let old = old_exe(&current);
+    let _ = std::fs::remove_file(&old);
+    std::fs::rename(&current, &old).map_err(|error| format!("couldn't move the old version: {error}"))?;
+    if let Err(error) = std::fs::copy(&fresh, &current) {
+        let _ = std::fs::rename(&old, &current);
+        return Err(format!("couldn't put the new version in place: {error}"));
     }
-    swap.arg("/c")
-        .arg(&runner)
-        .spawn()
-        .map_err(|error| error.to_string())?;
+    // Starts the new version once this one has quit, so it doesn't find
+    // this one still running and hand over to it.
+    let path = current.display().to_string().replace('\'', "''");
+    let started = Command::new("powershell")
+        .creation_flags(NO_WINDOW)
+        .args(["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command"])
+        .arg(format!(
+            "Wait-Process -Id {} -ErrorAction SilentlyContinue; Start-Process -FilePath '{path}'",
+            std::process::id()
+        ))
+        .spawn();
+    if let Err(error) = started {
+        tracing::warn!(%error, "could not schedule the restart; start Chatter again by hand");
+    }
     Ok(())
+}
+
+/// Where the replaced executable waits until the next start deletes it.
+#[cfg(windows)]
+fn old_exe(current: &std::path::Path) -> PathBuf {
+    current.with_file_name("chatter.old.exe")
+}
+
+/// Deletes what the last update left: the old executable and the download.
+pub fn clean_up() {
+    #[cfg(windows)]
+    if let Ok(current) = std::env::current_exe() {
+        let _ = std::fs::remove_file(old_exe(&current));
+    }
+    let _ = std::fs::remove_dir_all(std::env::temp_dir().join("chatter-update"));
+    let _ = std::fs::remove_file(std::env::temp_dir().join("chatter-update.cmd"));
 }
 
 /// Elsewhere, updating is the package manager's or the AppImage's job: the
