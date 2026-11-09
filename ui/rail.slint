@@ -1014,12 +1014,12 @@ export component ServerRail inherits Rectangle {
         }
         if root.can-join: RailItem {
             icon: @image-url("icons/circle-plus.svg"); icon-color: Theme.accent; icon-size: 24px;
-            label: "Add a server"; tip: "Add a server";
+            label: "Create a server"; tip: "Create a server";
             clicked => { root.join-server(); }
         }
         if root.can-join: RailItem {
             icon: @image-url("icons/community.svg"); icon-color: Theme.accent; icon-size: 22px;
-            label: "Discover"; tip: "Discover";
+            label: "Discover servers"; tip: "Discover servers";
             clicked => { root.discover(); }
         }
     }

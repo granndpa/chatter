@@ -137,9 +137,6 @@ export component JoinDialog inherits Rectangle {
     callback join;
     callback open-captcha;
     callback open-form;
-    /// Make a server instead, or browse public ones.
-    callback create-own;
-    callback discover;
     callback close;
     /// How far it's open, from 0 to 1; see PopupMotion.
     in property <float> motion: 1;
@@ -165,12 +162,7 @@ export component JoinDialog inherits Rectangle {
                     Text { text: root.prompt.title; color: Theme.text; font-size: 18px; font-weight: 700; vertical-alignment: center; horizontal-stretch: 1; overflow: elide; }
                     IconButton { icon: @image-url("icons/x.svg"); label: "Close"; size: 28px; glyph: 18px; clicked => { root.close(); } }
                 }
-                if root.prompt.field: HorizontalLayout {
-                    spacing: 8px;
-                    ActionButton { text: "Create My Own"; primary: true; clicked => { root.create-own(); } }
-                    ActionButton { text: "Discover Servers"; clicked => { root.discover(); } }
-                }
-                if root.prompt.field: Label { text: "Or paste an invite link or code to join a server you were invited to."; }
+                if root.prompt.field: Label { text: "Paste an invite link or code to join a server you were invited to."; }
                 if root.prompt.field: Text { text: "INVITE LINK"; color: Theme.muted; font-size: 12px; font-weight: 700; letter-spacing: 0.6px; }
                 if root.prompt.field: TextField {
                     init => { self.focus-input(); }

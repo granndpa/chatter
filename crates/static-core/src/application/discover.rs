@@ -5,6 +5,35 @@
 use super::*;
 use crate::chat::DiscoverServer;
 
+/// Create a Server's starting points, as Discord's client offers them: a
+/// name, and the text and voice channels it starts with. The first is
+/// Discord's own default.
+pub const SERVER_TEMPLATES: [(&str, &[&str], &[&str]); 7] = [
+    ("Create My Own", &[], &[]),
+    ("Gaming", &["general", "clips-and-highlights"], &["Lobby", "Gaming"]),
+    ("Friends", &["general", "games", "music"], &["Lounge", "Stream Room"]),
+    (
+        "Study Group",
+        &["welcome-and-rules", "notes-resources", "help-questions", "homework-help", "session-planning", "off-topic"],
+        &["Lounge", "Study Room 1", "Study Room 2"],
+    ),
+    (
+        "School Club",
+        &["welcome-and-rules", "announcements", "resources", "general", "meeting-plans", "off-topic"],
+        &["Lounge", "Meeting Room 1", "Meeting Room 2"],
+    ),
+    (
+        "Local Community",
+        &["welcome-and-rules", "announcements", "resources", "general", "meeting-plans", "off-topic"],
+        &["Lounge", "Meeting Room"],
+    ),
+    (
+        "Artists & Creators",
+        &["welcome-and-rules", "announcements", "general", "events", "ideas-and-feedback"],
+        &["Lounge", "Community Hangout", "Stream Room"],
+    ),
+];
+
 /// How many servers Discover asks Discord for at a time.
 pub const DISCOVER_PAGE: usize = 24;
 
@@ -13,6 +42,8 @@ pub const DISCOVER_PAGE: usize = 24;
 pub struct CreateServerDialog {
     /// Discord is making it.
     pub busy: bool,
+    /// The picture chosen for its icon.
+    pub icon: Option<std::path::PathBuf>,
     pub error: Option<String>,
 }
 
@@ -37,7 +68,14 @@ impl Application {
         vec![]
     }
 
-    pub(super) fn create_server(&mut self, name: String) -> Vec<Effect> {
+    pub(super) fn set_server_icon(&mut self, icon: Option<std::path::PathBuf>) -> Vec<Effect> {
+        if let Some(dialog) = &mut self.state.create_server {
+            dialog.icon = icon;
+        }
+        vec![]
+    }
+
+    pub(super) fn create_server(&mut self, name: String, template: usize) -> Vec<Effect> {
         let Some(dialog) = self.state.create_server.as_mut().filter(|dialog| !dialog.busy) else {
             return vec![];
         };
@@ -48,7 +86,9 @@ impl Application {
         }
         dialog.busy = true;
         dialog.error = None;
-        vec![Effect::Backend(Command::Discord(DiscordCommand::CreateServer { name }))]
+        let icon = dialog.icon.clone();
+        let template = template.min(SERVER_TEMPLATES.len() - 1);
+        vec![Effect::Backend(Command::Discord(DiscordCommand::CreateServer { name, icon, template }))]
     }
 
     /// The server made, which Discord lists on the rail as it arrives.

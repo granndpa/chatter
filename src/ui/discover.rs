@@ -20,6 +20,27 @@ pub(super) fn show(adapter: &Adapter, window: &StaticWindow) {
     let state = &adapter.app.state;
     match &state.create_server {
         Some(dialog) => {
+            if !window.get_create_server_open() {
+                let names: Vec<SharedString> = static_core::application::SERVER_TEMPLATES
+                    .iter()
+                    .map(|(name, _, _)| SharedString::from(*name))
+                    .collect();
+                window.set_create_server_templates(ModelRc::new(VecModel::from(names)));
+            }
+            // The picture loads once per file chosen, not every refresh.
+            thread_local! {
+                static SHOWN: RefCell<Option<std::path::PathBuf>> = const { RefCell::new(None) };
+            }
+            if SHOWN.with_borrow(|shown| shown.as_ref() != dialog.icon.as_ref()) {
+                SHOWN.set(dialog.icon.clone());
+                window.set_create_server_icon(
+                    dialog
+                        .icon
+                        .as_deref()
+                        .and_then(|path| slint::Image::load_from_path(path).ok())
+                        .unwrap_or_default(),
+                );
+            }
             window.set_create_server_open(true);
             window.set_create_server_busy(dialog.busy);
             window.set_create_server_error(dialog.error.clone().unwrap_or_default().into());
@@ -86,7 +107,39 @@ pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
     act!(on_open_discover, Action::OpenDiscover);
     act!(on_discover_load_more, Action::MoreDiscover);
     act!(on_close_discover, Action::CloseDiscover);
-    act_with!(on_create_server, Action::CreateServer);
+    {
+        let (state, weak) = (adapter.clone(), window.as_weak());
+        window.on_create_server(move |name, template| {
+            if let Some(window) = weak.upgrade() {
+                state.borrow_mut().action(
+                    &window,
+                    Action::CreateServer {
+                        name: name.to_string(),
+                        template: template.max(0) as usize,
+                    },
+                );
+            }
+        });
+    }
+    act!(on_clear_server_icon, Action::SetServerIcon(None));
+    {
+        let (state, weak) = (Rc::downgrade(adapter), window.as_weak());
+        window.on_pick_server_icon(move || {
+            let (state, weak) = (state.clone(), weak.clone());
+            let _ = slint::spawn_local(async move {
+                let picked = rfd::AsyncFileDialog::new()
+                    .set_title("Choose a server icon")
+                    .add_filter("Pictures", &["png", "jpg", "jpeg", "gif", "webp"])
+                    .pick_file()
+                    .await;
+                if let (Some(file), Some(adapter), Some(window)) = (picked, state.upgrade(), weak.upgrade()) {
+                    adapter
+                        .borrow_mut()
+                        .action(&window, Action::SetServerIcon(Some(file.path().to_owned())));
+                }
+            });
+        });
+    }
     act_with!(on_discover_search, Action::SearchDiscover);
     act_with!(on_join_discovered, Action::JoinDiscovered);
 }

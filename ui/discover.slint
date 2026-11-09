@@ -15,8 +15,16 @@ export struct DiscoverRow {
 export component CreateServerDialog inherits Rectangle {
     in property <bool> busy;
     in property <string> error;
-    callback create(string);
+    /// The templates' names, Create My Own first.
+    in property <[string]> templates;
+    /// The chosen icon, once picked.
+    in property <image> icon;
+    /// The name and the template chosen.
+    callback create(string, int);
+    callback pick-icon;
+    callback clear-icon;
     callback close;
+    property <int> template: 0;
     background: #00000099;
     TouchArea { clicked => { root.close(); } }
     Rectangle {
@@ -39,12 +47,38 @@ export component CreateServerDialog inherits Rectangle {
                     text: "Your server is where you and your friends hang out. Make yours and start talking.";
                     color: Theme.secondary; font-size: 14px; wrap: word-wrap;
                 }
+                Text { text: "START FROM A TEMPLATE"; color: Theme.muted; font-size: 12px; font-weight: 700; letter-spacing: 0.6px; }
+                for template-name[index] in root.templates: Rectangle {
+                    height: 36px; border-radius: 8px;
+                    background: root.template == index ? Theme.accent.with-alpha(0.25) : template-touch.has-hover ? Theme.active : Theme.field;
+                    border-width: root.template == index ? 1px : 0px; border-color: Theme.accent;
+                    Text { x: 12px; text: template-name; color: Theme.text; font-size: 14px; font-weight: root.template == index ? 700 : 400; vertical-alignment: center; }
+                    template-touch := TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.template = index; } }
+                }
+                HorizontalLayout {
+                    spacing: 14px; alignment: start;
+                    Rectangle {
+                        width: 72px; height: 72px; border-radius: 36px;
+                        background: icon-touch.has-hover ? Theme.active : Theme.field;
+                        border-width: root.icon.width > 0 ? 0px : 2px; border-color: Theme.muted;
+                        clip: true;
+                        if root.icon.width > 0: Image { width: parent.width; height: parent.height; source: root.icon; image-fit: cover; }
+                        if root.icon.width == 0: Text { text: "UPLOAD"; color: Theme.muted; font-size: 11px; font-weight: 700; }
+                        icon-touch := TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.pick-icon(); } }
+                    }
+                    VerticalLayout {
+                        alignment: center; spacing: 6px;
+                        Text { text: "Server icon"; color: Theme.text; font-size: 14px; font-weight: 600; }
+                        Text { text: "Optional. PNG, JPG or GIF, up to 8 MB."; color: Theme.muted; font-size: 12px; }
+                        if root.icon.width > 0: HorizontalLayout { alignment: start; ActionButton { text: "Remove"; ghost: true; clicked => { root.clear-icon(); } } }
+                    }
+                }
                 Text { text: "SERVER NAME"; color: Theme.muted; font-size: 12px; font-weight: 700; letter-spacing: 0.6px; }
                 name := TextField {
                     init => { self.focus-input(); }
                     min-height: 36px; text-size: 15px; pad: 10px;
                     placeholder: "My server"; label: "Server name";
-                    accepted => { if !root.busy { root.create(self.text); } }
+                    accepted => { if !root.busy { root.create(self.text, root.template); } }
                 }
                 if root.error != "": Text { text: root.error; color: Theme.danger; font-size: 14px; wrap: word-wrap; }
                 HorizontalLayout {
@@ -52,7 +86,7 @@ export component CreateServerDialog inherits Rectangle {
                     ActionButton { text: "Cancel"; ghost: true; clicked => { root.close(); } }
                     ActionButton {
                         text: root.busy ? "Creating..." : "Create"; primary: true; enabled: !root.busy;
-                        clicked => { root.create(name.text); }
+                        clicked => { root.create(name.text, root.template); }
                     }
                 }
             }

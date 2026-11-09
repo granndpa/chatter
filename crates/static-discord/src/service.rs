@@ -2308,8 +2308,13 @@ impl Discord {
     }
 
     /// Makes a server owned by this account; its id.
-    pub async fn create_guild(&self, name: &str) -> Result<String> {
-        let guild = self.api.create_guild(name).await?;
+    pub async fn create_guild(
+        &self,
+        name: &str,
+        icon: Option<&str>,
+        channels: Option<&[Value]>,
+    ) -> Result<String> {
+        let guild = self.api.create_guild(name, icon, channels).await?;
         guild["id"]
             .as_str()
             .map(str::to_owned)

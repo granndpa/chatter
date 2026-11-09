@@ -69,6 +69,86 @@ async fn connections(
     })
 }
 
+/// A picture file as the `data:` address Discord takes for an icon.
+async fn icon_data(path: &std::path::Path) -> anyhow::Result<String> {
+    use base64::Engine;
+    let bytes = tokio::fs::read(path).await?;
+    if bytes.len() > 8 * 1024 * 1024 {
+        anyhow::bail!("the picture is over 8 MB");
+    }
+    let kind = match path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .map(str::to_ascii_lowercase)
+        .as_deref()
+    {
+        Some("jpg" | "jpeg") => "image/jpeg",
+        Some("gif") => "image/gif",
+        Some("webp") => "image/webp",
+        _ => "image/png",
+    };
+    Ok(format!(
+        "data:{kind};base64,{}",
+        base64::engine::general_purpose::STANDARD.encode(bytes)
+    ))
+}
+
+/// A template's channels, in Text Channels and Voice Channels categories,
+/// as Create a Server sends them; none for Discord's own default.
+fn template_channels(template: usize) -> Option<Vec<serde_json::Value>> {
+    use serde_json::json;
+    let (_, text, voice) = crate::application::SERVER_TEMPLATES.get(template)?;
+    if text.is_empty() && voice.is_empty() {
+        return None;
+    }
+    let mut channels = vec![
+        json!({"id": "1", "name": "Text Channels", "type": 4}),
+        json!({"id": "2", "name": "Voice Channels", "type": 4}),
+    ];
+    channels.extend(text.iter().map(|name| json!({"name": name, "type": 0, "parent_id": "1"})));
+    channels.extend(voice.iter().map(|name| json!({"name": name, "type": 2, "parent_id": "2"})));
+    Some(channels)
+}
+
+/// A page of Discover, searched with Discord's search; when that finds
+/// nothing or fails, Discover's own listing filtered by the words instead.
+async fn discover_or_filter(
+    discord: &Discord,
+    query: &str,
+    offset: u32,
+) -> anyhow::Result<Vec<crate::chat::DiscoverServer>> {
+    let query = query.trim();
+    if query.is_empty() {
+        return Ok(discover_servers(&discord.discover("", offset).await?));
+    }
+    if let Ok(answer) = discord.discover(query, offset).await {
+        let found = discover_servers(&answer);
+        if !found.is_empty() {
+            return Ok(found);
+        }
+    }
+    let words = query.to_lowercase();
+    let page = crate::application::DISCOVER_PAGE;
+    let mut matching = Vec::new();
+    // Up to five pages of the listing, which is as far as Discord goes.
+    for listing in 0..5u32 {
+        let servers = discover_servers(&discord.discover("", listing * page as u32).await?);
+        let ended = servers.len() < page;
+        matching.extend(servers.into_iter().filter(|server| {
+            server.name.to_lowercase().contains(&words)
+                || server.description.to_lowercase().contains(&words)
+        }));
+        if ended {
+            break;
+        }
+    }
+    Ok(matching
+        .into_iter()
+        .skip(offset as usize)
+        .take(page)
+        .collect())
+}
+
 /// Discover's servers from Discord's answer, a listing or a search.
 fn discover_servers(answer: &serde_json::Value) -> Vec<crate::chat::DiscoverServer> {
     let listed = answer["guilds"]
@@ -1103,14 +1183,22 @@ pub(super) fn command(
         }
         return None;
     }
-    if let Command::Discord(DiscordCommand::CreateServer { name }) = command {
+    if let Command::Discord(DiscordCommand::CreateServer { name, icon, template }) = command {
         match discord {
             Ok(discord) => {
                 let (discord, events) = (discord.clone(), events.clone());
                 tokio::spawn(async move {
-                    let result = discord
-                        .create_guild(&name)
-                        .await
+                    let result = async {
+                        let icon = match icon {
+                            Some(path) => Some(icon_data(&path).await?),
+                            None => None,
+                        };
+                        let channels = template_channels(template);
+                        discord
+                            .create_guild(&name, icon.as_deref(), channels.as_deref())
+                            .await
+                    }
+                    .await
                         .map(|id| discord::server_id(&id))
                         .map_err(|error| {
                             tracing::warn!(error = format!("{error:#}"), "could not create a server");
@@ -1132,10 +1220,8 @@ pub(super) fn command(
             Ok(discord) => {
                 let (discord, events) = (discord.clone(), events.clone());
                 tokio::spawn(async move {
-                    let result = discord
-                        .discover(&query, offset)
+                    let result = discover_or_filter(&discord, &query, offset)
                         .await
-                        .map(|answer| discover_servers(&answer))
                         .map_err(|error| {
                             tracing::warn!(error = format!("{error:#}"), "could not list Discover");
                             format!("Couldn't load Discover: {error}")

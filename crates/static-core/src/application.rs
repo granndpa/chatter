@@ -60,7 +60,7 @@ pub use forum::{ForumInfo, ForumPost, ForumPosts, ForumView};
 pub use gifs::{AskedPicture, GifPicker, GifPicture, GifView};
 pub use gift::GiftDialog;
 pub use join::JoinDialog;
-pub use discover::{CreateServerDialog, DiscoverView};
+pub use discover::{CreateServerDialog, DISCOVER_PAGE, DiscoverView, SERVER_TEMPLATES};
 pub use members::{BAN_HISTORY, RoleChoice, TIMEOUT_TIMES};
 #[cfg(all(feature = "discord", any(test, feature = "test-fixtures")))]
 pub use members::{member_server, with_clubs};
@@ -1784,7 +1784,9 @@ pub enum Action {
     CloseJoin,
     /// Create a Server: open it, make the server by this name, close it.
     OpenCreateServer,
-    CreateServer(String),
+    CreateServer { name: String, template: usize },
+    /// Create a Server's icon: a picture file, or none.
+    SetServerIcon(Option<std::path::PathBuf>),
     CloseCreateServer,
     /// Discover: open it, search it, load the next page, join a server by
     /// its public invite, close it.
@@ -3045,7 +3047,8 @@ impl Application {
             Action::OpenJoinCaptcha => self.open_join_captcha(),
             Action::OpenJoinForm => self.open_join_form(),
             Action::OpenCreateServer => self.open_create_server(),
-            Action::CreateServer(name) => self.create_server(name),
+            Action::CreateServer { name, template } => self.create_server(name, template),
+            Action::SetServerIcon(icon) => self.set_server_icon(icon),
             Action::CloseCreateServer => {
                 self.state.create_server = None;
                 vec![]

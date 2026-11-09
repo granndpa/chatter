@@ -1426,13 +1426,17 @@ export component StaticWindow inherits Window {
     in property <bool> create-server-open;
     in property <bool> create-server-busy;
     in property <string> create-server-error;
+    in property <[string]> create-server-templates;
+    in property <image> create-server-icon;
+    callback pick-server-icon;
+    callback clear-server-icon;
     in property <bool> discover-open;
     in property <[DiscoverRow]> discover-rows;
     in property <bool> discover-loading;
     in property <bool> discover-more;
     in property <string> discover-error;
     callback open-create-server;
-    callback create-server(string);
+    callback create-server(string, int);
     callback close-create-server;
     callback open-discover;
     callback discover-search(string);
@@ -2436,7 +2440,7 @@ export component StaticWindow inherits Window {
                         open-dm(id) => { root.open-conversation(id); }
                         open-server-menu(id, x, y) => { root.open-context-menu(id, false, x, y); }
                         can-join: root.can-join-server;
-                        join-server => { root.open-join-server(); }
+                        join-server => { root.open-create-server(); }
                         discover => { root.open-discover(); }
                     }
                     // Channel sidebar: a lighter sheet held by the rail and the dock.
@@ -4358,7 +4362,10 @@ export component StaticWindow inherits Window {
     // An image shown large over everything; see ImageViewer.
     if root.create-server-open: CreateServerDialog {
         busy: root.create-server-busy; error: root.create-server-error;
-        create(name) => { root.create-server(name); }
+        templates: root.create-server-templates; icon: root.create-server-icon;
+        create(name, template) => { root.create-server(name, template); }
+        pick-icon => { root.pick-server-icon(); }
+        clear-icon => { root.clear-server-icon(); }
         close => { root.close-create-server(); }
     }
     if root.discover-open: DiscoverScreen {
@@ -4452,8 +4459,6 @@ export component StaticWindow inherits Window {
         join => { root.join-server(); }
         open-captcha => { root.open-join-captcha(); }
         open-form => { root.open-join-form(); }
-        create-own => { root.open-create-server(); }
-        discover => { root.open-discover(); }
         close => { root.close-join(); }
     }
     event-motion := PopupMotion { open: root.event-open; }

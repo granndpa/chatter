@@ -2452,7 +2452,13 @@ pub enum DiscordCommand {
     /// first, and then [`Event::ServerJoined`].
     /// Make a Discord server owned by this account. [`Event::ServerCreated`]
     /// follows.
-    CreateServer { name: String },
+    CreateServer {
+        name: String,
+        /// A picture file for its icon.
+        icon: Option<std::path::PathBuf>,
+        /// One of [`crate::application::SERVER_TEMPLATES`].
+        template: usize,
+    },
     /// A page of Discover's public servers, searched for `query` when it
     /// isn't empty. [`Event::Discovered`] follows.
     Discover { query: String, offset: u32 },

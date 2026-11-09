@@ -2125,14 +2125,23 @@ impl Api {
     /// Makes a server owned by this account from Discord's standard
     /// template, as Create My Own does; the new guild object. GUILD_CREATE
     /// follows.
-    pub async fn create_guild(&self, name: &str) -> Result<Value> {
-        let body = json!({
+    /// `icon` is a `data:` address; `channels`, partial channel objects
+    /// whose categories go by placeholder ids, replace the default template.
+    pub async fn create_guild(
+        &self,
+        name: &str,
+        icon: Option<&str>,
+        channels: Option<&[Value]>,
+    ) -> Result<Value> {
+        let mut body = json!({
             "name": name,
-            "icon": null,
-            "channels": [],
+            "icon": icon,
+            "channels": channels.unwrap_or_default(),
             "system_channel_id": null,
-            "guild_template_code": "2TffvPucqHkN",
         });
+        if channels.is_none() {
+            body["guild_template_code"] = json!("2TffvPucqHkN");
+        }
         self.json(with_json(self.request(Method::POST, "/guilds"), &body))
             .await
     }
