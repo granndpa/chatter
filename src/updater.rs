@@ -5,7 +5,7 @@
 use std::{path::PathBuf, process::Command};
 
 /// Where releases are published.
-const REPO: &str = "granndpa/chatter";
+const REPO: &str = "granndpa/chatter-beta";
 /// The release's file for Windows.
 const ASSET: &str = "Chatter-windows-x64.zip";
 

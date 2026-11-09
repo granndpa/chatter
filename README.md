@@ -1,4 +1,4 @@
-# Chatter
+# Chatter [BETA]
 
 A native Discord client for Windows and Linux, written in Rust with Slint. No
 web browser inside, so it idles at a fraction of the memory Discord's own app

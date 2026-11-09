@@ -35,6 +35,7 @@ import { ServerRow, RoomRow, StatusDot, ServerRail, ServerHeader, RoomList } fro
 import { SavedRow } from "tweaks/bookmarks.slint";
 import { ReminderRow, RemindPicker } from "tweaks/reminders.slint";
 import { SavedPanel } from "tweaks/panel.slint";
+import { ConnectionLost } from "connection-lost.slint";
 import { StagedFile, StagedTile, Composer, MentionRow, MentionList, EmojiSuggestions, RequestBar } from "composer.slint";
 import { EmojiCell, EmojiRow, EmojiSection, EmojiCard, EmojiCardView, MessageRow, ReactionToggle, EmojiButton, EmojiPicker, MessageMenu, MessageGallery, MessageStickers, FileCard, MessageContent, EmbedView, BotTag, NoConversation, ConversationStart, HistoryEdge, UnreadBar, PresentBar, ImageViewer, VideoViewer, VideoPlayer, Polls } from "messages.slint";
 import { SettingsRow, SettingsScreen, AccountSettings, AppearanceSettings, ThemeCard, ThemeColour, VoiceSettings, MessageSettings, NotificationSettings, SoundSettings, AdvancedSettings, DiscordLinkSettings, DiscordSettings, BlockedRow, GameActivitySettings, GameExecutable } from "settings.slint";
@@ -1416,6 +1417,9 @@ export component StaticWindow inherits Window {
     // with none, the one most reacted with.
     callback view-reactions(string, string);
     callback translate-message(string);
+    /// Discord dropped and hasn't come back yet: the offline screen covers
+    /// the window until it does.
+    in property <bool> connection-lost;
     // Discord Tweaks' Saved panel: Bookmarks (tab 0), Reminders (1) and the
     // Hall of Fame (2); see src/ui/tweaks.rs.
     in-out property <bool> saved-open;
@@ -2433,8 +2437,13 @@ export component StaticWindow inherits Window {
                                     verified: root.header-verified; on-banner: header-box.banner;
                                     clicked => { root.open-header-menu(self.absolute-position.x, self.absolute-position.y + self.height + 6px); }
                                 }
+                                if header-box.banner && root.header-server != "" && root.header-invite: Rectangle {
+                                    x: parent.width - 40px; y: 8px; width: 32px; height: 32px; border-radius: 16px;
+                                    background: #00000080;
+                                }
                                 if root.header-server != "" && root.header-invite: IconButton {
                                     x: parent.width - self.width - 8px; y: 8px;
+                                    tint: header-box.banner ? #ffffff : Theme.secondary;
                                     icon: @image-url("icons/user-plus.svg"); label: "Invite people"; size: 32px; glyph: 20px; tip-side: 2;
                                     clicked => { root.open-invite(root.header-server); }
                                 }
@@ -4319,6 +4328,9 @@ export component StaticWindow inherits Window {
         }
     }
     // An image shown large over everything; see ImageViewer.
+    if root.connection-lost: ConnectionLost {
+        y: root.title-height; width: root.width; height: root.height - root.title-height;
+    }
     if root.saved-open: SavedPanel {
         tab: root.saved-tab; rows: root.saved-rows; collections: root.saved-collections;
         reminders: root.reminder-rows; note: root.saved-note;

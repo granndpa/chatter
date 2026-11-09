@@ -1802,6 +1802,9 @@ struct Adapter {
     dismissed: HashSet<String>,
     /// Discord Tweaks' bookmarks, reminders and saved drafts; see `tweaks.rs`.
     tweaks: tweaks::Tweaks,
+    /// Discord has been online since Chatter started, so going offline is a
+    /// lost connection rather than still starting up.
+    seen_online: bool,
     /// A newer release on GitHub; see `updates.rs`.
     updates: updates::Updates,
     /// Discord Tweaks' voice log: the call it follows, who was in it at the
@@ -2059,6 +2062,7 @@ impl Adapter {
                 translations: HashMap::new(),
                 dismissed: HashSet::new(),
                 tweaks: tweaks::Tweaks::default(),
+                seen_online: false,
                 updates: updates::Updates::default(),
                 voice_room: None,
                 voice_people: Vec::new(),

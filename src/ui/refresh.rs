@@ -372,6 +372,13 @@ impl Adapter {
 
     pub(super) fn refresh(&mut self, window: &StaticWindow) {
         super::tweaks::sync_account(self);
+        let state = &self.app.state;
+        if state.discord_online {
+            self.seen_online = true;
+        }
+        window.set_connection_lost(
+            self.seen_online && state.discord_linked && !state.discord_online && !state.preview,
+        );
         refresh_avatar_sources(&self.app.state);
         self.track_voice_log(window);
         self.drop_dismissed();
