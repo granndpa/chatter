@@ -2351,7 +2351,18 @@ impl Discord {
             .flatten()
             .context("Discord isn't connected yet. Try again in a moment.")?;
         body["session_id"] = Value::String(session);
-        self.api.interact(&body).await
+        let result = self.api.interact(&body).await;
+        if let Err(error) = &result {
+            tracing::warn!(
+                error = format!("{error:#}"),
+                command = %body["data"]["name"],
+                application = %body["application_id"],
+                in_server = body.get("guild_id").is_some(),
+                server_command = body["data"].get("guild_id").is_some(),
+                "Discord refused a slash command"
+            );
+        }
+        result
     }
 
     /// Joins a server Discover lists, by its id.

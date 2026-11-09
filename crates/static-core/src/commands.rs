@@ -546,6 +546,11 @@ pub fn interaction(
     if let Some(guild) = guild {
         body["guild_id"] = json!(guild);
     }
+    // A command a bot registered for one server names it, as Discord's client
+    // sends it; without it Discord answers "Unknown Integration".
+    if let Some(server) = command.raw["guild_id"].as_str() {
+        body["data"]["guild_id"] = json!(server);
+    }
     Ok(body)
 }
 
