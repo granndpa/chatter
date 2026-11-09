@@ -2115,7 +2115,7 @@ impl Api {
             format!("/discoverable-guilds?offset={offset}&limit=24")
         } else {
             format!(
-                "/discovery/search?query={}&offset={offset}&limit=24",
+                "/discoverable-guilds/search?query={}&offset={offset}&limit=24",
                 encode(query)
             )
         };
