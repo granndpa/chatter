@@ -1301,9 +1301,6 @@ pub struct DiscoverServer {
     pub icon: Option<String>,
     pub members: u64,
     pub online: u64,
-    /// Its public invite code, which joining goes through; none when it
-    /// has no vanity invite.
-    pub invite: Option<String>,
 }
 
 /// What [`Command::Video`] tells the video playing.
@@ -2456,9 +2453,10 @@ pub enum DiscordCommand {
         name: String,
         /// A picture file for its icon.
         icon: Option<std::path::PathBuf>,
-        /// One of [`crate::application::SERVER_TEMPLATES`].
-        template: usize,
     },
+    /// Join a server Discover listed, by its id. [`Event::DiscoverJoined`]
+    /// follows.
+    JoinDiscoverable { guild: String },
     /// A page of Discover's public servers, searched for `query` when it
     /// isn't empty. [`Event::Discovered`] follows.
     Discover { query: String, offset: u32 },
@@ -3847,6 +3845,8 @@ pub enum Event {
     /// The id of the server [`DiscordCommand::CreateServer`] made, or why
     /// it didn't.
     ServerCreated { result: Result<String, String> },
+    /// Whether [`DiscordCommand::JoinDiscoverable`] joined.
+    DiscoverJoined { result: Result<(), String> },
     /// A page [`DiscordCommand::Discover`] asked for.
     Discovered {
         query: String,

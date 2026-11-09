@@ -381,6 +381,7 @@ impl Adapter {
         );
         refresh_avatar_sources(&self.app.state);
         super::discover::show(self, window);
+        super::tabs::show(self, window);
         self.track_voice_log(window);
         self.drop_dismissed();
         window

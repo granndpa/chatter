@@ -93,60 +93,17 @@ async fn icon_data(path: &std::path::Path) -> anyhow::Result<String> {
     ))
 }
 
-/// A template's channels, in Text Channels and Voice Channels categories,
-/// as Create a Server sends them; none for Discord's own default.
-fn template_channels(template: usize) -> Option<Vec<serde_json::Value>> {
-    use serde_json::json;
-    let (_, text, voice) = crate::application::SERVER_TEMPLATES.get(template)?;
-    if text.is_empty() && voice.is_empty() {
-        return None;
-    }
-    let mut channels = vec![
-        json!({"id": "1", "name": "Text Channels", "type": 4}),
-        json!({"id": "2", "name": "Voice Channels", "type": 4}),
-    ];
-    channels.extend(text.iter().map(|name| json!({"name": name, "type": 0, "parent_id": "1"})));
-    channels.extend(voice.iter().map(|name| json!({"name": name, "type": 2, "parent_id": "2"})));
-    Some(channels)
-}
-
-/// A page of Discover, searched with Discord's search; when that finds
-/// nothing or fails, Discover's own listing filtered by the words instead.
+/// A page of Discover: Discord's picks, or its search for `query`.
 async fn discover_or_filter(
     discord: &Discord,
     query: &str,
     offset: u32,
 ) -> anyhow::Result<Vec<crate::chat::DiscoverServer>> {
-    let query = query.trim();
-    if query.is_empty() {
-        return Ok(discover_servers(&discord.discover("", offset).await?));
-    }
-    if let Ok(answer) = discord.discover(query, offset).await {
-        let found = discover_servers(&answer);
-        if !found.is_empty() {
-            return Ok(found);
-        }
-    }
-    let words = query.to_lowercase();
-    let page = crate::application::DISCOVER_PAGE;
-    let mut matching = Vec::new();
-    // Up to five pages of the listing, which is as far as Discord goes.
-    for listing in 0..5u32 {
-        let servers = discover_servers(&discord.discover("", listing * page as u32).await?);
-        let ended = servers.len() < page;
-        matching.extend(servers.into_iter().filter(|server| {
-            server.name.to_lowercase().contains(&words)
-                || server.description.to_lowercase().contains(&words)
-        }));
-        if ended {
-            break;
-        }
-    }
-    Ok(matching
-        .into_iter()
-        .skip(offset as usize)
-        .take(page)
-        .collect())
+    let answer = discord
+        .discover(query.trim(), offset)
+        .await
+        .map_err(|error| anyhow::anyhow!("Discord's search said: {error:#}"))?;
+    Ok(discover_servers(&answer))
 }
 
 /// Discover's servers from Discord's answer, a listing or a search.
@@ -169,7 +126,6 @@ fn discover_servers(answer: &serde_json::Value) -> Vec<crate::chat::DiscoverServ
                     .map(|hash| format!("https://cdn.discordapp.com/icons/{id}/{hash}.png?size=128")),
                 members: guild["approximate_member_count"].as_u64().unwrap_or(0),
                 online: guild["approximate_presence_count"].as_u64().unwrap_or(0),
-                invite: guild["vanity_url_code"].as_str().map(str::to_owned),
             })
         })
         .collect()
@@ -1183,7 +1139,27 @@ pub(super) fn command(
         }
         return None;
     }
-    if let Command::Discord(DiscordCommand::CreateServer { name, icon, template }) = command {
+    if let Command::Discord(DiscordCommand::JoinDiscoverable { guild }) = command {
+        match discord {
+            Ok(discord) => {
+                let (discord, events) = (discord.clone(), events.clone());
+                tokio::spawn(async move {
+                    let result = discord.join_discoverable(&guild).await.map_err(|error| {
+                        tracing::warn!(error = format!("{error:#}"), "could not join from Discover");
+                        format!("Couldn't join: {error}")
+                    });
+                    let _ = events.send(Event::DiscoverJoined { result });
+                });
+            }
+            Err(error) => {
+                let _ = events.send(Event::DiscoverJoined {
+                    result: Err(error.into()),
+                });
+            }
+        }
+        return None;
+    }
+    if let Command::Discord(DiscordCommand::CreateServer { name, icon }) = command {
         match discord {
             Ok(discord) => {
                 let (discord, events) = (discord.clone(), events.clone());
@@ -1193,10 +1169,7 @@ pub(super) fn command(
                             Some(path) => Some(icon_data(&path).await?),
                             None => None,
                         };
-                        let channels = template_channels(template);
-                        discord
-                            .create_guild(&name, icon.as_deref(), channels.as_deref())
-                            .await
+                        discord.create_guild(&name, icon.as_deref(), None).await
                     }
                     .await
                         .map(|id| discord::server_id(&id))

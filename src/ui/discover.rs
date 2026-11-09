@@ -20,13 +20,6 @@ pub(super) fn show(adapter: &Adapter, window: &StaticWindow) {
     let state = &adapter.app.state;
     match &state.create_server {
         Some(dialog) => {
-            if !window.get_create_server_open() {
-                let names: Vec<SharedString> = static_core::application::SERVER_TEMPLATES
-                    .iter()
-                    .map(|(name, _, _)| SharedString::from(*name))
-                    .collect();
-                window.set_create_server_templates(ModelRc::new(VecModel::from(names)));
-            }
             // The picture loads once per file chosen, not every refresh.
             thread_local! {
                 static SHOWN: RefCell<Option<std::path::PathBuf>> = const { RefCell::new(None) };
@@ -58,7 +51,13 @@ pub(super) fn show(adapter: &Adapter, window: &StaticWindow) {
     window.set_discover_loading(view.loading);
     window.set_discover_more(view.more);
     window.set_discover_error(view.error.clone().unwrap_or_default().into());
-    if window.get_discover_rows().row_count() != view.servers.len() {
+    let joining = view.joining.as_deref();
+    let shown = window.get_discover_rows();
+    if shown.row_count() != view.servers.len()
+        || (0..shown.row_count()).any(|index| {
+            shown.row_data(index).is_some_and(|row| row.joining != (Some(row.id.as_str()) == joining))
+        })
+    {
         let rows: Vec<DiscoverRow> = view
             .servers
             .iter()
@@ -74,7 +73,7 @@ pub(super) fn show(adapter: &Adapter, window: &StaticWindow) {
                     grouped(server.online)
                 )
                 .into(),
-                invite: server.invite.clone().unwrap_or_default().into(),
+                joining: joining == Some(server.id.as_str()),
             })
             .collect();
         window.set_discover_rows(ModelRc::new(VecModel::from(rows)));
@@ -109,15 +108,9 @@ pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
     act!(on_close_discover, Action::CloseDiscover);
     {
         let (state, weak) = (adapter.clone(), window.as_weak());
-        window.on_create_server(move |name, template| {
+        window.on_create_server(move |name| {
             if let Some(window) = weak.upgrade() {
-                state.borrow_mut().action(
-                    &window,
-                    Action::CreateServer {
-                        name: name.to_string(),
-                        template: template.max(0) as usize,
-                    },
-                );
+                state.borrow_mut().action(&window, Action::CreateServer(name.to_string()));
             }
         });
     }

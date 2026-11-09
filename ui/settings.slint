@@ -1519,6 +1519,7 @@ export component DiscordSettings inherits VerticalLayout {
     in property <bool> sync-discord-reads;
     in property <bool> fake-deafen;
     in property <bool> auto-update;
+    in property <bool> chat-tabs;
     in property <bool> show-idle;
     in property <bool> hide-blocked;
     /// Those the account blocked, by name.
@@ -1533,6 +1534,7 @@ export component DiscordSettings inherits VerticalLayout {
     callback sync-discord-reads-toggled(bool);
     callback fake-deafen-toggled(bool);
     callback auto-update-toggled(bool);
+    callback chat-tabs-toggled(bool);
     callback show-idle-toggled(bool);
     spacing: 16px;
     SettingsTitle { text: "Discord Tweaks"; }
@@ -1568,6 +1570,12 @@ export component DiscordSettings inherits VerticalLayout {
         description: "Others in voice see you muted and deafened, but you still hear everyone. Switching it in a call shows straight away.";
         checked: root.fake-deafen;
         toggled(fake) => { root.fake-deafen-toggled(fake); }
+    }
+    SettingsSwitch {
+        text: "Enable Chat Tabs";
+        description: "Each conversation you open gets a tab above it, like a browser. Click to switch, middle-click or x to close, scroll over a tab to move it. Tabs come back after a restart.";
+        checked: root.chat-tabs;
+        toggled(on) => { root.chat-tabs-toggled(on); }
     }
     SettingsSwitch {
         text: "Update automatically";

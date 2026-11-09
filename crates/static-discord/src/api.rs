@@ -2146,6 +2146,17 @@ impl Api {
             .await
     }
 
+    /// Joins a server Discover lists, from this gateway `session`, as
+    /// Discord's client does from Discover. GUILD_CREATE follows.
+    pub async fn join_guild(&self, guild: &str, session: &str) -> Result<Value> {
+        let path = format!(
+            "/guilds/{guild}/members/@me?lurker=false&session_id={}&location=Guild%20Discovery",
+            encode(session)
+        );
+        self.json(with_json(self.request(Method::PUT, &path), &json!({})))
+            .await
+    }
+
     /// A channel object, as `GET /channels/{id}` gives it.
     pub async fn channel(&self, channel: &str) -> Result<Value> {
         let path = format!("/channels/{channel}");

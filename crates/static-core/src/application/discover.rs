@@ -5,35 +5,6 @@
 use super::*;
 use crate::chat::DiscoverServer;
 
-/// Create a Server's starting points, as Discord's client offers them: a
-/// name, and the text and voice channels it starts with. The first is
-/// Discord's own default.
-pub const SERVER_TEMPLATES: [(&str, &[&str], &[&str]); 7] = [
-    ("Create My Own", &[], &[]),
-    ("Gaming", &["general", "clips-and-highlights"], &["Lobby", "Gaming"]),
-    ("Friends", &["general", "games", "music"], &["Lounge", "Stream Room"]),
-    (
-        "Study Group",
-        &["welcome-and-rules", "notes-resources", "help-questions", "homework-help", "session-planning", "off-topic"],
-        &["Lounge", "Study Room 1", "Study Room 2"],
-    ),
-    (
-        "School Club",
-        &["welcome-and-rules", "announcements", "resources", "general", "meeting-plans", "off-topic"],
-        &["Lounge", "Meeting Room 1", "Meeting Room 2"],
-    ),
-    (
-        "Local Community",
-        &["welcome-and-rules", "announcements", "resources", "general", "meeting-plans", "off-topic"],
-        &["Lounge", "Meeting Room"],
-    ),
-    (
-        "Artists & Creators",
-        &["welcome-and-rules", "announcements", "general", "events", "ideas-and-feedback"],
-        &["Lounge", "Community Hangout", "Stream Room"],
-    ),
-];
-
 /// How many servers Discover asks Discord for at a time.
 pub const DISCOVER_PAGE: usize = 24;
 
@@ -57,6 +28,8 @@ pub struct DiscoverView {
     /// Discord may have more after these.
     pub more: bool,
     pub error: Option<String>,
+    /// The server being joined, by id.
+    pub joining: Option<String>,
 }
 
 impl Application {
@@ -75,7 +48,7 @@ impl Application {
         vec![]
     }
 
-    pub(super) fn create_server(&mut self, name: String, template: usize) -> Vec<Effect> {
+    pub(super) fn create_server(&mut self, name: String) -> Vec<Effect> {
         let Some(dialog) = self.state.create_server.as_mut().filter(|dialog| !dialog.busy) else {
             return vec![];
         };
@@ -87,8 +60,7 @@ impl Application {
         dialog.busy = true;
         dialog.error = None;
         let icon = dialog.icon.clone();
-        let template = template.min(SERVER_TEMPLATES.len() - 1);
-        vec![Effect::Backend(Command::Discord(DiscordCommand::CreateServer { name, icon, template }))]
+        vec![Effect::Backend(Command::Discord(DiscordCommand::CreateServer { name, icon }))]
     }
 
     /// The server made, which Discord lists on the rail as it arrives.
@@ -167,10 +139,28 @@ impl Application {
         vec![]
     }
 
-    /// Joins a server Discover listed, by its public invite.
-    pub(super) fn join_discovered(&mut self, code: String) -> Vec<Effect> {
-        self.state.discover = None;
-        self.open_invite_link(code)
+    /// Joins a server Discover listed, by its id, as Discord's own Join does.
+    pub(super) fn join_discovered(&mut self, guild: String) -> Vec<Effect> {
+        let Some(view) = self.state.discover.as_mut().filter(|view| view.joining.is_none()) else {
+            return vec![];
+        };
+        view.joining = Some(guild.clone());
+        view.error = None;
+        vec![Effect::Backend(Command::Discord(DiscordCommand::JoinDiscoverable { guild }))]
+    }
+
+    /// Joined: Discover closes, and the server arrives on the rail.
+    pub(super) fn discover_joined(&mut self, result: Result<(), String>) -> Vec<Effect> {
+        match result {
+            Ok(()) => self.state.discover = None,
+            Err(error) => {
+                if let Some(view) = &mut self.state.discover {
+                    view.joining = None;
+                    view.error = Some(error);
+                }
+            }
+        }
+        vec![]
     }
 }
 

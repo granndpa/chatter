@@ -1,0 +1,59 @@
+// Discord Tweaks' chat tabs: the conversations kept open, above the
+// conversation, as a browser keeps pages.
+
+import { Theme } from "theme.slint";
+
+export struct ChatTab {
+    id: string,
+    /// Such as "#general" or a DM's name.
+    name: string,
+    current: bool,
+    unread: bool,
+}
+
+export component ChatTabs inherits Rectangle {
+    in property <[ChatTab]> tabs;
+    callback open(string);
+    callback close(string);
+    /// Moves a tab left (-1) or right (1).
+    callback shift(string, int);
+    height: 34px; background: Theme.sidebar;
+    Flickable {
+        viewport-width: max(self.width, strip.preferred-width);
+        strip := HorizontalLayout {
+            padding-left: 8px; padding-right: 8px; padding-top: 4px; spacing: 4px; alignment: start;
+            for tab in root.tabs: Rectangle {
+                width: min(200px, label.preferred-width + 54px); height: 30px;
+                border-top-left-radius: 8px; border-top-right-radius: 8px;
+                background: tab.current ? Theme.chat : touch.has-hover ? Theme.hover : transparent;
+                touch := TouchArea {
+                    mouse-cursor: MouseCursor.pointer;
+                    clicked => { root.open(tab.id); }
+                    pointer-event(event) => {
+                        // Middle click closes it, as in a browser.
+                        if event.button == PointerEventButton.middle && event.kind == PointerEventKind.up { root.close(tab.id); }
+                    }
+                    scroll-event(event) => {
+                        if event.delta-y > 0 { root.shift(tab.id, -1); return accept; }
+                        if event.delta-y < 0 { root.shift(tab.id, 1); return accept; }
+                        return reject;
+                    }
+                }
+                if tab.unread && !tab.current: Rectangle { x: 6px; width: 6px; height: 6px; border-radius: 3px; background: Theme.text; }
+                label := Text {
+                    x: 14px; width: parent.width - 40px;
+                    text: tab.name; font-size: 13px; overflow: elide; vertical-alignment: center;
+                    color: tab.current ? Theme.text : tab.unread ? Theme.secondary : Theme.muted;
+                    font-weight: tab.current ? 600 : 400;
+                }
+                Rectangle {
+                    x: parent.width - 24px; width: 18px; height: 18px; border-radius: 4px;
+                    background: close-touch.has-hover ? Theme.active : transparent;
+                    visible: tab.current || touch.has-hover || close-touch.has-hover;
+                    Image { source: @image-url("icons/x.svg"); width: 12px; height: 12px; colorize: Theme.muted; }
+                    close-touch := TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.close(tab.id); } }
+                }
+            }
+        }
+    }
+}

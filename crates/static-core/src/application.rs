@@ -60,7 +60,7 @@ pub use forum::{ForumInfo, ForumPost, ForumPosts, ForumView};
 pub use gifs::{AskedPicture, GifPicker, GifPicture, GifView};
 pub use gift::GiftDialog;
 pub use join::JoinDialog;
-pub use discover::{CreateServerDialog, DISCOVER_PAGE, DiscoverView, SERVER_TEMPLATES};
+pub use discover::{CreateServerDialog, DISCOVER_PAGE, DiscoverView};
 pub use members::{BAN_HISTORY, RoleChoice, TIMEOUT_TIMES};
 #[cfg(all(feature = "discord", any(test, feature = "test-fixtures")))]
 pub use members::{member_server, with_clubs};
@@ -1784,7 +1784,7 @@ pub enum Action {
     CloseJoin,
     /// Create a Server: open it, make the server by this name, close it.
     OpenCreateServer,
-    CreateServer { name: String, template: usize },
+    CreateServer(String),
     /// Create a Server's icon: a picture file, or none.
     SetServerIcon(Option<std::path::PathBuf>),
     CloseCreateServer,
@@ -1793,6 +1793,7 @@ pub enum Action {
     OpenDiscover,
     SearchDiscover(String),
     MoreDiscover,
+    /// Join a server Discover listed, by its id.
     JoinDiscovered(String),
     CloseDiscover,
     /// Open a clicked authorization link, by its query; pick the
@@ -3047,7 +3048,7 @@ impl Application {
             Action::OpenJoinCaptcha => self.open_join_captcha(),
             Action::OpenJoinForm => self.open_join_form(),
             Action::OpenCreateServer => self.open_create_server(),
-            Action::CreateServer { name, template } => self.create_server(name, template),
+            Action::CreateServer(name) => self.create_server(name),
             Action::SetServerIcon(icon) => self.set_server_icon(icon),
             Action::CloseCreateServer => {
                 self.state.create_server = None;
@@ -3729,6 +3730,7 @@ impl Application {
             Event::JoinCaptcha { code, page } => return self.join_captcha(code, page),
             Event::ServerJoined { code, result } => return self.server_joined(code, result),
             Event::ServerCreated { result } => return self.server_created(result),
+            Event::DiscoverJoined { result } => return self.discover_joined(result),
             Event::Discovered { query, offset, result } => {
                 return self.discovered(query, offset, result);
             }

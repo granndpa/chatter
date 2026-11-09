@@ -70,6 +70,7 @@ mod title_bar;
 use callbacks::bind_callbacks;
 mod connection;
 mod discover;
+mod tabs;
 mod tweaks;
 mod updates;
 use messages::*;
@@ -1035,6 +1036,11 @@ struct Layout {
     fake_deafen: bool,
     /// Install a newer release when Chatter starts; on unless turned off.
     auto_update: Option<bool>,
+    /// Chat tabs, off unless turned on, and the conversations open in them.
+    #[serde(default)]
+    chat_tabs: bool,
+    #[serde(default)]
+    open_tabs: Vec<String>,
     /// Discord shows this account idle after 10 minutes nobody uses Static;
     /// on unless turned off.
     show_idle: Option<bool>,

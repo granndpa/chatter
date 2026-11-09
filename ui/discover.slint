@@ -8,23 +8,20 @@ export struct DiscoverRow {
     id: string, name: string, description: string, picture-url: string, initial: string,
     /// Such as "12,345 members, 2,001 online".
     counts: string,
-    /// Its public invite code; empty when it can't be joined from here.
-    invite: string,
+    /// Being joined now.
+    joining: bool,
 }
 
 export component CreateServerDialog inherits Rectangle {
     in property <bool> busy;
     in property <string> error;
-    /// The templates' names, Create My Own first.
-    in property <[string]> templates;
     /// The chosen icon, once picked.
     in property <image> icon;
-    /// The name and the template chosen.
-    callback create(string, int);
+    callback create(string);
     callback pick-icon;
     callback clear-icon;
     callback close;
-    property <int> template: 0;
+
     background: #00000099;
     TouchArea { clicked => { root.close(); } }
     Rectangle {
@@ -46,14 +43,6 @@ export component CreateServerDialog inherits Rectangle {
                 Text {
                     text: "Your server is where you and your friends hang out. Make yours and start talking.";
                     color: Theme.secondary; font-size: 14px; wrap: word-wrap;
-                }
-                Text { text: "START FROM A TEMPLATE"; color: Theme.muted; font-size: 12px; font-weight: 700; letter-spacing: 0.6px; }
-                for template-name[index] in root.templates: Rectangle {
-                    height: 36px; border-radius: 8px;
-                    background: root.template == index ? Theme.accent.with-alpha(0.25) : template-touch.has-hover ? Theme.active : Theme.field;
-                    border-width: root.template == index ? 1px : 0px; border-color: Theme.accent;
-                    Text { x: 12px; text: template-name; color: Theme.text; font-size: 14px; font-weight: root.template == index ? 700 : 400; vertical-alignment: center; }
-                    template-touch := TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.template = index; } }
                 }
                 HorizontalLayout {
                     spacing: 14px; alignment: start;
@@ -78,7 +67,7 @@ export component CreateServerDialog inherits Rectangle {
                     init => { self.focus-input(); }
                     min-height: 36px; text-size: 15px; pad: 10px;
                     placeholder: "My server"; label: "Server name";
-                    accepted => { if !root.busy { root.create(self.text, root.template); } }
+                    accepted => { if !root.busy { root.create(self.text); } }
                 }
                 if root.error != "": Text { text: root.error; color: Theme.danger; font-size: 14px; wrap: word-wrap; }
                 HorizontalLayout {
@@ -86,7 +75,7 @@ export component CreateServerDialog inherits Rectangle {
                     ActionButton { text: "Cancel"; ghost: true; clicked => { root.close(); } }
                     ActionButton {
                         text: root.busy ? "Creating..." : "Create"; primary: true; enabled: !root.busy;
-                        clicked => { root.create(name.text, root.template); }
+                        clicked => { root.create(name.text); }
                     }
                 }
             }
@@ -150,8 +139,10 @@ export component DiscoverScreen inherits Rectangle {
                                 }
                                 VerticalLayout {
                                     alignment: center;
-                                    if server.invite != "": ActionButton { text: "Join"; primary: true; clicked => { root.join(server.invite); } }
-                                    if server.invite == "": Text { text: "Invite only"; color: Theme.muted; font-size: 12px; }
+                                    ActionButton {
+                                        text: server.joining ? "Joining..." : "Join"; primary: true; enabled: !server.joining;
+                                        clicked => { root.join(server.id); }
+                                    }
                                 }
                             }
                         }

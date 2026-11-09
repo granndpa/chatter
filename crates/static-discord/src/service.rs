@@ -2307,6 +2307,20 @@ impl Discord {
         self.api.discoverable_guilds(query, offset).await
     }
 
+    /// Joins a server Discover lists, by its id.
+    pub async fn join_discoverable(&self, guild: &str) -> Result<()> {
+        let (reply, answer) = oneshot::channel();
+        self.requests
+            .send(Request::Session(reply))
+            .map_err(|_| anyhow!("Discord isn't connected. Restart Chatter and try again."))?;
+        let session = answer
+            .await
+            .ok()
+            .flatten()
+            .context("Discord isn't connected yet. Try again in a moment.")?;
+        self.api.join_guild(guild, &session).await.map(drop)
+    }
+
     /// Makes a server owned by this account; its id.
     pub async fn create_guild(
         &self,
