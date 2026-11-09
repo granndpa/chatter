@@ -1291,6 +1291,21 @@ pub struct Attachment {
     pub url: Option<Arc<str>>,
 }
 
+/// A public server Discover lists.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct DiscoverServer {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    /// The address of its icon.
+    pub icon: Option<String>,
+    pub members: u64,
+    pub online: u64,
+    /// Its public invite code, which joining goes through; none when it
+    /// has no vanity invite.
+    pub invite: Option<String>,
+}
+
 /// What [`Command::Video`] tells the video playing.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum VideoCommand {
@@ -2435,6 +2450,12 @@ pub enum DiscordCommand {
     /// Server, or from a clicked invite link with `from_link`.
     /// [`Event::JoinCaptcha`] follows for each captcha Discord asks for
     /// first, and then [`Event::ServerJoined`].
+    /// Make a Discord server owned by this account. [`Event::ServerCreated`]
+    /// follows.
+    CreateServer { name: String },
+    /// A page of Discover's public servers, searched for `query` when it
+    /// isn't empty. [`Event::Discovered`] follows.
+    Discover { query: String, offset: u32 },
     JoinServer {
         // Boxed: it's the largest command by far.
         preview: Box<InvitePreview>,
@@ -3816,6 +3837,15 @@ pub enum Event {
     ServerJoined {
         code: String,
         result: Result<JoinedServer, String>,
+    },
+    /// The id of the server [`DiscordCommand::CreateServer`] made, or why
+    /// it didn't.
+    ServerCreated { result: Result<String, String> },
+    /// A page [`DiscordCommand::Discover`] asked for.
+    Discovered {
+        query: String,
+        offset: u32,
+        result: Result<Vec<DiscoverServer>, String>,
     },
     /// What the scheduled event [`DiscordCommand::ResolveEvent`] looked
     /// up by its id shows, or why Discord showed nothing.

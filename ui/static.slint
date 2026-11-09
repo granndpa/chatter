@@ -36,6 +36,7 @@ import { SavedRow } from "tweaks/bookmarks.slint";
 import { ReminderRow, RemindPicker } from "tweaks/reminders.slint";
 import { SavedPanel } from "tweaks/panel.slint";
 import { ConnectionLost } from "connection-lost.slint";
+import { DiscoverRow, CreateServerDialog, DiscoverScreen } from "discover.slint";
 import { StagedFile, StagedTile, Composer, MentionRow, MentionList, EmojiSuggestions, RequestBar } from "composer.slint";
 import { EmojiCell, EmojiRow, EmojiSection, EmojiCard, EmojiCardView, MessageRow, ReactionToggle, EmojiButton, EmojiPicker, MessageMenu, MessageGallery, MessageStickers, FileCard, MessageContent, EmbedView, BotTag, NoConversation, ConversationStart, HistoryEdge, UnreadBar, PresentBar, ImageViewer, VideoViewer, VideoPlayer, Polls } from "messages.slint";
 import { SettingsRow, SettingsScreen, AccountSettings, AppearanceSettings, ThemeCard, ThemeColour, VoiceSettings, MessageSettings, NotificationSettings, SoundSettings, AdvancedSettings, DiscordLinkSettings, DiscordSettings, BlockedRow, GameActivitySettings, GameExecutable } from "settings.slint";
@@ -1420,6 +1421,23 @@ export component StaticWindow inherits Window {
     /// Discord dropped and hasn't come back yet: the offline screen covers
     /// the window until it does.
     in property <bool> connection-lost;
+    // Create a Server and Discover; see src/ui/discover.rs.
+    in property <bool> create-server-open;
+    in property <bool> create-server-busy;
+    in property <string> create-server-error;
+    in property <bool> discover-open;
+    in property <[DiscoverRow]> discover-rows;
+    in property <bool> discover-loading;
+    in property <bool> discover-more;
+    in property <string> discover-error;
+    callback open-create-server;
+    callback create-server(string);
+    callback close-create-server;
+    callback open-discover;
+    callback discover-search(string);
+    callback discover-load-more;
+    callback join-discovered(string);
+    callback close-discover;
     // Discord Tweaks' Saved panel: Bookmarks (tab 0), Reminders (1) and the
     // Hall of Fame (2); see src/ui/tweaks.rs.
     in-out property <bool> saved-open;
@@ -2409,6 +2427,7 @@ export component StaticWindow inherits Window {
                         open-server-menu(id, x, y) => { root.open-context-menu(id, false, x, y); }
                         can-join: root.can-join-server;
                         join-server => { root.open-join-server(); }
+                        discover => { root.open-discover(); }
                     }
                     // Channel sidebar: a lighter sheet held by the rail and the dock.
                     Rectangle {
@@ -4328,6 +4347,18 @@ export component StaticWindow inherits Window {
         }
     }
     // An image shown large over everything; see ImageViewer.
+    if root.create-server-open: CreateServerDialog {
+        busy: root.create-server-busy; error: root.create-server-error;
+        create(name) => { root.create-server(name); }
+        close => { root.close-create-server(); }
+    }
+    if root.discover-open: DiscoverScreen {
+        servers: root.discover-rows; loading: root.discover-loading; more: root.discover-more; error: root.discover-error;
+        search(query) => { root.discover-search(query); }
+        load-more => { root.discover-load-more(); }
+        join(code) => { root.join-discovered(code); }
+        close => { root.close-discover(); }
+    }
     if root.connection-lost: ConnectionLost {
         y: root.title-height; width: root.width; height: root.height - root.title-height;
     }
@@ -4401,6 +4432,8 @@ export component StaticWindow inherits Window {
         join => { root.join-server(); }
         open-captcha => { root.open-join-captcha(); }
         open-form => { root.open-join-form(); }
+        create-own => { root.open-create-server(); }
+        discover => { root.open-discover(); }
         close => { root.close-join(); }
     }
     event-motion := PopupMotion { open: root.event-open; }

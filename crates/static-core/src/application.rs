@@ -23,6 +23,7 @@ mod calls;
 mod channel_settings;
 mod compose;
 mod connections;
+mod discover;
 mod discord_account;
 mod forum;
 mod gifs;
@@ -59,6 +60,7 @@ pub use forum::{ForumInfo, ForumPost, ForumPosts, ForumView};
 pub use gifs::{AskedPicture, GifPicker, GifPicture, GifView};
 pub use gift::GiftDialog;
 pub use join::JoinDialog;
+pub use discover::{CreateServerDialog, DiscoverView};
 pub use members::{BAN_HISTORY, RoleChoice, TIMEOUT_TIMES};
 #[cfg(all(feature = "discord", any(test, feature = "test-fixtures")))]
 pub use members::{member_server, with_clubs};
@@ -424,6 +426,9 @@ pub struct AppState {
     pub invite: Option<InviteDialog>,
     /// Join a Server, while it's open.
     pub join: Option<JoinDialog>,
+    /// Create a Server, and Discover, while they're open.
+    pub create_server: Option<CreateServerDialog>,
+    pub discover: Option<DiscoverView>,
     /// The application a clicked authorization link opened, while its
     /// dialog is open.
     pub oauth: Option<OAuthDialog>,
@@ -1777,6 +1782,17 @@ pub enum Action {
     OpenJoinCaptcha,
     OpenJoinForm,
     CloseJoin,
+    /// Create a Server: open it, make the server by this name, close it.
+    OpenCreateServer,
+    CreateServer(String),
+    CloseCreateServer,
+    /// Discover: open it, search it, load the next page, join a server by
+    /// its public invite, close it.
+    OpenDiscover,
+    SearchDiscover(String),
+    MoreDiscover,
+    JoinDiscovered(String),
+    CloseDiscover,
     /// Open a clicked authorization link, by its query; pick the
     /// server it installs to, by its Discord id; authorize it; or
     /// close its dialog.
@@ -3028,6 +3044,20 @@ impl Application {
             Action::JoinServer => self.join_server(),
             Action::OpenJoinCaptcha => self.open_join_captcha(),
             Action::OpenJoinForm => self.open_join_form(),
+            Action::OpenCreateServer => self.open_create_server(),
+            Action::CreateServer(name) => self.create_server(name),
+            Action::CloseCreateServer => {
+                self.state.create_server = None;
+                vec![]
+            }
+            Action::OpenDiscover => self.open_discover(),
+            Action::SearchDiscover(query) => self.search_discover(query),
+            Action::MoreDiscover => self.more_discover(),
+            Action::JoinDiscovered(code) => self.join_discovered(code),
+            Action::CloseDiscover => {
+                self.state.discover = None;
+                vec![]
+            }
             Action::CloseJoin => {
                 self.state.join = None;
                 vec![]
@@ -3692,6 +3722,10 @@ impl Application {
             Event::InviteResolved { code, result } => return self.invite_resolved(code, result),
             Event::JoinCaptcha { code, page } => return self.join_captcha(code, page),
             Event::ServerJoined { code, result } => return self.server_joined(code, result),
+            Event::ServerCreated { result } => return self.server_created(result),
+            Event::Discovered { query, offset, result } => {
+                return self.discovered(query, offset, result);
+            }
             Event::OAuthResolved { query, result } => return self.oauth_resolved(query, result),
             Event::OAuthAuthorized { query, result } => {
                 return self.oauth_authorized(query, result);

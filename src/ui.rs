@@ -68,6 +68,7 @@ mod tiles;
 mod title_bar;
 
 use callbacks::bind_callbacks;
+mod discover;
 mod tweaks;
 mod updates;
 use messages::*;

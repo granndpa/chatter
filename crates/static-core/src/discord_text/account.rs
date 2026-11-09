@@ -69,6 +69,32 @@ async fn connections(
     })
 }
 
+/// Discover's servers from Discord's answer, a listing or a search.
+fn discover_servers(answer: &serde_json::Value) -> Vec<crate::chat::DiscoverServer> {
+    let listed = answer["guilds"]
+        .as_array()
+        .or_else(|| answer["hits"].as_array())
+        .cloned()
+        .unwrap_or_default();
+    listed
+        .iter()
+        .filter_map(|guild| {
+            let id = guild["id"].as_str()?;
+            Some(crate::chat::DiscoverServer {
+                id: id.to_owned(),
+                name: guild["name"].as_str()?.to_owned(),
+                description: guild["description"].as_str().unwrap_or_default().to_owned(),
+                icon: guild["icon"]
+                    .as_str()
+                    .map(|hash| format!("https://cdn.discordapp.com/icons/{id}/{hash}.png?size=128")),
+                members: guild["approximate_member_count"].as_u64().unwrap_or(0),
+                online: guild["approximate_presence_count"].as_u64().unwrap_or(0),
+                invite: guild["vanity_url_code"].as_str().map(str::to_owned),
+            })
+        })
+        .collect()
+}
+
 /// Carries out a command about the account, or gives back any other.
 pub(super) fn command(
     command: Command,
@@ -1071,6 +1097,56 @@ pub(super) fn command(
             Err(error) => {
                 let _ = events.send(Event::InviteResolved {
                     code,
+                    result: Err(error.into()),
+                });
+            }
+        }
+        return None;
+    }
+    if let Command::Discord(DiscordCommand::CreateServer { name }) = command {
+        match discord {
+            Ok(discord) => {
+                let (discord, events) = (discord.clone(), events.clone());
+                tokio::spawn(async move {
+                    let result = discord
+                        .create_guild(&name)
+                        .await
+                        .map(|id| discord::server_id(&id))
+                        .map_err(|error| {
+                            tracing::warn!(error = format!("{error:#}"), "could not create a server");
+                            format!("Couldn't create the server: {error}")
+                        });
+                    let _ = events.send(Event::ServerCreated { result });
+                });
+            }
+            Err(error) => {
+                let _ = events.send(Event::ServerCreated {
+                    result: Err(error.into()),
+                });
+            }
+        }
+        return None;
+    }
+    if let Command::Discord(DiscordCommand::Discover { query, offset }) = command {
+        match discord {
+            Ok(discord) => {
+                let (discord, events) = (discord.clone(), events.clone());
+                tokio::spawn(async move {
+                    let result = discord
+                        .discover(&query, offset)
+                        .await
+                        .map(|answer| discover_servers(&answer))
+                        .map_err(|error| {
+                            tracing::warn!(error = format!("{error:#}"), "could not list Discover");
+                            format!("Couldn't load Discover: {error}")
+                        });
+                    let _ = events.send(Event::Discovered { query, offset, result });
+                });
+            }
+            Err(error) => {
+                let _ = events.send(Event::Discovered {
+                    query,
+                    offset,
                     result: Err(error.into()),
                 });
             }

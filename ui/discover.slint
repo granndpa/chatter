@@ -1,0 +1,134 @@
+// Create a Server, and Discover's public servers.
+
+import { Theme } from "theme.slint";
+import { ActionButton, IconButton, Avatar, TextField } from "controls.slint";
+
+/// A public server Discover lists.
+export struct DiscoverRow {
+    id: string, name: string, description: string, picture-url: string, initial: string,
+    /// Such as "12,345 members, 2,001 online".
+    counts: string,
+    /// Its public invite code; empty when it can't be joined from here.
+    invite: string,
+}
+
+export component CreateServerDialog inherits Rectangle {
+    in property <bool> busy;
+    in property <string> error;
+    callback create(string);
+    callback close;
+    background: #00000099;
+    TouchArea { clicked => { root.close(); } }
+    Rectangle {
+        width: min(440px, root.width - 48px); height: content.preferred-height;
+        background: Theme.raised; border-color: Theme.edge; border-width: 1px; border-radius: 12px;
+        drop-shadow-blur: 32px; drop-shadow-color: #00000066; drop-shadow-offset-y: 12px;
+        TouchArea { }
+        FocusScope {
+            key-pressed(event) => {
+                if event.text == Key.Escape { root.close(); return accept; }
+                return reject;
+            }
+            content := VerticalLayout {
+                padding: 20px; spacing: 12px;
+                HorizontalLayout {
+                    Text { text: "Create Your Server"; color: Theme.text; font-size: 20px; font-weight: 700; horizontal-stretch: 1; }
+                    IconButton { icon: @image-url("icons/x.svg"); label: "Close"; size: 28px; glyph: 18px; clicked => { root.close(); } }
+                }
+                Text {
+                    text: "Your server is where you and your friends hang out. Make yours and start talking.";
+                    color: Theme.secondary; font-size: 14px; wrap: word-wrap;
+                }
+                Text { text: "SERVER NAME"; color: Theme.muted; font-size: 12px; font-weight: 700; letter-spacing: 0.6px; }
+                name := TextField {
+                    init => { self.focus-input(); }
+                    min-height: 36px; text-size: 15px; pad: 10px;
+                    placeholder: "My server"; label: "Server name";
+                    accepted => { if !root.busy { root.create(self.text); } }
+                }
+                if root.error != "": Text { text: root.error; color: Theme.danger; font-size: 14px; wrap: word-wrap; }
+                HorizontalLayout {
+                    alignment: end; spacing: 8px; padding-top: 4px;
+                    ActionButton { text: "Cancel"; ghost: true; clicked => { root.close(); } }
+                    ActionButton {
+                        text: root.busy ? "Creating..." : "Create"; primary: true; enabled: !root.busy;
+                        clicked => { root.create(name.text); }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component DiscoverScreen inherits Rectangle {
+    in property <[DiscoverRow]> servers;
+    in property <bool> loading;
+    in property <bool> more;
+    in property <string> error;
+    callback search(string);
+    callback load-more;
+    callback join(string);
+    callback close;
+    background: #00000099;
+    TouchArea { clicked => { root.close(); } }
+    Rectangle {
+        width: min(860px, root.width - 48px); height: root.height - 80px;
+        background: Theme.panel; border-color: Theme.edge; border-width: 1px; border-radius: 12px;
+        TouchArea { }
+        FocusScope {
+            key-pressed(event) => {
+                if event.text == Key.Escape { root.close(); return accept; }
+                return reject;
+            }
+            VerticalLayout {
+                padding: 20px; spacing: 14px;
+                HorizontalLayout {
+                    spacing: 12px;
+                    Text { text: "Discover"; color: Theme.text; font-size: 22px; font-weight: 700; vertical-alignment: center; }
+                    TextField {
+                        min-height: 36px; text-size: 14px; pad: 10px;
+                        placeholder: "Search public servers, then Enter"; label: "Search public servers";
+                        accepted => { root.search(self.text); }
+                    }
+                    IconButton { icon: @image-url("icons/x.svg"); label: "Close"; size: 32px; glyph: 20px; clicked => { root.close(); } }
+                }
+                if root.error != "": Text { text: root.error; color: Theme.danger; font-size: 14px; wrap: word-wrap; }
+                Flickable {
+                    vertical-stretch: 1;
+                    content-height: max(self.height, list.preferred-height);
+                    list := VerticalLayout {
+                        width: parent.width;
+                        alignment: start; spacing: 10px;
+                        if root.servers.length == 0 && !root.loading && root.error == "": Text {
+                            text: "No servers found."; color: Theme.muted; font-size: 14px;
+                        }
+                        for server in root.servers: Rectangle {
+                            border-radius: 10px; background: Theme.raised;
+                            height: row.preferred-height;
+                            row := HorizontalLayout {
+                                padding: 14px; spacing: 14px;
+                                VerticalLayout { alignment: start; Avatar { size: 56px; corner: 16px; picture-url: server.picture-url; initial: server.initial; } }
+                                VerticalLayout {
+                                    spacing: 4px; horizontal-stretch: 1;
+                                    Text { text: server.name; color: Theme.text; font-size: 16px; font-weight: 700; overflow: elide; }
+                                    if server.description != "": Text { text: server.description; color: Theme.secondary; font-size: 13px; wrap: word-wrap; }
+                                    Text { text: server.counts; color: Theme.muted; font-size: 12px; }
+                                }
+                                VerticalLayout {
+                                    alignment: center;
+                                    if server.invite != "": ActionButton { text: "Join"; primary: true; clicked => { root.join(server.invite); } }
+                                    if server.invite == "": Text { text: "Invite only"; color: Theme.muted; font-size: 12px; }
+                                }
+                            }
+                        }
+                        if root.loading: Text { text: "Loading..."; color: Theme.muted; font-size: 14px; horizontal-alignment: center; }
+                        if root.more && !root.loading: HorizontalLayout {
+                            alignment: center;
+                            ActionButton { text: "Load more"; clicked => { root.load-more(); } }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

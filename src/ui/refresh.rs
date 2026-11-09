@@ -380,6 +380,7 @@ impl Adapter {
             self.seen_online && state.discord_linked && !state.discord_online && !state.preview,
         );
         refresh_avatar_sources(&self.app.state);
+        super::discover::show(self, window);
         self.track_voice_log(window);
         self.drop_dismissed();
         window

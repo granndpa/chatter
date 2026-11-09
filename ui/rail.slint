@@ -885,6 +885,8 @@ export component ServerRail inherits Rectangle {
     /// Whether the "+" at the foot offers to join a Discord server.
     in property <bool> can-join;
     callback join-server;
+    /// Discover's public servers.
+    callback discover;
     width: 72px; background: Theme.rail;
     VerticalLayout {
         padding-top: ClientStyle.enabled ? 0px : 12px; padding-bottom: 12px; spacing: 8px;
@@ -1010,8 +1012,13 @@ export component ServerRail inherits Rectangle {
         }
         if root.can-join: RailItem {
             icon: @image-url("icons/circle-plus.svg"); icon-color: Theme.accent; icon-size: 24px;
-            label: "Join a server"; tip: "Join a server";
+            label: "Add a server"; tip: "Add a server";
             clicked => { root.join-server(); }
+        }
+        if root.can-join: RailItem {
+            icon: @image-url("icons/community.svg"); icon-color: Theme.accent; icon-size: 22px;
+            label: "Discover"; tip: "Discover";
+            clicked => { root.discover(); }
         }
     }
 }

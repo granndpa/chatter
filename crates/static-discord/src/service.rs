@@ -2302,6 +2302,20 @@ impl Discord {
         Ok(invite::Joined::of(&answer, preview))
     }
 
+    /// A page of Discover's public servers; see [`Api::discoverable_guilds`].
+    pub async fn discover(&self, query: &str, offset: u32) -> Result<Value> {
+        self.api.discoverable_guilds(query, offset).await
+    }
+
+    /// Makes a server owned by this account; its id.
+    pub async fn create_guild(&self, name: &str) -> Result<String> {
+        let guild = self.api.create_guild(name).await?;
+        guild["id"]
+            .as_str()
+            .map(str::to_owned)
+            .context("Discord didn't say which server it made.")
+    }
+
     /// A server's preview, by its id; see [`Api::guild_preview`].
     pub async fn guild_preview(&self, guild: &str) -> Result<guild::Preview> {
         let preview = self.api.guild_preview(guild).await?;

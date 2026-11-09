@@ -2107,6 +2107,36 @@ impl Api {
         self.json(request).await
     }
 
+    /// A page of the public servers Discover lists: Discord's picks, or
+    /// those matching `query`, from `offset`.
+    pub async fn discoverable_guilds(&self, query: &str, offset: u32) -> Result<Value> {
+        let query = query.trim();
+        let path = if query.is_empty() {
+            format!("/discoverable-guilds?offset={offset}&limit=24")
+        } else {
+            format!(
+                "/discovery/search?query={}&offset={offset}&limit=24",
+                encode(query)
+            )
+        };
+        self.json(self.request(Method::GET, &path)).await
+    }
+
+    /// Makes a server owned by this account from Discord's standard
+    /// template, as Create My Own does; the new guild object. GUILD_CREATE
+    /// follows.
+    pub async fn create_guild(&self, name: &str) -> Result<Value> {
+        let body = json!({
+            "name": name,
+            "icon": null,
+            "channels": [],
+            "system_channel_id": null,
+            "guild_template_code": "2TffvPucqHkN",
+        });
+        self.json(with_json(self.request(Method::POST, "/guilds"), &body))
+            .await
+    }
+
     /// A channel object, as `GET /channels/{id}` gives it.
     pub async fn channel(&self, channel: &str) -> Result<Value> {
         let path = format!("/channels/{channel}");
