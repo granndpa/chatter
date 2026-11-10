@@ -1534,6 +1534,7 @@ export component StaticWindow inherits Window {
     callback reminder-reschedule(int, string);
     callback show-original(string);
     callback dismiss-deleted(string);
+    callback clear-edits(string);
     /// Discord Tweaks' voice log, one event per line.
     in property <string> voice-log;
     callback select-reaction(string);
@@ -2108,7 +2109,7 @@ export component StaticWindow inherits Window {
                 width: 300px;
                 available-height: max(120px, root.menu-y - 12px);
                 name: root.account-name; initial: root.account-initial; tint: root.account-tint; picture: root.account-picture;
-                username: root.account-username; spotify: root.account-spotify;
+                username: root.streamer-hides-info ? "" : root.account-username; spotify: root.account-spotify;
                 user-id: root.account-user-id;
                 status: root.discord-status; has-custom-status: root.has-custom-status;
                 custom-text: root.account-status; custom-emoji: root.account-status-emoji;
@@ -2400,6 +2401,7 @@ export component StaticWindow inherits Window {
             remind(item) => { root.remind-error = ""; root.remind-item = item; message-menu.close(); }
             show-original(item) => { root.show-original(item); message-menu.close(); }
             dismiss-deleted(item) => { root.dismiss-deleted(item); message-menu.close(); }
+            clear-edits(item) => { root.clear-edits(item); message-menu.close(); }
             emoji-font: root.emoji-font; composer-enabled: root.composer-enabled; forward-allowed: root.forward-allowed; preview: root.preview;
             react(item, key) => { root.react(item, key); message-menu.close(); }
             open-picker(item) => { root.open-picker(item); message-menu.close(); }
@@ -2694,10 +2696,10 @@ export component StaticWindow inherits Window {
                                     alignment: center; padding-left: 6px; padding-right: 6px;
                                     Text { text: root.account-name; color: Theme.text; font-size: 15px; font-weight: 700; overflow: elide; }
                                     // Under the pointer the status gives way to the username, as Discord's does.
-                                    if (account-touch.has-hover || avatar-touch.has-hover) && root.account-username != "": Text {
+                                    if (account-touch.has-hover || avatar-touch.has-hover) && root.account-username != "" && !root.streamer-hides-info: Text {
                                         text: root.account-username; color: Theme.muted; font-size: 13px; overflow: elide;
                                     }
-                                    if !((account-touch.has-hover || avatar-touch.has-hover) && root.account-username != ""): StatusText { text: root.account-status; emoji-url: root.account-status-emoji; icon: root.account-activity-icon; bullet: root.account-activity-bullet; }
+                                    if !((account-touch.has-hover || avatar-touch.has-hover) && root.account-username != "" && !root.streamer-hides-info): StatusText { text: root.account-status; emoji-url: root.account-status-emoji; icon: root.account-activity-icon; bullet: root.account-activity-bullet; }
                                 }
                                 account-touch := TouchArea {
                                     enabled: root.discord-linked; mouse-cursor: MouseCursor.pointer;
@@ -4039,7 +4041,7 @@ export component StaticWindow inherits Window {
             account-initial: root.account-initial; account-tint: root.account-tint; account-picture: root.account-picture;
             storage: root.storage; preview: root.preview; online: root.online; busy: root.busy; sending: root.sending;
             discord-linked: root.discord-linked; has-custom-status: root.has-custom-status;
-            account-loaded: root.account-loaded; account-username: root.account-username;
+            account-loaded: root.account-loaded; account-username: root.streamer-hides-info ? "Hidden in Streamer Mode" : root.account-username;
             account-email: root.account-email; account-email-hidden: root.account-email-hidden;
             account-phone: root.account-phone; account-phone-hidden: root.account-phone-hidden;
             account-mfa: root.account-mfa; hide-personal: root.streamer-hides-info;
@@ -4891,6 +4893,21 @@ export component StaticWindow inherits Window {
                 ActionButton { text: "Not now"; clicked => { root.community-card = false; root.community-dismissed(); } }
                 ActionButton { text: "Join"; primary: true; clicked => { root.community-card = false; root.join-community("mZV9es9jKu"); } }
             }
+        }
+    }
+    // Streamer Mode is on: Discord's purple bar says so, and a click on
+    // it turns it off when it was turned on by hand.
+    if root.streamer-active: Rectangle {
+        x: (root.width - self.width) / 2; y: root.title-height > 0 ? 4px : 8px;
+        width: streamer-text.preferred-width + 24px; height: 24px; border-radius: 12px;
+        background: streamer-touch.has-hover && root.streamer-mode ? #6d4ad8 : #5b3cc4;
+        streamer-text := Text {
+            text: root.streamer-mode ? "Streamer Mode is on. Click to turn off" : "Streamer Mode is on (OBS or XSplit is running)";
+            color: #ffffff; font-size: 12px; font-weight: 700;
+        }
+        streamer-touch := TouchArea {
+            mouse-cursor: root.streamer-mode ? MouseCursor.pointer : MouseCursor.default;
+            clicked => { if root.streamer-mode { root.streamer-mode = false; root.preferences-changed(); } }
         }
     }
     // A newer Chatter is out: pressing this updates and restarts.

@@ -214,7 +214,10 @@ fn styled(body: &str) -> slint::StyledText {
 /// [`styled`], or `typed` as plain text when Slint rejects the Markdown. A
 /// link showing other text than where it goes asks before it opens.
 fn styled_or(body: &str, typed: &str) -> slint::StyledText {
-    let body = no_rules(body);
+    let body = super::streamer::mask_invites(body);
+    let typed = super::streamer::mask_invites(typed);
+    let typed = typed.as_ref();
+    let body = no_rules(&body);
     let body = keep_blank_lines(&body);
     slint::StyledText::from_markdown(&links::linkify(&links::mark_masked(&body)))
         .ok()

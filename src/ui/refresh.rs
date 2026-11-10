@@ -281,6 +281,23 @@ impl Adapter {
     /// Takes the deleted messages someone closed out of the timelines, each
     /// time the message logger brings them back.
     fn drop_dismissed(&mut self) {
+        // Earlier versions someone removed stay gone, though the logger
+        // keeps more as the message changes.
+        if !self.cleared_edits.is_empty() {
+            let cleared = &self.cleared_edits;
+            let kept = |message: &Arc<static_core::chat::ChatMessage>| {
+                !message.edit_history.is_empty() && cleared.contains(&message.item)
+            };
+            let state = &mut self.app.state;
+            if state.messages.iter().any(kept) {
+                for message in Arc::make_mut(&mut state.messages).iter_mut() {
+                    if kept(message) {
+                        Arc::make_mut(message).edit_history.clear();
+                    }
+                }
+                self.restyle = true;
+            }
+        }
         if self.dismissed.is_empty() {
             return;
         }
@@ -3348,7 +3365,7 @@ impl Adapter {
             self.clock_minute = minute;
             self.restyle |= polls::open_poll(&state.messages, minute * 60) | new_day;
         }
-        let restyle = std::mem::take(&mut self.restyle);
+        let restyle = std::mem::take(&mut self.restyle) | super::streamer::take_changed();
         // The thread beside builds its rows again with the timeline's.
         self.aside_restyle |= restyle;
         if messages_changed || selection_changed || reset || pictures_arrived || restyle {

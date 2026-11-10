@@ -1826,6 +1826,8 @@ struct Adapter {
     translations: HashMap<String, (String, String)>,
     /// Deleted messages the message logger kept that were closed, by item.
     dismissed: HashSet<String>,
+    /// Messages whose kept earlier versions someone removed.
+    cleared_edits: HashSet<String>,
     /// Discord Tweaks' bookmarks, reminders and saved drafts; see `tweaks.rs`.
     tweaks: tweaks::Tweaks,
     /// Discord Tweaks' Media Gallery; see `gallery.rs`.
@@ -2091,6 +2093,7 @@ impl Adapter {
                 revealed: HashSet::new(),
                 translations: HashMap::new(),
                 dismissed: HashSet::new(),
+                cleared_edits: HashSet::new(),
                 tweaks: tweaks::Tweaks::default(),
                 gallery: gallery::Gallery::default(),
                 overlay: overlay::Overlay::default(),

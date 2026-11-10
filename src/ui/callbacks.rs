@@ -1799,6 +1799,15 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
     });
     let state = adapter.clone();
     let weak = window.as_weak();
+    {
+        let (state, weak) = (state.clone(), window.as_weak());
+        window.on_clear_edits(move |item| {
+            let Some(window) = weak.upgrade() else { return };
+            let mut adapter = state.borrow_mut();
+            adapter.cleared_edits.insert(item.to_string());
+            adapter.refresh(&window);
+        });
+    }
     window.on_dismiss_deleted(move |item| {
         let Some(window) = weak.upgrade() else { return };
         let mut adapter = state.borrow_mut();

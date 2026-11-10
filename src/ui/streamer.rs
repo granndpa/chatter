@@ -9,6 +9,9 @@ use super::*;
 static ACTIVE: AtomicBool = AtomicBool::new(false);
 static SOUNDS_OFF: AtomicBool = AtomicBool::new(true);
 static NOTIFICATIONS_OFF: AtomicBool = AtomicBool::new(true);
+static HIDE_INFO: AtomicBool = AtomicBool::new(true);
+/// What Streamer Mode hides changed, so messages are drawn again.
+static CHANGED: AtomicBool = AtomicBool::new(false);
 /// OBS or XSplit runs, as the last look found.
 static BROADCASTING: AtomicBool = AtomicBool::new(false);
 
@@ -27,6 +30,42 @@ pub(super) fn quiets_notifications() -> bool {
     ACTIVE.load(Relaxed) && NOTIFICATIONS_OFF.load(Relaxed)
 }
 
+/// Streamer Mode is on and hides personal information, invite links among it.
+pub(super) fn hides_info() -> bool {
+    ACTIVE.load(Relaxed) && HIDE_INFO.load(Relaxed)
+}
+
+/// Whether what Streamer Mode hides changed since last asked.
+pub(super) fn take_changed() -> bool {
+    CHANGED.swap(false, Relaxed)
+}
+
+/// `text` with the codes of Discord invite links hidden, while Streamer Mode
+/// hides personal information, as Discord's does.
+pub(super) fn mask_invites(text: &str) -> std::borrow::Cow<'_, str> {
+    const HOSTS: [&str; 3] = ["discord.gg/", "discord.com/invite/", "discordapp.com/invite/"];
+    if !hides_info() || !HOSTS.iter().any(|host| text.contains(host)) {
+        return std::borrow::Cow::Borrowed(text);
+    }
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some((at, host)) = HOSTS
+        .iter()
+        .filter_map(|host| rest.find(host).map(|at| (at, *host)))
+        .min_by_key(|(at, _)| *at)
+    {
+        let after = at + host.len();
+        out.push_str(&rest[..after]);
+        let code = rest[after..]
+            .find(|c: char| !(c.is_ascii_alphanumeric() || c == '-'))
+            .unwrap_or(rest.len() - after);
+        out.push_str(if code > 0 { "hidden" } else { "" });
+        rest = &rest[after + code..];
+    }
+    out.push_str(rest);
+    std::borrow::Cow::Owned(out)
+}
+
 /// Shows Streamer Mode as the window's settings and OBS say, and hides the
 /// window from capture while it should be.
 pub(super) fn apply(window: &StaticWindow) {
@@ -35,8 +74,13 @@ pub(super) fn apply(window: &StaticWindow) {
     ACTIVE.store(active, Relaxed);
     SOUNDS_OFF.store(window.get_streamer_sounds_off(), Relaxed);
     NOTIFICATIONS_OFF.store(window.get_streamer_notifications_off(), Relaxed);
+    let hide = window.get_streamer_hide_info();
+    if HIDE_INFO.swap(hide, Relaxed) != hide {
+        CHANGED.store(true, Relaxed);
+    }
     if window.get_streamer_active() != active {
         window.set_streamer_active(active);
+        CHANGED.store(true, Relaxed);
     }
     hide_from_capture(window, active && window.get_streamer_hide_capture());
 }

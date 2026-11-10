@@ -1031,6 +1031,7 @@ export component MessageMenu inherits Rectangle {
     callback remind(string);
     callback show-original(string);
     callback dismiss-deleted(string);
+    callback clear-edits(string);
     callback copy-image(string, int);
     callback save-attachment(string, int);
     callback open-link(string);
@@ -1099,8 +1100,12 @@ export component MessageMenu inherits Rectangle {
             clicked => { root.show-original(root.menu-message.item); }
         }
         if root.menu-message.deleted: MenuItem {
-            text: "Close Deleted Message"; icon: @image-url("icons/x.svg");
+            text: "Remove Deleted Message"; icon: @image-url("icons/x.svg");
             clicked => { root.dismiss-deleted(root.menu-message.item); }
+        }
+        if root.menu-message.edit-history != "": MenuItem {
+            text: "Remove Edit History"; icon: @image-url("icons/x.svg");
+            clicked => { root.clear-edits(root.menu-message.item); }
         }
         if root.menu-message.body != "": MenuItem {
             text: "Copy text"; icon: @image-url("icons/copy.svg");
