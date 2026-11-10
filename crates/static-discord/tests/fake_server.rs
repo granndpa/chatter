@@ -5560,6 +5560,12 @@ async fn keeps_emoji_and_stickers_as_discords_client_does() {
     assert_eq!(listed[0].user.as_ref().unwrap().username, "alice");
     assert_eq!((listed[0].format, listed[0].tags.as_str()), (1, "👋"));
     let id = listed[0].id.clone();
+    let nonce = static_discord::message::nonce();
+    let mut options = sending(&nonce, None);
+    options.sticker_id = Some(id.parse().unwrap());
+    let sent = discord.send(guild, &fixture.general, "With a sticker", options, vec![]).await.unwrap();
+    assert_eq!(sent.content, "With a sticker");
+    assert!(sent.attachments.iter().any(|attachment| attachment.name == "Wave"));
     discord
         .edit_sticker(guild, &id, "Hello", "👋", "A hand waving")
         .await
@@ -6595,6 +6601,7 @@ async fn shows_own_spotify_from_another_session() {
 /// A plain send, as the composer makes it, with `nonce` and `reply`.
 fn sending<'a>(nonce: &'a str, reply: Option<&'a str>) -> static_discord::api::Sending<'a> {
     static_discord::api::Sending {
+        sticker_id: None,
         nonce,
         reply,
         ping_reply: true,

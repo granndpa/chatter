@@ -281,6 +281,7 @@ impl Application {
         let draft = self.state.drafts.insert(room.clone(), text);
         let compose = self.state.compose.remove(&room);
         let staged = self.state.staged.remove(&room);
+        let sticker = self.state.staged_stickers.remove(&room);
         let effects = self.send_in(room.clone());
         match draft {
             Some(draft) => self.state.drafts.insert(room.clone(), draft),
@@ -289,6 +290,7 @@ impl Application {
         if let Some(compose) = compose {
             self.state.compose.insert(room.clone(), compose);
         }
+        if let Some(sticker) = sticker { self.state.staged_stickers.insert(room.clone(), sticker); }
         if let Some(staged) = staged {
             self.state.staged.insert(room, staged);
         }
@@ -301,7 +303,7 @@ impl Application {
         if !self.state.can_send_in(&id) {
             return vec![];
         }
-        if let Some(effects) = self.slash_command(&id) {
+        if !self.state.staged_stickers.contains_key(&id) && let Some(effects) = self.slash_command(&id) {
             return effects;
         }
         let draft = self.state.drafts.get(&id).cloned().unwrap_or_default();
@@ -418,6 +420,7 @@ impl Application {
                     })
                     .collect();
                 self.sent_files = files.iter().map(|file| file.path.clone()).collect();
+                self.sent_sticker = self.state.staged_stickers.get(&id).map(|sticker| sticker.id.clone());
                 // A message goes after the newest, which show again for it.
                 let mut effects = if self.state.selected.as_ref() == Some(&id) {
                     self.jump_to_present()
@@ -428,6 +431,7 @@ impl Application {
                     room: id,
                     body,
                     options: chat::SendOptions {
+                        sticker_id: self.sent_sticker.as_deref().and_then(|id| id.parse().ok()),
                         quiet_reply: matches!(compose, Some(Compose::Reply { ping: false, .. })),
                         silent,
                     },

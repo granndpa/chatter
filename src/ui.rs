@@ -41,6 +41,7 @@ mod appearance;
 mod away;
 mod browser;
 mod bot_forms;
+mod stickers;
 mod call_link;
 mod call_timer;
 mod callbacks;

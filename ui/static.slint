@@ -61,6 +61,8 @@ import { BansPrompt, SafetyOption, SafetyPrompt } from "moderation.slint";
 import { ChannelSettingsPrompt, ChannelSettingsScreen, OverwriteRow, ThreeStateRow } from "channel_settings.slint";
 import { MfaChoice, MfaPrompt, MfaDialog } from "mfa.slint";
 import { BotFormField, BotFormDialog } from "bot-forms.slint";
+import { StickerRow, StickerPicker } from "stickers.slint";
+export { StickerRow } from "stickers.slint";
 export { BotFormField } from "bot-forms.slint";
 import { FoundRow, PickRow, ThreadRow, HeaderSearch, PinsPopover, ThreadsPopover, AddPeoplePopover, SearchPanel, TopicPopover } from "header.slint";
 import { ThreadPanel, NewThreadPanel } from "thread.slint";
@@ -284,6 +286,16 @@ export component StaticWindow inherits Window {
     in-out property <string> channel-settings-topic;
     callback channel-settings-input(int, string, int);
     // Confirming a request Discord holds back; see MfaDialog.
+    in property <bool> sticker-picker-open;
+    in property <[StickerRow]> sticker-rows;
+    in property <string> sticker-query;
+    in property <string> sticker-note;
+    in property <string> staged-sticker-name;
+    callback open-stickers;
+    callback close-stickers;
+    callback search-stickers(string);
+    callback choose-sticker(string);
+    callback remove-sticker;
     in property <bool> bot-form-open;
     in property <string> bot-form-title;
     in property <[BotFormField]> bot-form-fields;
@@ -1614,7 +1626,7 @@ export component StaticWindow inherits Window {
         || root.role-open || root.server-card-open || root.emoji-card-open || root.topic-open
         || root.pins-open || root.threads-open || root.add-people-open || root.viewer-open
         || (VideoPlayer.expanded && VideoPlayer.item != "") || root.stage-full
-        || root.switcher-open || root.mfa-open || root.bot-form-open || root.add-friend-open || root.invite-open
+        || root.switcher-open || root.mfa-open || root.bot-form-open || root.sticker-picker-open || root.add-friend-open || root.invite-open
         || root.join-open || root.event-open || root.gift-open || root.oauth-open
         || root.channel-open || root.move-sync-open || root.leave-open || root.person-open
         || root.status-open || root.poll-open || root.new-dm-open || root.reactions-open
@@ -3590,6 +3602,14 @@ export component StaticWindow inherits Window {
                                 accept-request => { root.accept-request(); }
                                 ignore-request => { root.ignore-request(); }
                             }
+                            if root.staged-sticker-name != "" && !root.is-editing: Rectangle {
+                                height: 40px; background: Theme.sidebar; border-radius: 8px;
+                                HorizontalLayout {
+                                    padding-left: 14px; padding-right: 4px; spacing: 8px;
+                                    Text { text: "Sticker: " + root.staged-sticker-name; color: Theme.text; font-size: 14px; vertical-alignment: center; horizontal-stretch: 1; overflow: elide; }
+                                    IconButton { icon: @image-url("icons/x.svg"); label: "Remove sticker"; size: 28px; clicked => { root.remove-sticker(); } }
+                                }
+                            }
                             if root.compose-label != "": Rectangle {
                                 height: 36px; background: Theme.sidebar;
                                 border-top-left-radius: 10px; border-top-right-radius: 10px;
@@ -3709,6 +3729,14 @@ export component StaticWindow inherits Window {
                                                     root.anchor(emoji-button.absolute-position.x, emoji-button.absolute-position.y, emoji-button.width, emoji-button.height, false);
                                                     root.open-expressions(0);
                                                 }
+                                            }
+                                        }
+                                        if root.can-pick-gifs: VerticalLayout {
+                                            alignment: end; padding-bottom: ClientStyle.composer-button-inset;
+                                            IconButton {
+                                                icon: @image-url("icons/sticky-note.svg"); label: "Open sticker picker";
+                                                glyph: 22px; enabled: root.composer-enabled && !root.is-editing;
+                                                clicked => { root.open-stickers(); }
                                             }
                                         }
                                         VerticalLayout {
@@ -4886,6 +4914,12 @@ export component StaticWindow inherits Window {
         close-switcher => { root.close-switcher(); }
     }
     // Over everything, as the request it confirms may come from anywhere.
+    if root.sticker-picker-open: StickerPicker {
+        stickers: root.sticker-rows; query: root.sticker-query; note: root.sticker-note;
+        search(value) => { root.search-stickers(value); }
+        choose(id) => { root.choose-sticker(id); }
+        close => { root.close-stickers(); }
+    }
     if root.bot-form-open: BotFormDialog {
         title: root.bot-form-title; fields: root.bot-form-fields;
         busy: root.bot-form-busy; error: root.bot-form-error;

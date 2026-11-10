@@ -1150,6 +1150,22 @@ fn showing(chat: Vec<ChatMessage>) -> StaticWindow {
     window
 }
 
+fn gif_button_center(window: &StaticWindow) -> (f32, f32) {
+    use i_slint_core::{accessibility::AccessibleStringProperty, item_tree::ItemRc};
+    use std::ops::ControlFlow;
+    let component = i_slint_core::window::WindowInner::from_pub(window.window()).component();
+    let item = ItemRc::new_root(component.clone()).visit_descendants(|item| {
+        if item.accessible_string_property(AccessibleStringProperty::Label).as_deref() == Some("Open GIF picker") {
+            ControlFlow::Break(item.clone())
+        } else {
+            ControlFlow::Continue(())
+        }
+    }).expect("the GIF button");
+    let geometry = item.geometry();
+    let point = item.map_to_item_tree(geometry.origin, &component);
+    (point.x + geometry.width() / 2., point.y + geometry.height() / 2.)
+}
+
 fn settle(window: &StaticWindow) {
     for _ in 0..5 {
         slint::platform::update_timers_and_animations();
@@ -7257,7 +7273,8 @@ fn resizing_the_window_carries_the_pickers_room_with_the_composer() {
     };
     // The GIF button opens the picker with 978px of room: up to 8px right of
     // the server list, which is 80px from the window's left edge.
-    click(992., 710.);
+    let gif_button = gif_button_center(&window);
+    click(gif_button.0, gif_button.1);
     let room = window.get_picker_room();
     assert_eq!(room, 978.);
     // A window 200px wider carries the composer's buttons with it, and the
@@ -7572,7 +7589,8 @@ fn dragging_the_pickers_left_edge_widens_it_no_further_than_the_server_list() {
     };
     // The GIF button in the composer opens the picker, 498px wide, its right
     // edge on the emoji button's.
-    click(992., 710.);
+    let gif_button = gif_button_center(&window);
+    click(gif_button.0, gif_button.1);
     assert_eq!(window.get_picker_shown(), 498.);
     assert_eq!(window.get_gif_grid_width(), 474.);
     // Room for it up to 8px right of the server list, which is 80px from the
@@ -7680,7 +7698,8 @@ fn dragging_the_pickers_left_edge_widens_it_no_further_than_the_server_list() {
     let inner = i_slint_core::window::WindowInner::from_pub(window.window());
     assert!(inner.active_popups().is_empty());
     // It opens again on the GIFs, at the width dragged.
-    click(992., 710.);
+    let gif_button = gif_button_center(&window);
+    click(gif_button.0, gif_button.1);
     assert_eq!(panel(), (410., 648.));
     // Back to the right, the edge follows the pointer to the width it opens
     // at, and no further.
@@ -8242,3 +8261,5 @@ fn an_avatars_colour_is_worked_out_once_it_has_arrived() {
     assert_eq!(profile::avatar_color(Some("b.png"), &waiting), None);
     assert_eq!(profile::avatar_color(None, &avatar), None);
 }
+
+mod stickers;

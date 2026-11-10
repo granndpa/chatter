@@ -22,6 +22,7 @@ const UNAUTHORIZED: &str = "Discord rejected the login. Link Discord again.";
 /// How a message goes, besides what it says.
 #[derive(Clone, Copy, Debug)]
 pub struct Sending<'a> {
+    pub sticker_id: Option<u64>,
     /// Matches the message to its echo from the gateway.
     pub nonce: &'a str,
     /// The message it replies to, in the same channel.
@@ -547,6 +548,9 @@ impl Api {
         uploads: &[Upload],
     ) -> Result<Value> {
         let mut body = message_body(content, options.nonce);
+        if let Some(sticker) = options.sticker_id {
+            body["sticker_ids"] = json!([sticker.to_string()]);
+        }
         if options.silent {
             body["flags"] = SUPPRESS_NOTIFICATIONS.into();
         }

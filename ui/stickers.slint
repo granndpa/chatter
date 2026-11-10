@@ -1,0 +1,53 @@
+import { Theme } from "theme.slint";
+import { ListView } from "scrollview.slint";
+import { ActionButton, IconButton, TextField, PictureStore } from "controls.slint";
+
+export struct StickerRow { id: string, name: string, server: string, url: string, available: bool }
+
+export component StickerPicker inherits Rectangle {
+    in property <[StickerRow]> stickers;
+    in property <string> query;
+    in property <string> note;
+    callback search(string);
+    callback choose(string);
+    callback close;
+    background: #0008;
+    TouchArea { }
+    Rectangle {
+        width: min(440px, root.width - 32px); height: min(560px, root.height - 32px);
+        background: Theme.raised; border-radius: 12px; border-width: 1px; border-color: Theme.edge;
+        TouchArea { }
+        FocusScope {
+            key-pressed(event) => { if event.text == Key.Escape { root.close(); return accept; } return reject; }
+            VerticalLayout {
+                padding: 16px; spacing: 12px;
+                HorizontalLayout {
+                    Text { text: "Stickers"; color: Theme.text; font-size: 20px; font-weight: 700; vertical-alignment: center; horizontal-stretch: 1; }
+                    IconButton { icon: @image-url("icons/x.svg"); label: "Close stickers"; clicked => { root.close(); } }
+                }
+                TextField { init => { self.focus-input(); } text: root.query; placeholder: "Find a sticker"; label: "Find a sticker"; edited(value) => { root.search(value); } }
+                if root.note != "": Text { text: root.note; color: Theme.muted; font-size: 13px; wrap: word-wrap; }
+                ListView {
+                    for entry in root.stickers: tile := Rectangle {
+                        height: 96px;
+                        border-radius: 8px;
+                        background: touch.has-hover ? Theme.hover : transparent;
+                        property <image> preview: PictureStore.picture(entry.url, PictureStore.revision);
+                        init => { if entry.url != "" { PictureStore.request(entry.url); } }
+                        changed preview => { if self.preview.width == 0 && entry.url != "" { PictureStore.request(entry.url); } }
+                        HorizontalLayout {
+                            padding: 8px; spacing: 12px;
+                            Image { source: tile.preview; width: 80px; height: 80px; image-fit: contain; opacity: entry.available ? 1 : 0.4; }
+                            VerticalLayout {
+                                alignment: center; spacing: 4px;
+                                Text { text: entry.name; color: entry.available ? Theme.text : Theme.muted; font-size: 15px; overflow: elide; }
+                                Text { text: entry.available ? entry.server : entry.server + " · Unavailable"; color: Theme.muted; font-size: 12px; overflow: elide; }
+                            }
+                        }
+                        touch := TouchArea { enabled: entry.available; clicked => { root.choose(entry.id); } }
+                    }
+                }
+            }
+        }
+    }
+}

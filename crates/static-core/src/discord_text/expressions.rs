@@ -30,7 +30,7 @@ const EMOJI_LIMIT: usize = 256 * 1024;
 /// size Discord's upload dialog shows it.
 const STICKER: u32 = 320;
 const STICKER_PREVIEW: u32 = 160;
-const STICKER_LIMIT: usize = 512 * 1024;
+const STICKER_LIMIT: usize = 500 * 1024;
 /// The largest file Static reads for a sticker before it shrinks it.
 const STICKER_FILE: u64 = 10 * 1024 * 1024;
 
@@ -45,6 +45,38 @@ pub(super) fn command(
     discord: Result<&Discord, &str>,
     events: &UnboundedSender<Event>,
 ) -> Option<Command> {
+    if let Command::Discord(DiscordCommand::ListPickerStickers { request, guilds }) = command {
+        match discord {
+            Ok(discord) => {
+                let (discord, events) = (discord.clone(), events.clone());
+                tokio::spawn(async move {
+                    use futures_util::StreamExt;
+                    let results = futures_util::stream::iter(guilds.into_iter().map(|(guild, name)| {
+                        let discord = discord.clone();
+                        async move { (name, discord.guild_stickers(&guild).await) }
+                    })).buffer_unordered(4).collect::<Vec<_>>().await;
+                    let mut entries = Vec::new();
+                    let mut failed = 0;
+                    for (server, result) in results {
+                        match result {
+                            Ok(stickers) => entries.extend(stickers.into_iter().map(|sticker| {
+                                let picture = static_discord::ready::sticker(&sticker.id, sticker.format.into());
+                                let mut sticker = server_sticker(sticker);
+                                sticker.picture = Some(picture);
+                                crate::chat::PickerSticker { server: server.clone(), sticker }
+                            })),
+                            Err(_) => failed += 1,
+                        }
+                    }
+                    entries.sort_by(|a, b| a.server.cmp(&b.server).then_with(|| a.sticker.form.name.cmp(&b.sticker.form.name)));
+                    let error = (failed > 0).then(|| format!("Could not load stickers from {failed} servers. Close and reopen to retry."));
+                    let _ = events.send(Event::PickerStickers { request, entries, error });
+                });
+            }
+            Err(error) => { let _ = events.send(Event::PickerStickers { request, entries: vec![], error: Some(error.into()) }); }
+        }
+        return None;
+    }
     let (server, work) = match command {
         Command::Discord(DiscordCommand::Emoji { server, action }) => (server, Ok(action)),
         Command::Discord(DiscordCommand::Stickers { server, action }) => (server, Err(*action)),
@@ -161,10 +193,10 @@ async fn emoji(discord: &Discord, guild: &str, action: EmojiAction) -> Result<()
 async fn sticker(discord: &Discord, guild: &str, action: StickerAction) -> Result<(), String> {
     let result = match action {
         StickerAction::Upload { form, file } => {
-            let filename = match file.mime {
-                "image/gif" => "sticker.gif",
-                _ => "sticker.png",
-            };
+            if !matches!(file.mime, "image/png" | "image/apng" | "application/json") {
+                return Err("Stickers must be PNG, APNG or Lottie JSON.".into());
+            }
+            let filename = if file.mime == "application/json" { "sticker.json" } else { "sticker.png" };
             let fields = [
                 ("name", form.name.as_str()),
                 ("tags", form.tags.as_str()),
@@ -272,7 +304,7 @@ pub(super) fn read_emoji(path: &Path) -> Result<PickedPicture, String> {
 }
 
 /// The file at `path` as a new sticker, as Discord's client prepares one:
-/// a GIF or an animated PNG goes as it is; a JPEG, or a PNG over 512 KB,
+/// an animated PNG goes as it is; a JPEG, or a PNG over 512 KB,
 /// becomes a PNG within 320 pixels, keeping its shape. Over 512 KB after
 /// that, it's refused.
 pub(super) fn read_sticker(path: &Path) -> Result<PickedPicture, String> {
@@ -302,7 +334,7 @@ pub(super) fn read_sticker(path: &Path) -> Result<PickedPicture, String> {
         .filter(|format| {
             matches!(
                 format,
-                ImageFormat::Png | ImageFormat::Jpeg | ImageFormat::Gif
+                ImageFormat::Png | ImageFormat::Jpeg
             )
         })
         .ok_or_else(unsupported)?;
@@ -325,12 +357,8 @@ pub(super) fn read_sticker(path: &Path) -> Result<PickedPicture, String> {
         rgba: Pixels::new(small.width(), small.height(), small.into_raw()),
         animation: None,
     });
-    let animated = format == ImageFormat::Gif || animated_png(&data);
-    let mime = if format == ImageFormat::Gif {
-        "image/gif"
-    } else {
-        "image/png"
-    };
+    let animated = animated_png(&data);
+    let mime = "image/png";
     if animated || (format == ImageFormat::Png && data.len() <= STICKER_LIMIT) {
         if data.len() > STICKER_LIMIT {
             return Err(too_big());
@@ -404,5 +432,21 @@ mod tests {
         ])));
         assert!(!animated_png(&png(&[header.clone(), idat.clone(), actl])));
         assert!(!animated_png(&png(&[header])));
+    }
+}
+
+#[cfg(test)]
+mod sticker_upload_tests {
+    use super::*;
+
+    #[test]
+    fn gif_stickers_are_rejected_before_upload() {
+        let folder = tempfile::tempdir().unwrap();
+        let path = folder.path().join("sticker.gif");
+        use base64::Engine;
+        let gif = base64::engine::general_purpose::STANDARD.decode("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7").unwrap();
+        assert!(image::load_from_memory(&gif).is_ok());
+        std::fs::write(&path, gif).unwrap();
+        assert!(read_sticker(&path).is_err());
     }
 }

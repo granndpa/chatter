@@ -114,7 +114,7 @@ impl AppState {
             .is_some_and(|staged| !staged.is_empty());
         self.can_write_in(room)
             && self.sending.is_none()
-            && (!draft.trim().is_empty() || (!editing && staged))
+            && (!draft.trim().is_empty() || (!editing && (staged || self.staged_stickers.contains_key(room))))
     }
 }
 

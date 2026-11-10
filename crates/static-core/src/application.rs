@@ -22,6 +22,8 @@ mod browse;
 mod calls;
 mod channel_settings;
 mod compose;
+mod stickers;
+pub use stickers::StickerPicker;
 mod connections;
 mod discover;
 mod discord_account;
@@ -402,6 +404,8 @@ pub enum Compose {
 
 #[derive(Default)]
 pub struct AppState {
+    pub sticker_picker: StickerPicker,
+    pub staged_stickers: HashMap<String, chat::ServerSticker>,
     pub bot_form: Option<crate::commands::bot_forms::BotForm>,
     /// Recent interactions, used to bind a gateway form to its source channel.
     pub bot_form_contexts: HashMap<String, serde_json::Value>,
@@ -851,7 +855,7 @@ impl AppState {
     /// A dialog that takes the keyboard is open, over which the quick
     /// switcher doesn't open and a link handed from outside waits.
     pub fn dialog_open(&self) -> bool {
-        !self.mfa.is_empty()
+        self.bot_form.is_some() || self.sticker_picker.open || !self.mfa.is_empty()
             || self.forwarding.is_some()
             || self.new_dm.is_some()
             || self.add_friend.is_some()
@@ -1195,7 +1199,7 @@ impl AppState {
     pub fn can_send(&self) -> bool {
         self.can_write()
             && self.sending.is_none()
-            && (!self.draft().trim().is_empty() || (!self.editing() && !self.staged().is_empty()))
+            && (!self.draft().trim().is_empty() || (!self.editing() && (!self.staged().is_empty() || self.selected.as_ref().is_some_and(|room| self.staged_stickers.contains_key(room)))))
     }
 
     pub fn can_attach(&self) -> bool {
@@ -1462,6 +1466,11 @@ pub enum Action {
     /// An app's button was clicked or a menu's option chosen; see
     /// [`crate::commands::component`].
     UseComponent(String),
+    OpenStickers,
+    CloseStickers,
+    SearchStickers(String),
+    ChooseSticker(String),
+    RemoveSticker,
     WriteBotForm { index: usize, value: String },
     SubmitBotForm,
     CloseBotForm,
@@ -2222,6 +2231,7 @@ pub struct Application {
     sent_draft: Option<String>,
     /// The files sent with it, which leave the composer once sent.
     sent_files: Vec<PathBuf>,
+    sent_sticker: Option<String>,
     /// The message [`Action::Jump`] or [`Action::JumpToUnread`] brings into
     /// view once the timeline has it.
     seeking: Option<Seeking>,
@@ -2829,6 +2839,14 @@ impl Application {
                 vec![]
             }
             Action::MentionQuery(query) => self.mention_query(query),
+            Action::OpenStickers => self.open_stickers(),
+            Action::CloseStickers => { self.state.sticker_picker.open = false; vec![] }
+            Action::SearchStickers(query) => { self.state.sticker_picker.query = query; vec![] }
+            Action::ChooseSticker(id) => self.choose_sticker(id),
+            Action::RemoveSticker => {
+                if let Some(room) = &self.state.selected { self.state.staged_stickers.remove(room); }
+                vec![]
+            }
             Action::WriteBotForm { index, value } => {
                 if let Some(form) = &mut self.state.bot_form {
                     if !form.busy {
@@ -3857,6 +3875,13 @@ impl Application {
                     }
                 }
             }
+            Event::PickerStickers { request, entries, error } => {
+                if request == self.state.sticker_picker.request {
+                    self.state.sticker_picker.entries = entries;
+                    self.state.sticker_picker.error = error;
+                    self.state.sticker_picker.loading = false;
+                }
+            }
             Event::BotFormOpened(modal) => {
                 let context = modal["nonce"].as_str().and_then(|nonce| self.state.bot_form_contexts.remove(nonce));
                 if let Some(context) = context.filter(|context| context["channel_id"] == modal["channel_id"] && context["application_id"] == modal["application"]["id"]) {
@@ -4170,8 +4195,12 @@ impl Application {
                 }
                 let sent = self.sent_draft.take().unwrap_or(body);
                 let files = std::mem::take(&mut self.sent_files);
+                let sticker = self.sent_sticker.take();
                 match result {
                     Ok(()) => {
+                        if self.state.staged_stickers.get(&room).is_some_and(|staged| Some(&staged.id) == sticker.as_ref()) {
+                            self.state.staged_stickers.remove(&room);
+                        }
                         if self.state.drafts.get(&room) == Some(&sent) {
                             self.state.drafts.remove(&room);
                         }

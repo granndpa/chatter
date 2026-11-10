@@ -30,7 +30,7 @@ uses.
 See [docs/tweaks.md](docs/tweaks.md) for how each one works.
 
 Everything else is still here: voice, cameras, Go Live,
-forums, polls, the GIF picker, server settings and more. Bot buttons,
+forums, polls, the GIF and [sticker pickers](docs/discord/stickers.md), server settings and more. Bot buttons,
 dropdowns and slash commands can open [text input forms](docs/discord/bot-forms.md).
 
 ## Will Discord ban me?

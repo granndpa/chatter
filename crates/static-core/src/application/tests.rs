@@ -856,6 +856,7 @@ fn a_reply_mentions_its_author_unless_switched_off() {
     assert_eq!(
         options,
         crate::chat::SendOptions {
+            sticker_id: None,
             quiet_reply: true,
             silent: false
         }
@@ -10121,3 +10122,4 @@ mod people;
 mod server_settings;
 
 mod bot_forms;
+mod stickers;

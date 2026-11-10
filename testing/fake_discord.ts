@@ -1,3 +1,4 @@
+// Message sends accept sticker_ids and return sticker_items for uploaded server stickers.
 // A fake Discord for tests and memory measurements: the gateway and the parts
 // of the HTTP API Static uses, with one deterministic server, "Server", that
 // mirrors the Matrix fixture (Alice reads #general, Bob posts, three people sit
@@ -5413,6 +5414,15 @@ async function api(req: Request, path: string, origin: string): Promise<Response
         };
         polls.push(asked);
       }
+      const requestedStickers = body.sticker_ids ?? [];
+      if (!Array.isArray(requestedStickers) || requestedStickers.length > 3
+          || requestedStickers.some((id: unknown) => typeof id !== "string" || !expressions.stickers.some((sticker) => sticker.id === id))) {
+        return json({ message: "Invalid sticker", code: 50035 }, 400);
+      }
+      const stickers = requestedStickers.map((id: string) => {
+        const sticker = expressions.stickers.find((sticker) => sticker.id === id)!;
+        return { id: sticker.id, name: sticker.name, format_type: sticker.format_type };
+      });
       const reply = body.message_reference?.message_id;
       const attached = takeUploads(body.attachments, m[1]!);
       if (!attached) return json({ message: "Invalid Form Body", code: 50035 }, 400);
@@ -5420,6 +5430,7 @@ async function api(req: Request, path: string, origin: string): Promise<Response
         nonce: body.nonce ? String(body.nonce) : undefined,
         reply: reply && byId.has(reply) ? reply : undefined,
         files: attached,
+        stickers,
         poll,
       });
       // An env's favourite GIF comes with its embed, so a recording doesn't

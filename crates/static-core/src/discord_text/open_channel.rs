@@ -826,6 +826,7 @@ impl OpenChannel {
                     reply: reply.as_deref(),
                     ping_reply: !options.quiet_reply,
                     silent: options.silent,
+                    sticker_id: options.sticker_id,
                 };
                 discord
                     .send(&guild, &channel, &body, sending, read)

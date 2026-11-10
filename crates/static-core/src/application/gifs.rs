@@ -361,6 +361,7 @@ impl Application {
             _ => (None, false),
         };
         let options = chat::SendOptions {
+            sticker_id: None,
             quiet_reply,
             silent: false,
         };

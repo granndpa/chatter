@@ -1678,6 +1678,8 @@ pub enum Start {
 /// How a message goes, besides what it says.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct SendOptions {
+    /// One staged Discord sticker, sent together with the text and files.
+    pub sticker_id: Option<u64>,
     /// A reply that doesn't notify the person it replies to.
     pub quiet_reply: bool,
     /// A message that notifies nobody, as Discord's `@silent` sends it.
@@ -2467,6 +2469,7 @@ pub enum DiscordCommand {
     /// session id. [`Event::CommandRan`] follows.
     RunCommand { body: serde_json::Value },
     SubmitBotForm { id: String, body: serde_json::Value },
+    ListPickerStickers { request: u64, guilds: Vec<(String, String)> },
     /// A page of Discover's public servers, searched for `query` when it
     /// isn't empty. [`Event::Discovered`] follows.
     Discover { query: String, offset: u32 },
@@ -3134,6 +3137,13 @@ pub struct ServerEmoji {
     pub user: Option<RoleMember>,
     /// Its picture's address, the one the emoji picker shows.
     pub picture: String,
+}
+
+/// A sticker and the server that supplies it to the composer picker.
+#[derive(Clone, Debug)]
+pub struct PickerSticker {
+    pub server: String,
+    pub sticker: ServerSticker,
 }
 
 /// A server's sticker, as Stickers lists it.
@@ -3869,6 +3879,7 @@ pub enum Event {
     /// Whether [`DiscordCommand::RunCommand`] went to Discord.
     CommandRan { result: Result<(), String> },
     BotFormOpened(serde_json::Value),
+    PickerStickers { request: u64, entries: Vec<PickerSticker>, error: Option<String> },
     BotFormSubmitted { id: String, result: Result<(), String> },
     /// A page [`DiscordCommand::Discover`] asked for.
     Discovered {
