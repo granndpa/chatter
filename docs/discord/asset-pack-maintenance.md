@@ -8,8 +8,9 @@ column, excluding `header-complete.png`, and map them to tiles 1 through
 Maintenance completed on 10 November 2026:
 
 - Uploaded and verified all twelve missing tiles in each brand's server.
-- Compared the full pack's static and animated emoji names against both
-  servers and preserved existing expressions and their IDs.
+- Refreshed all 22 static and animated pack emoji in each server from the
+  supplied full-pack ZIP. Created each replacement before removing the old
+  pack emoji, and preserved unrelated expressions.
 - Updated the private emoji mapping after each successful upload.
 - Repaired the existing latest Chatter release post and read it back.
 - Repeated the repair to verify that it creates no duplicate expressions
@@ -18,8 +19,8 @@ Maintenance completed on 10 November 2026:
   uploads must use PNG, APNG or Lottie JSON.
 
 Both servers have five stickers and no remaining sticker slots. Seven
-additional PNG stickers from each brand's pack remain unuploaded. Existing
-stickers were preserved.
+additional PNG stickers from each brand's pack remain unuploaded. The five occupied sticker slots in each server now use the new PNG artwork;
+the selection of stickers was preserved.
 
 Credentials, server and channel identifiers, emoji mappings, release
 content, and maintenance helpers remain in the ignored private directory.
