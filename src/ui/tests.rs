@@ -3674,6 +3674,7 @@ fn an_unread_dm_shows_on_the_rail_above_the_servers_and_opens() {
         window
             .get_servers()
             .iter()
+            .filter(|row| !row.id.starts_with("rail:"))
             .map(|row| (row.id.to_string(), row.dm, row.divider))
             .collect()
     };

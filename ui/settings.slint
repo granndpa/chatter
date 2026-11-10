@@ -1544,99 +1544,120 @@ export component DiscordSettings inherits VerticalLayout {
     callback show-idle-toggled(bool);
     /// Join one of Offset Studio's servers, by invite code.
     callback join-community(string);
+    /// Which page: 0 Chatter, 1 Message Logger, 2 Tweaks, 3 Overlay.
+    in property <int> part;
     spacing: 16px;
-    SettingsTitle { text: "Chatter"; }
-    for server in [
-        { name: "Chatter Discord", about: "Releases, help and bug reports for Chatter.", code: "mZV9es9jKu" },
-        { name: "Offset Studio", about: "The studio behind Chatter: news and new projects.", code: "R656f85ess" },
-    ]: HorizontalLayout {
-        spacing: 12px;
-        VerticalLayout {
-            alignment: center; horizontal-stretch: 1;
-            Text { text: server.name; color: Theme.text; font-size: 15px; font-weight: 600; }
-            Text { text: server.about; color: Theme.muted; font-size: 13px; wrap: word-wrap; }
+    if root.part == 0: VerticalLayout {
+        spacing: 20px;
+        SettingsTitle { text: "Chatter"; }
+        Text { text: "Updates and our Discord servers."; color: Theme.muted; font-size: 14px; wrap: word-wrap; }
+        SettingsSwitch {
+            text: "Update automatically";
+            description: "When Chatter starts and a newer version is on GitHub, it updates and restarts. Off, an Update button shows at the top instead.";
+            checked: root.auto-update;
+            toggled(on) => { root.auto-update-toggled(on); }
         }
-        VerticalLayout { alignment: center; ActionButton { text: "Join"; primary: true; clicked => { root.join-community(server.code); } } }
-    }
-    SettingsTitle { text: "Discord Tweaks"; }
-    SettingsSwitch {
-        text: "Keep local message history";
-        description: "Keeps observed deletions and up to 10 text versions for 200 edited messages per loaded channel, in memory for this session. Older channels are evicted. Turning this off clears retained history.";
-        checked: root.retain-message-history;
-        toggled(enabled) => { root.message-history-action(enabled, false); }
-    }
-    ActionButton { text: "Clear local message history"; clicked => { root.message-history-action(root.retain-message-history, true); } }
-    if root.matrix-build: HorizontalLayout {
-        spacing: 12px;
-        Label { text: "Unlinking signs Chatter out of Discord on this computer."; vertical-alignment: center; horizontal-stretch: 1; }
-        ActionButton {
-            text: "Unlink Discord"; icon: @image-url("icons/log-out.svg"); danger: true;
-            clicked => { root.unlink-discord(); }
+        SettingsHeading { text: "Join our Discords"; }
+        for server in [
+            { name: "Chatter Discord", about: "Releases, help and bug reports for Chatter.", code: "mZV9es9jKu" },
+            { name: "Offset Studio", about: "The studio behind Chatter: news and new projects.", code: "R656f85ess" },
+        ]: HorizontalLayout {
+            spacing: 12px;
+            VerticalLayout {
+                alignment: center; horizontal-stretch: 1;
+                Text { text: server.name; color: Theme.text; font-size: 15px; font-weight: 600; }
+                Text { text: server.about; color: Theme.muted; font-size: 13px; wrap: word-wrap; }
+            }
+            VerticalLayout { alignment: center; ActionButton { text: "Join"; primary: true; clicked => { root.join-community(server.code); } } }
+        }
+        if root.matrix-build: HorizontalLayout {
+            spacing: 12px;
+            Label { text: "Unlinking signs Chatter out of Discord on this computer."; vertical-alignment: center; horizontal-stretch: 1; }
+            ActionButton {
+                text: "Unlink Discord"; icon: @image-url("icons/log-out.svg"); danger: true;
+                clicked => { root.unlink-discord(); }
+            }
         }
     }
-    SettingsSwitch {
-        text: "Show channels you can't access";
-        description: "They appear locked. Server admins hid them on purpose.";
-        checked: root.show-hidden-channels;
-        toggled(shown) => { root.show-hidden-channels-toggled(shown); }
-    }
-    SettingsSwitch {
-        text: "Mark messages read on Discord";
-        description: "Channels you read in Chatter show as read in the Discord apps too.";
-        checked: root.sync-discord-reads;
-        toggled(sync) => { root.sync-discord-reads-toggled(sync); }
-    }
-    SettingsSwitch {
-        text: "Fake deafen";
-        description: "Others in voice see you muted and deafened, but you still hear everyone. Switching it in a call shows straight away.";
-        checked: root.fake-deafen;
-        toggled(fake) => { root.fake-deafen-toggled(fake); }
-    }
-    SettingsSwitch {
-        text: "Enable Chat Tabs";
-        description: "Each conversation you open gets a tab above it, like a browser. Click to switch, middle-click or x to close, scroll over a tab to move it. Tabs come back after a restart.";
-        checked: root.chat-tabs;
-        toggled(on) => { root.chat-tabs-toggled(on); }
-    }
-    SettingsSwitch {
-        text: "Voice overlay";
-        description: "While you're in a call and Chatter isn't in front, a small list of who's in it shows on top of your screen: who's speaking, and who's muted or deafened. Clicks go through it. Works over borderless and windowed games; exclusive fullscreen games draw over it.";
-        checked: root.overlay-enabled;
-        toggled(on) => { root.overlay-enabled = on; root.overlay-changed(); }
-    }
-    if root.overlay-enabled: VerticalLayout {
-        spacing: 8px;
-        Choices {
-            label: "Overlay position"; options: ["Top left", "Top right", "Bottom left", "Bottom right"];
-            current: root.overlay-corner;
-            chosen(index) => { root.overlay-corner = index; root.overlay-changed(); }
+    if root.part == 1: VerticalLayout {
+        spacing: 20px;
+        SettingsTitle { text: "Message Logger"; }
+        Text { text: "Keeps deleted and edited messages you saw, on this computer only. Right-click one to remove what was kept."; color: Theme.muted; font-size: 14px; wrap: word-wrap; }
+        SettingsSwitch {
+            text: "Keep local message history";
+            description: "Keeps observed deletions and up to 10 text versions for 200 edited messages per loaded channel, in memory for this session. Older channels are evicted. Turning this off clears retained history.";
+            checked: root.retain-message-history;
+            toggled(enabled) => { root.message-history-action(enabled, false); }
         }
-        Choices {
-            label: "Overlay size"; options: ["Small", "Normal", "Large"];
-            current: root.overlay-scale;
-            chosen(index) => { root.overlay-scale = index; root.overlay-changed(); }
-        }
-        Choices {
-            label: "Overlay background"; options: ["Dark", "Normal", "Light"];
-            current: root.overlay-opacity;
-            chosen(index) => { root.overlay-opacity = index; root.overlay-changed(); }
+        ActionButton { text: "Clear local message history"; clicked => { root.message-history-action(root.retain-message-history, true); } }
+    }
+    if root.part == 2: VerticalLayout {
+        spacing: 20px;
+        SettingsTitle { text: "Tweaks"; }
+        Text { text: "Small changes to how Discord behaves in Chatter."; color: Theme.muted; font-size: 14px; wrap: word-wrap; }
+        SettingsSwitch {
+            text: "Show channels you can't access";
+            description: "They appear locked. Server admins hid them on purpose.";
+            checked: root.show-hidden-channels;
+            toggled(shown) => { root.show-hidden-channels-toggled(shown); }
         }
         SettingsSwitch {
-            text: "Show avatars in the overlay";
-            checked: root.overlay-avatars;
-            toggled(on) => { root.overlay-avatars = on; root.overlay-changed(); }
+            text: "Mark messages read on Discord";
+            description: "Channels you read in Chatter show as read in the Discord apps too.";
+            checked: root.sync-discord-reads;
+            toggled(sync) => { root.sync-discord-reads-toggled(sync); }
+        }
+        SettingsSwitch {
+            text: "Fake deafen";
+            description: "Others in voice see you muted and deafened, but you still hear everyone. Switching it in a call shows straight away.";
+            checked: root.fake-deafen;
+            toggled(fake) => { root.fake-deafen-toggled(fake); }
+        }
+        SettingsSwitch {
+            text: "Enable Chat Tabs";
+            description: "Each conversation you open gets a tab above it, like a browser. Click to switch, middle-click or x to close, scroll over a tab to move it. Tabs come back after a restart.";
+            checked: root.chat-tabs;
+            toggled(on) => { root.chat-tabs-toggled(on); }
+        }
+        SettingsSwitch {
+            text: "Show me as idle when I'm away";
+            description: "After 10 minutes without using Chatter, as in Discord. Either way, your phone gets notifications while you're away.";
+            checked: root.show-idle;
+            toggled(shown) => { root.show-idle-toggled(shown); }
         }
     }
-    SettingsSwitch {
-        text: "Update automatically";
-        description: "When Chatter starts and a newer version is on GitHub, it updates and restarts. Off, an Update button shows at the top instead.";
-        checked: root.auto-update;
-        toggled(on) => { root.auto-update-toggled(on); }
-    }
-    SettingsSwitch {
-        text: "Show me as idle when I'm away";
-        description: "After 10 minutes without using Chatter, as in Discord. Either way, your phone gets notifications while you're away.";
-        checked: root.show-idle;
-        toggled(shown) => { root.show-idle-toggled(shown); }
+    if root.part == 3: VerticalLayout {
+        spacing: 20px;
+        SettingsTitle { text: "Overlay"; }
+        Text { text: "A small list of who's in your call, on top of your games."; color: Theme.muted; font-size: 14px; wrap: word-wrap; }
+        SettingsSwitch {
+            text: "Voice overlay";
+            description: "While you're in a call and Chatter isn't in front, a small list of who's in it shows on top of your screen: who's speaking, and who's muted or deafened. Clicks go through it. Works over borderless and windowed games; exclusive fullscreen games draw over it.";
+            checked: root.overlay-enabled;
+            toggled(on) => { root.overlay-enabled = on; root.overlay-changed(); }
+        }
+        if root.overlay-enabled: VerticalLayout {
+            spacing: 8px;
+            Choices {
+                label: "Overlay position"; options: ["Top left", "Top right", "Bottom left", "Bottom right"];
+                current: root.overlay-corner;
+                chosen(index) => { root.overlay-corner = index; root.overlay-changed(); }
+            }
+            Choices {
+                label: "Overlay size"; options: ["Small", "Normal", "Large"];
+                current: root.overlay-scale;
+                chosen(index) => { root.overlay-scale = index; root.overlay-changed(); }
+            }
+            Choices {
+                label: "Overlay background"; options: ["Dark", "Normal", "Light"];
+                current: root.overlay-opacity;
+                chosen(index) => { root.overlay-opacity = index; root.overlay-changed(); }
+            }
+            SettingsSwitch {
+                text: "Show avatars in the overlay";
+                checked: root.overlay-avatars;
+                toggled(on) => { root.overlay-avatars = on; root.overlay-changed(); }
+            }
+        }
     }
 }

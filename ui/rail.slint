@@ -906,10 +906,14 @@ export component ServerRail inherits Rectangle {
         }
         // A list view makes only the servers in sight, which
         // matters on accounts in many servers. Unread DMs scroll with them.
+        // Create and Discover scroll with the servers, at the end of the list, as
+        // in Discord.
         server-list := ListView {
             vertical-stretch: 1;
             for server[index] in root.servers: entry := Rectangle {
-                property <bool> over: root.dragging != "" && server.discord && !server.dm && !server.divider && root.drag-y >= self.absolute-position.y && root.drag-y < self.absolute-position.y + self.height;
+                // Create and Discover, the last rows, as Discord ends its list.
+                property <bool> action: server.id == "rail:create" || server.id == "rail:discover";
+                property <bool> over: root.dragging != "" && !self.action && server.discord && !server.dm && !server.divider && root.drag-y >= self.absolute-position.y && root.drag-y < self.absolute-position.y + self.height;
                 property <int> drop-mode: root.dragging-folder ? (root.drag-y < self.absolute-position.y + self.height / 2 ? 0 : 1)
                     : root.drag-y < self.absolute-position.y + self.height * 0.25 ? 0 : root.drag-y > self.absolute-position.y + self.height * 0.75 ? 1 : 2;
                 function landed() { if self.over { root.landing = server.id; root.landing-mode = self.drop-mode; } }
@@ -960,7 +964,14 @@ export component ServerRail inherits Rectangle {
                     x: (72px + ClientStyle.rail-tile) / 2 - 14px; y: ClientStyle.rail-tile - 14px;
                     presence: server.presence; ring: Theme.rail;
                 }
-                if !server.folder && !server.dm && !server.divider: RailItem {
+                if entry.action: RailItem {
+                    y: 0px;
+                    icon: server.id == "rail:create" ? @image-url("icons/circle-plus.svg") : @image-url("icons/community.svg");
+                    icon-color: Theme.accent; icon-size: 24px;
+                    label: server.id == "rail:create" ? "Create a server" : "Discover servers"; tip: self.label;
+                    clicked => { if server.id == "rail:create" { root.join-server(); } else { root.discover(); } }
+                }
+                if !entry.action && !server.folder && !server.dm && !server.divider: RailItem {
                     y: 0px;
                     initial: server.initial; picture: server.picture; picture-url: server.picture-url;
                     label: server.name + (server.discord && root.matrix-build ? ", Discord" : "") + (server.unavailable ? ", unavailable" : "")
@@ -969,7 +980,8 @@ export component ServerRail inherits Rectangle {
                     tip: server.unavailable ? server.name + " (unavailable in a Discord outage)" : server.discord && root.matrix-build ? server.name + " (Discord)" : server.name;
                     selected: server.selected; unread: server.unread; badge: server.badge; discord: server.discord;
                     call: server.call;
-                    opacity: server.unavailable ? 0.5 : 1;
+                    opacity: server.unavailable ? 0.5 : root.dragging == server.id ? 0.4 : 1;
+                    animate opacity { duration: 120ms; }
                     draggable: root.can-arrange && server.discord && !server.pinned;
                     begin-drag(y) => { root.start(server.id, false, y); }
                     dragged(y) => { root.drag-y = y; }
@@ -983,18 +995,9 @@ export component ServerRail inherits Rectangle {
                     height: entry.drop-mode == 2 ? parent.height : 3px;
                     background: entry.drop-mode == 2 ? Theme.accent.with-alpha(0.2) : Theme.accent;
                     border-width: entry.drop-mode == 2 ? 1px : 0px; border-color: Theme.accent; border-radius: 6px;
+                    animate y, height, background { duration: 120ms; easing: ease-out; }
                 }
             }
-        }
-        if root.can-join: RailItem {
-            icon: @image-url("icons/circle-plus.svg"); icon-color: Theme.accent; icon-size: 24px;
-            label: "Create a server"; tip: "Create a server";
-            clicked => { root.join-server(); }
-        }
-        if root.can-join: RailItem {
-            icon: @image-url("icons/community.svg"); icon-color: Theme.accent; icon-size: 22px;
-            label: "Discover servers"; tip: "Discover servers";
-            clicked => { root.discover(); }
         }
     }
 }

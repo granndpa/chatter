@@ -3856,6 +3856,8 @@ pub enum Event {
     ServerCreated { result: Result<String, String> },
     /// Whether [`DiscordCommand::JoinDiscoverable`] joined.
     DiscoverJoined { result: Result<(), String> },
+    /// Joining from Discover waits for this captcha page to be solved.
+    DiscoverCaptcha { page: String },
     /// What [`DiscordCommand::ListCommands`] found.
     CommandsListed {
         room: String,

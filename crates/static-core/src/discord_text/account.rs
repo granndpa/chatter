@@ -1190,7 +1190,13 @@ pub(super) fn command(
             Ok(discord) => {
                 let (discord, events) = (discord.clone(), events.clone());
                 tokio::spawn(async move {
-                    let result = discord.join_discoverable(&guild).await.map_err(|error| {
+                    let captchas = events.clone();
+                    let result = discord
+                        .join_discoverable(&guild, |page| {
+                            let _ = captchas.send(Event::DiscoverCaptcha { page: page.to_owned() });
+                        })
+                        .await
+                        .map_err(|error| {
                         tracing::warn!(error = format!("{error:#}"), "could not join from Discover");
                         format!("Couldn't join: {error}")
                     });

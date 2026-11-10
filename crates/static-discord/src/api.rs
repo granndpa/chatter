@@ -2148,13 +2148,23 @@ impl Api {
 
     /// Joins a server Discover lists, from this gateway `session`, as
     /// Discord's client does from Discover. GUILD_CREATE follows.
-    pub async fn join_guild(&self, guild: &str, session: &str) -> Result<Value> {
+    pub async fn join_guild(
+        &self,
+        guild: &str,
+        session: &str,
+        solved: Option<(&Captcha, &str)>,
+    ) -> Result<Value> {
         let path = format!(
             "/guilds/{guild}/members/@me?lurker=false&session_id={}&location=Guild%20Discovery",
             encode(session)
         );
-        self.json(with_json(self.request(Method::PUT, &path), &json!({})))
-            .await
+        let mut request = with_json(self.request(Method::PUT, &path), &json!({}));
+        if let Some((captcha, solution)) = solved {
+            for (name, value) in captcha.headers(solution) {
+                request = request.header(name, value);
+            }
+        }
+        self.json(request).await
     }
 
     /// Any JSON Discord gives at `path`.
@@ -2568,7 +2578,7 @@ fn refusal(status: StatusCode, body: &Value) -> anyhow::Error {
                 anyhow!("Discord asks Static to slow down. Try again in {wait} s.")
             }
             StatusCode::BAD_REQUEST if body["captcha_key"].is_array() => {
-                let message = "Discord asked for a captcha. Do this in the Discord app for now.";
+                let message = "Discord asked for a captcha.";
                 // The captcha, for a caller that can show it.
                 return match Captcha::from_body(body) {
                     Some(captcha) => anyhow::Error::new(captcha).context(message),

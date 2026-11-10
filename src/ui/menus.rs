@@ -168,7 +168,7 @@ pub(super) fn menu(adapter: &Adapter, id: &str, person: bool) -> Menu {
         let disabled = !adapter.app.state.discord_online || adapter.app.state.server_arranging;
         return (
             [
-                ("folder-rename", "Rename Folder"),
+                ("folder-rename", "Edit Folder"),
                 ("folder-ungroup", "Ungroup Servers"),
             ]
             .into_iter()
@@ -993,16 +993,17 @@ pub(super) fn choose(
     if matches!(id, "folder-create" | "folder-rename") {
         window.set_folder_edit_target(target.clone().into());
         window.set_folder_edit_mode(if id == "folder-create" { 3 } else { 4 });
-        let name = adapter
+        let folder = adapter
             .app
             .state
             .servers
             .iter()
             .filter_map(|s| s.folder.as_ref())
-            .find(|f| f.id == target)
-            .and_then(|f| f.name.clone())
-            .unwrap_or_else(|| "New Folder".into());
+            .find(|f| f.id == target);
+        let name = folder.and_then(|f| f.name.clone()).unwrap_or_else(|| "New Folder".into());
+        let color = folder.and_then(|f| f.color).map(|c| format!("{c:06x}")).unwrap_or_default();
         window.set_folder_edit_name(name.into());
+        window.set_folder_edit_color(color.into());
         window.invoke_show_folder_editor();
         return;
     }

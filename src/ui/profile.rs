@@ -283,7 +283,7 @@ pub(super) fn profile_data(
         initial: initial(&profile.name),
         tint: tint(&profile.name),
         picture: avatar.clone(),
-        handle: profile.handle.as_str().into(),
+        handle: super::streamer::handle(&profile.handle),
         pronouns: profile.pronouns.as_str().into(),
         banner: banner.clone(),
         accent: role_color(accent),

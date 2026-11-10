@@ -35,6 +35,11 @@ pub(super) fn hides_info() -> bool {
     ACTIVE.load(Relaxed) && HIDE_INFO.load(Relaxed)
 }
 
+/// A username or handle, or nothing while Streamer Mode hides them.
+pub(super) fn handle(text: &str) -> slint::SharedString {
+    if hides_info() { slint::SharedString::default() } else { text.into() }
+}
+
 /// Whether what Streamer Mode hides changed since last asked.
 pub(super) fn take_changed() -> bool {
     CHANGED.swap(false, Relaxed)
@@ -69,8 +74,8 @@ pub(super) fn mask_invites(text: &str) -> std::borrow::Cow<'_, str> {
 /// Shows Streamer Mode as the window's settings and OBS say, and hides the
 /// window from capture while it should be.
 pub(super) fn apply(window: &StaticWindow) {
-    let active = window.get_streamer_mode()
-        || (window.get_streamer_auto() && BROADCASTING.load(Relaxed));
+    // On only while something records or streams the screen.
+    let active = window.get_streamer_mode() && BROADCASTING.load(Relaxed);
     ACTIVE.store(active, Relaxed);
     SOUNDS_OFF.store(window.get_streamer_sounds_off(), Relaxed);
     NOTIFICATIONS_OFF.store(window.get_streamer_notifications_off(), Relaxed);
@@ -93,7 +98,7 @@ pub(super) fn watch(window: &StaticWindow) {
         let Some(window) = weak.upgrade() else {
             return;
         };
-        BROADCASTING.store(window.get_streamer_auto() && broadcaster_running(), Relaxed);
+        BROADCASTING.store(window.get_streamer_mode() && broadcaster_running(), Relaxed);
         // The window may only now exist on screen, so its capture is set again.
         apply(&window);
     };
@@ -115,7 +120,11 @@ fn broadcaster_running() -> bool {
             TH32CS_SNAPPROCESS,
         },
     };
-    const NAMES: [&str; 4] = ["obs64.exe", "obs32.exe", "obs.exe", "xsplit.core.exe"];
+    const NAMES: [&str; 12] = [
+        "obs64.exe", "obs32.exe", "obs.exe", "xsplit.core.exe", "streamlabs obs.exe",
+        "streamlabs desktop.exe", "prismlivestudio.exe", "twitchstudio.exe", "medal.exe",
+        "bandicam.exe", "action_x64.exe", "meld studio.exe",
+    ];
     // SAFETY: the snapshot is closed before returning, and each entry's size
     // is set before the calls that fill it.
     unsafe {

@@ -57,6 +57,12 @@ pub fn edit(
     seed: u64,
 ) -> Result<Vec<Folder>> {
     let mut changed = entries.to_vec();
+    // Creating or editing a folder may carry its colour after the name, as
+    // `name\u{1f}rrggbb`; an empty colour is Discord's default.
+    let (name, color) = match name.split_once('\u{1f}') {
+        Some((name, color)) => (name, Some(u32::from_str_radix(color.trim_start_matches('#'), 16).ok())),
+        None => (name, None),
+    };
     let Some((from, inside)) = locate(&changed, source) else {
         bail!("That server or folder is no longer in the list.");
     };
@@ -65,6 +71,9 @@ pub fn edit(
             bail!("Choose a folder to rename.");
         }
         changed[from].name = Some(folder_name(name)?);
+        if let Some(color) = color {
+            changed[from].color = color;
+        }
     } else if mode == 5 {
         if inside.is_some() {
             bail!("Choose a folder to ungroup.");
@@ -87,8 +96,8 @@ pub fn edit(
         let folder = Folder {
             id: folder_id(&changed, seed),
             name: Some(folder_name(name)?),
+            color: color.flatten(),
             servers: vec![server],
-            ..Folder::default()
         };
         changed.insert(from + 1, folder);
     } else {
@@ -159,6 +168,17 @@ mod tests {
             ..Folder::default()
         }
     }
+    #[test]
+    fn edits_a_folders_name_and_colour() {
+        let mut folder = single("1");
+        folder.id = "5".into();
+        let edited = edit(&[folder], "folder:5", "", 4, "Games\u{1f}#5865f2", 1).unwrap();
+        assert_eq!(edited[0].name.as_deref(), Some("Games"));
+        assert_eq!(edited[0].color, Some(0x5865f2));
+        let reset = edit(&edited, "folder:5", "", 4, "Games\u{1f}", 1).unwrap();
+        assert_eq!(reset[0].color, None);
+    }
+
     #[test]
     fn moves_servers_into_out_of_and_between_folders() {
         let initial = vec![single("1"), single("2"), single("3")];

@@ -3798,6 +3798,12 @@ impl Application {
             Event::ServerJoined { code, result } => return self.server_joined(code, result),
             Event::ServerCreated { result } => return self.server_created(result),
             Event::DiscoverJoined { result } => return self.discover_joined(result),
+            Event::DiscoverCaptcha { page } => {
+                if let Some(view) = &mut self.state.discover {
+                    view.error = Some("Solve the captcha in your browser. Chatter joins once it's done.".into());
+                }
+                return vec![Effect::OpenPage(page)];
+            }
             Event::CommandsListed { room, result } => {
                 match result {
                     Ok(commands) => {

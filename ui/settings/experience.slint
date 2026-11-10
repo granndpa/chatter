@@ -112,19 +112,15 @@ export component StreamerModeSettings inherits VerticalLayout {
     SettingsHeading { text: "Streamer Mode"; }
     SettingsSwitch {
         text: "Enable Streamer Mode";
-        description: root.active && !root.streamer-mode ? "On now, because OBS or XSplit is running." : "Hides your personal info so people watching your stream can't see it.";
+        description: root.active ? "On now: a recording or streaming app is running." : "Turns on by itself while OBS, Streamlabs, XSplit, Medal or another recorder is running, and hides your personal info from the stream.";
         checked <=> root.streamer-mode;
         toggled => { root.preferences-changed(); }
     }
-    SettingsSwitch {
-        text: "Automatically enable Streamer Mode if OBS or XSplit are running";
-        checked <=> root.streamer-auto;
-        toggled => { root.preferences-changed(); }
-    }
+
     Text { text: "If Streamer Mode is on..."; color: Theme.text; font-size: 15px; font-weight: 600; }
     SettingsSwitch {
         text: "Hide my personal information";
-        description: "Your email, phone number and connected accounts.";
+        description: "Usernames, your email, phone number, connected accounts and invite links.";
         checked <=> root.hide-info;
         toggled => { root.preferences-changed(); }
     }

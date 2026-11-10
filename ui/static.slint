@@ -333,6 +333,8 @@ export component StaticWindow inherits Window {
     in-out property <string> folder-edit-target;
     in-out property <string> folder-edit-name;
     in-out property <int> folder-edit-mode;
+    // The folder's colour as `rrggbb`, empty for the default.
+    in-out property <string> folder-edit-color;
     callback arrange-servers(string, string, int, string);
     callback show-folder-editor;
     show-folder-editor => { folder-editor.show(); }
@@ -2427,11 +2429,28 @@ export component StaticWindow inherits Window {
             background: Theme.panel; border-radius: 8px; border-width: 1px; border-color: Theme.line;
             folder-form := VerticalLayout {
                 padding: 16px; spacing: 12px;
-                Text { text: root.folder-edit-mode == 3 ? "Create Folder" : "Rename Folder"; color: Theme.text; font-size: 20px; font-weight: 700; }
+                Text { text: root.folder-edit-mode == 3 ? "Create Folder" : "Folder Settings"; color: Theme.text; font-size: 20px; font-weight: 700; }
+                Text { text: "FOLDER NAME"; color: Theme.muted; font-size: 12px; font-weight: 700; }
                 TextField { text <=> root.folder-edit-name; label: "Folder name"; placeholder: "Folder name"; }
+                Text { text: "FOLDER COLOR"; color: Theme.muted; font-size: 12px; font-weight: 700; }
+                HorizontalLayout {
+                    spacing: 6px; alignment: start;
+                    for swatch in [
+                        { hex: "", c: #5865f2 }, { hex: "1abc9c", c: #1abc9c }, { hex: "2ecc71", c: #2ecc71 },
+                        { hex: "3498db", c: #3498db }, { hex: "9b59b6", c: #9b59b6 }, { hex: "e91e63", c: #e91e63 },
+                        { hex: "f1c40f", c: #f1c40f }, { hex: "e67e22", c: #e67e22 }, { hex: "e74c3c", c: #e74c3c },
+                        { hex: "95a5a6", c: #95a5a6 }, { hex: "607d8b", c: #607d8b },
+                    ]: Rectangle {
+                        width: 26px; height: 26px; border-radius: 6px; background: swatch.c;
+                        border-width: root.folder-edit-color == swatch.hex ? 2px : 0px; border-color: Theme.text;
+                        if root.folder-edit-color == swatch.hex: Image { source: @image-url("icons/check.svg"); width: 14px; colorize: #ffffff; }
+                        TouchArea { mouse-cursor: MouseCursor.pointer; clicked => { root.folder-edit-color = swatch.hex; } }
+                    }
+                }
+                TextField { text <=> root.folder-edit-color; label: "Custom colour"; placeholder: "Custom colour, like ff8800"; }
                 HorizontalLayout {
                     spacing: 8px;
-                    ActionButton { text: "Save"; primary: true; enabled: root.may-arrange-servers && root.folder-edit-name != ""; clicked => { root.arrange-servers(root.folder-edit-target, "", root.folder-edit-mode, root.folder-edit-name); folder-editor.close(); } }
+                    ActionButton { text: "Save"; primary: true; enabled: root.may-arrange-servers && root.folder-edit-name != ""; clicked => { root.arrange-servers(root.folder-edit-target, "", root.folder-edit-mode, root.folder-edit-name + "\u{1f}" + root.folder-edit-color); folder-editor.close(); } }
                     ActionButton { text: "Cancel"; clicked => { folder-editor.close(); } }
                 }
             }
@@ -4173,7 +4192,8 @@ export component StaticWindow inherits Window {
             link-discord-token(token) => { root.link-discord-token(token); }
             open-discord-captcha => { root.open-discord-captcha(); }
         }
-        if root.settings-section == 4 && root.discord-linked: DiscordSettings {
+        if (root.settings-section == 4 || root.settings-section == 14 || root.settings-section == 15 || root.settings-section == 16) && root.discord-linked: DiscordSettings {
+            part: root.settings-section == 14 ? 1 : root.settings-section == 15 ? 2 : root.settings-section == 16 ? 3 : 0;
             matrix-build: root.matrix-build;
             show-hidden-channels: root.show-hidden-channels; sync-discord-reads: root.sync-discord-reads;
             show-idle: root.show-idle;
@@ -4902,7 +4922,7 @@ export component StaticWindow inherits Window {
         width: streamer-text.preferred-width + 24px; height: 24px; border-radius: 12px;
         background: streamer-touch.has-hover && root.streamer-mode ? #6d4ad8 : #5b3cc4;
         streamer-text := Text {
-            text: root.streamer-mode ? "Streamer Mode is on. Click to turn off" : "Streamer Mode is on (OBS or XSplit is running)";
+            text: "Streamer Mode is on. Click to turn it off";
             color: #ffffff; font-size: 12px; font-weight: 700;
         }
         streamer-touch := TouchArea {

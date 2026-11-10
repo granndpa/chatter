@@ -16,6 +16,10 @@ export component SettingsNavigation inherits Rectangle {
     callback chose(int);
     callback edit-profile;
     property <string> query;
+    // Whether the query is in any of these words.
+    function matches-any(words: string) -> bool {
+        return root.query != "" && words.to-lowercase().replace-all(root.query.to-lowercase(), "") != words.to-lowercase();
+    }
     function matches(text: string) -> bool {
         return root.query == "" || text.to-lowercase().replace-all(root.query.to-lowercase(), "") != text.to-lowercase();
     }
@@ -58,30 +62,33 @@ export component SettingsNavigation inherits Rectangle {
                 padding-left: 16px; padding-right: 16px; padding-bottom: 16px; spacing: 0px; alignment: start;
                 for entry in [
                     { heading: true, text: "Account", id: -1 },
-                    { text: "Account", icon: @image-url("../icons/user.svg"), id: 0 },
+                    { text: "Account", icon: @image-url("../icons/user.svg"), id: 0, keywords: "email phone password username two factor" },
                     { text: "Data & Privacy", icon: @image-url("../icons/shield.svg"), id: 10 },
                     { text: "Messaging Permissions", icon: @image-url("../icons/message-square-text.svg"), id: 11 },
-                    { text: "Notifications", icon: @image-url("../icons/bell.svg"), id: 3 },
+                    { text: "Notifications", icon: @image-url("../icons/bell.svg"), id: 3, keywords: "taskbar flash badge desktop" },
                     { heading: true, text: "Experience", id: -1 },
-                    { text: "Voice & Video", icon: @image-url("../icons/mic.svg"), id: 1 },
+                    { text: "Voice & Video", icon: @image-url("../icons/mic.svg"), id: 1, keywords: "microphone speaker camera push to talk noise input output volume" },
                     { text: "Sounds", icon: @image-url("../icons/volume-2.svg"), id: 5 },
-                    { text: "Appearance", icon: @image-url("../icons/palette.svg"), id: 7 },
-                    { text: "Messages", icon: @image-url("../icons/message-circle.svg"), id: 2 },
+                    { text: "Appearance", icon: @image-url("../icons/palette.svg"), id: 7, keywords: "theme dark light colour color streamer mode chat box font" },
+                    { text: "Messages", icon: @image-url("../icons/message-circle.svg"), id: 2, keywords: "emoji embeds link previews timestamps" },
                     { text: "Accessibility", icon: @image-url("../icons/eye.svg"), id: 12 },
                     { text: "System", icon: @image-url("../icons/settings.svg"), id: 6 },
                     { text: "Language & Time", icon: @image-url("../icons/clock.svg"), id: 13 },
                     { heading: true, text: "Games & Apps", id: -1 },
                     { text: "Registered Games", icon: @image-url("../icons/gamepad.svg"), id: 8 },
                     { text: "Connections", icon: @image-url("../icons/link.svg"), id: 9 },
-                    { heading: true, text: "Addons", id: -1 },
-                    { text: "Discord Tweaks", icon: @image-url("../icons/discord.svg"), id: 4 },
+                    { heading: true, text: "Chatter", id: -1 },
+                    { text: "Chatter", icon: @image-url("../icons/chatter-mono.svg"), id: 4, keywords: "update discord join offset studio unlink" },
+                    { text: "Message Logger", icon: @image-url("../icons/history.svg"), id: 14, keywords: "deleted edited messages history logger" },
+                    { text: "Tweaks", icon: @image-url("../icons/settings.svg"), id: 15, keywords: "hidden channels read fake deafen chat tabs idle" },
+                    { text: "Overlay", icon: @image-url("../icons/gamepad.svg"), id: 16, keywords: "voice overlay game avatars" },
                 ]: VerticalLayout {
                     if entry.heading && root.query == "" && (root.with-discord || entry.text != "Games & Apps"): VerticalLayout {
                         padding-top: entry.text == "Account" ? 0px : 16px;
                         height: entry.text == "Account" ? 24px : 40px;
                         Text { x: 8px; text: entry.text; color: Theme.muted; font-size: 12px; vertical-alignment: center; }
                     }
-                    if !entry.heading && (root.matches(entry.text) || (entry.id == 9 && root.matches("Connected Apps")) || (entry.id == 4 && (root.matches("Message Logger") || root.matches("Discord"))) || (entry.id == 7 && (root.matches("Streamer Mode") || root.matches("Chat Box")))) && (root.with-discord || (entry.id != 4 && entry.id != 8 && entry.id != 9 && entry.id != 10 && entry.id != 11)): ChannelRow {
+                    if !entry.heading && (root.matches(entry.text) || (entry.keywords != "" && root.matches-any(entry.keywords)) || (entry.id == 9 && root.matches("Connected Apps")) || (entry.id == 4 && (root.matches("Message Logger") || root.matches("Discord"))) || (entry.id == 7 && (root.matches("Streamer Mode") || root.matches("Chat Box")))) && (root.with-discord || (entry.id != 4 && entry.id != 14 && entry.id != 15 && entry.id != 16 && entry.id != 8 && entry.id != 9 && entry.id != 10 && entry.id != 11)): ChannelRow {
                         height: 40px; text: entry.text; icon: entry.icon;
                         selected: root.selected == entry.id;
                         clicked => { root.chose(entry.id); }

@@ -1319,7 +1319,7 @@ impl Adapter {
             .map(|person| ReactorRow {
                 id: person.id.as_str().into(),
                 name: person.name.as_str().into(),
-                username: person.username.as_str().into(),
+                username: super::streamer::handle(&person.username),
                 avatar: person.avatar.as_str().into(),
                 initial: initial(&person.name),
                 tint: tint(&person.name),
@@ -3204,7 +3204,7 @@ impl Adapter {
                     detail: match candidate.mention.as_str() {
                         "@everyone" => "Everyone in this channel".into(),
                         "@here" => "Everyone online here".into(),
-                        _ => candidate.username.clone().unwrap_or_default().into(),
+                        _ => super::streamer::handle(candidate.username.as_deref().unwrap_or_default()),
                     },
                     name: candidate.name.as_str().into(),
                     ..Default::default()
@@ -4258,10 +4258,31 @@ pub(super) fn unread_dm_rows(state: &AppState) -> Vec<ServerRow> {
         .collect()
 }
 
+/// The ids of the rows after the servers: Create and Discover, which scroll
+/// with them as in Discord.
+pub(super) const RAIL_CREATE: &str = "rail:create";
+pub(super) const RAIL_DISCOVER: &str = "rail:discover";
+
+/// The whole rail, then Create and Discover when Discord is there to join.
+fn rail(
+    state: &AppState,
+    rooms_by_id: &HashMap<&str, &static_core::chat::ChatRoom>,
+    open_folders: &std::collections::BTreeSet<String>,
+    pins: &static_core::tweaks::pins::Pins,
+) -> Vec<ServerRow> {
+    let mut rows = rail_list(state, rooms_by_id, open_folders, pins);
+    if state.discord_online || state.preview {
+        for id in [RAIL_CREATE, RAIL_DISCOVER] {
+            rows.push(ServerRow { id: id.into(), ..Default::default() });
+        }
+    }
+    rows
+}
+
 /// The whole rail: unread DMs, a line, then the servers and folders. Unread
 /// DMs come and go above the servers, so the model keeps rows by id rather
 /// than all moving down one.
-fn rail(
+fn rail_list(
     state: &AppState,
     rooms_by_id: &HashMap<&str, &static_core::chat::ChatRoom>,
     open_folders: &std::collections::BTreeSet<String>,

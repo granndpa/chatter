@@ -2366,7 +2366,7 @@ impl Discord {
     }
 
     /// Joins a server Discover lists, by its id.
-    pub async fn join_discoverable(&self, guild: &str) -> Result<()> {
+    pub async fn join_discoverable(&self, guild: &str, captcha: impl FnMut(&str)) -> Result<()> {
         let (reply, answer) = oneshot::channel();
         self.requests
             .send(Request::Session(reply))
@@ -2376,7 +2376,18 @@ impl Discord {
             .ok()
             .flatten()
             .context("Discord isn't connected yet. Try again in a moment.")?;
-        self.api.join_guild(guild, &session).await.map(drop)
+        let (api, session) = (&self.api, &session);
+        crate::captcha::solving(
+            |solved| async move {
+                let solved = solved
+                    .as_ref()
+                    .map(|(captcha, solution)| (captcha, solution.as_str()));
+                api.join_guild(guild, session, solved).await
+            },
+            captcha,
+        )
+        .await
+        .map(drop)
     }
 
     /// Makes a server owned by this account; its id.
