@@ -6336,7 +6336,7 @@ fn a_custom_theme_keeps_its_colours_by_name_and_falls_back_to_its_base() {
     // It's written back with every colour, by the names ui/theme.slint has.
     let written = serde_json::to_value(&custom).unwrap();
     assert_eq!(written["colours"]["row-hover"], "#aabbcc");
-    assert_eq!(written["colours"]["accent-soft"], "#38bdf826");
+    assert_eq!(written["colours"]["accent-soft"], "#38bdf829");
     assert_eq!(
         written["colours"].as_object().unwrap().len(),
         theme::Theme::NAMES.len()
