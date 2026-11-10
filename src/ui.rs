@@ -40,6 +40,7 @@ mod accounts;
 mod appearance;
 mod away;
 mod browser;
+mod bot_forms;
 mod call_link;
 mod call_timer;
 mod callbacks;

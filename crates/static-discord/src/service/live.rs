@@ -47,6 +47,7 @@ pub(super) fn live_events(
         })
     };
     match event {
+        Event::Other(name) if name == "INTERACTION_MODAL_CREATE" => vec![Live::BotForm(data.clone())],
         // Few and small: an open page of the server's settings follows it.
         Event::GuildUpdate => data["id"]
             .as_str()
@@ -295,6 +296,14 @@ mod tests {
     use serde_json::json;
 
     use super::*;
+
+    #[test]
+    fn modal_responses_reach_the_client_without_becoming_messages() {
+        let names = RwLock::default();
+        let data = json!({"id":"100","channel_id":"8","nonce":"1","title":"Ticket","custom_id":"ticket","application":{"id":"9"},"components":[]});
+        let events = live_events("3", None, &names, &Event::parse("INTERACTION_MODAL_CREATE"), &data, None);
+        assert!(matches!(&events[..], [Live::BotForm(modal)] if modal == &data));
+    }
 
     #[test]
     fn a_burst_of_reactions_adds_one_for_each_person() {

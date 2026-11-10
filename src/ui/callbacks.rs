@@ -293,6 +293,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
     }
     super::server_folders::bind(window, adapter);
     super::gifs::bind(window, adapter);
+    super::bot_forms::bind(window, adapter);
     super::polls::bind(window, adapter);
     super::call_link::bind(window, adapter);
     super::server_settings::bind(window, adapter);

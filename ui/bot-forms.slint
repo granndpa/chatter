@@ -1,0 +1,76 @@
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { ActionButton, IconButton } from "controls.slint";
+
+export struct BotFormField {
+    label: string,
+    placeholder: string,
+    value: string,
+    multiline: bool,
+    required: bool,
+}
+
+export component BotFormDialog inherits Rectangle {
+    in property <string> title;
+    in property <[BotFormField]> fields;
+    in property <bool> busy;
+    in property <string> error;
+    callback write(int, string);
+    callback submit;
+    callback cancel;
+    background: #0009;
+    TouchArea { }
+    card := Rectangle {
+        width: min(480px, root.width - 32px);
+        height: min(body.preferred-height + 160px, root.height - 32px);
+        background: Theme.raised;
+        border-radius: 12px;
+        border-color: Theme.edge; border-width: 1px;
+        TouchArea { }
+        keys := FocusScope {
+            init => { self.focus(); }
+            key-pressed(event) => {
+                if event.text == Key.Escape { root.cancel(); return accept; }
+                return reject;
+            }
+            VerticalLayout {
+                padding: 20px; spacing: 16px;
+                HorizontalLayout {
+                    Text { text: root.title; color: Theme.text; font-size: 20px; font-weight: 700; overflow: elide; vertical-alignment: center; horizontal-stretch: 1; }
+                    IconButton { icon: @image-url("icons/x.svg"); label: "Close form"; clicked => { root.cancel(); } }
+                }
+                ScrollView {
+                    body := VerticalLayout {
+                        spacing: 14px;
+                        for field[index] in root.fields: VerticalLayout {
+                            spacing: 6px;
+                            Text { text: field.label + (field.required ? " *" : ""); color: Theme.text; font-size: 14px; font-weight: 600; wrap: word-wrap; }
+                            Rectangle {
+                                height: field.multiline ? 112px : 40px;
+                                background: Theme.sunken; border-radius: 6px; clip: true;
+                                Text { x: 10px; y: 10px; width: parent.width - 20px; text: field.placeholder; visible: answer.text == ""; color: Theme.muted; font-size: 15px; overflow: elide; }
+                                answer := TextInput {
+                                    x: 10px; y: 10px; width: parent.width - 20px; height: parent.height - 20px;
+                                    text: field.value; color: Theme.text; font-size: 15px;
+                                    enabled: !root.busy;
+                                    single-line: !field.multiline;
+                                    wrap: field.multiline ? word-wrap : no-wrap;
+                                    accessible-label: field.label;
+                                    selection-background-color: Theme.accent.with-alpha(0.35);
+                                    edited => { root.write(index, self.text); }
+                                }
+                            }
+                        }
+                    }
+                }
+                if root.error != "": Text { text: root.error; color: Theme.danger; wrap: word-wrap; font-size: 14px; }
+                HorizontalLayout {
+                    spacing: 8px;
+                    Rectangle { horizontal-stretch: 1; }
+                    ActionButton { text: "Cancel"; ghost: true; clicked => { root.cancel(); } }
+                    ActionButton { text: root.busy ? "Sending..." : "Submit"; primary: true; enabled: !root.busy; clicked => { root.submit(); } }
+                }
+            }
+        }
+    }
+}

@@ -1165,6 +1165,19 @@ pub(super) fn command(
         }
         return None;
     }
+    if let Command::Discord(DiscordCommand::SubmitBotForm { id, body }) = command {
+        match discord {
+            Ok(discord) => {
+                let (discord, events) = (discord.clone(), events.clone());
+                tokio::spawn(async move {
+                    let result = discord.run_command(body).await.map_err(|error| format!("The form could not be sent: {error}"));
+                    let _ = events.send(Event::BotFormSubmitted { id, result });
+                });
+            }
+            Err(error) => { let _ = events.send(Event::BotFormSubmitted { id, result: Err(error.into()) }); }
+        }
+        return None;
+    }
     if let Command::Discord(DiscordCommand::RunCommand { body }) = command {
         match discord {
             Ok(discord) => {

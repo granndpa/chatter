@@ -60,6 +60,8 @@ import { PermissionRow, RoleMemberRow, RoleRow, RoleSwatch, RolesPrompt } from "
 import { BansPrompt, SafetyOption, SafetyPrompt } from "moderation.slint";
 import { ChannelSettingsPrompt, ChannelSettingsScreen, OverwriteRow, ThreeStateRow } from "channel_settings.slint";
 import { MfaChoice, MfaPrompt, MfaDialog } from "mfa.slint";
+import { BotFormField, BotFormDialog } from "bot-forms.slint";
+export { BotFormField } from "bot-forms.slint";
 import { FoundRow, PickRow, ThreadRow, HeaderSearch, PinsPopover, ThreadsPopover, AddPeoplePopover, SearchPanel, TopicPopover } from "header.slint";
 import { ThreadPanel, NewThreadPanel } from "thread.slint";
 import { PostTag, PostRow, PostTagChoice, ForumPanel } from "forum.slint";
@@ -282,6 +284,14 @@ export component StaticWindow inherits Window {
     in-out property <string> channel-settings-topic;
     callback channel-settings-input(int, string, int);
     // Confirming a request Discord holds back; see MfaDialog.
+    in property <bool> bot-form-open;
+    in property <string> bot-form-title;
+    in property <[BotFormField]> bot-form-fields;
+    in property <bool> bot-form-busy;
+    in property <string> bot-form-error;
+    callback write-bot-form(int, string);
+    callback submit-bot-form;
+    callback close-bot-form;
     in property <bool> mfa-open;
     in property <MfaPrompt> mfa-prompt;
     in-out property <string> mfa-code;
@@ -1604,7 +1614,7 @@ export component StaticWindow inherits Window {
         || root.role-open || root.server-card-open || root.emoji-card-open || root.topic-open
         || root.pins-open || root.threads-open || root.add-people-open || root.viewer-open
         || (VideoPlayer.expanded && VideoPlayer.item != "") || root.stage-full
-        || root.switcher-open || root.mfa-open || root.add-friend-open || root.invite-open
+        || root.switcher-open || root.mfa-open || root.bot-form-open || root.add-friend-open || root.invite-open
         || root.join-open || root.event-open || root.gift-open || root.oauth-open
         || root.channel-open || root.move-sync-open || root.leave-open || root.person-open
         || root.status-open || root.poll-open || root.new-dm-open || root.reactions-open
@@ -4876,6 +4886,13 @@ export component StaticWindow inherits Window {
         close-switcher => { root.close-switcher(); }
     }
     // Over everything, as the request it confirms may come from anywhere.
+    if root.bot-form-open: BotFormDialog {
+        title: root.bot-form-title; fields: root.bot-form-fields;
+        busy: root.bot-form-busy; error: root.bot-form-error;
+        write(index, value) => { root.write-bot-form(index, value); }
+        submit => { root.submit-bot-form(); }
+        cancel => { root.close-bot-form(); }
+    }
     mfa-motion := PopupMotion { open: root.mfa-open; }
     if mfa-motion.shown: MfaDialog {
         motion: mfa-motion.amount;

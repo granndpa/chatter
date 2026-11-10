@@ -4,6 +4,8 @@
 
 use serde_json::{Value, json};
 
+pub mod bot_forms;
+
 /// A command a bot or app offers in a channel.
 #[derive(Clone, Debug, PartialEq)]
 pub struct AppCommand {

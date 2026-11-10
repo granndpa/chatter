@@ -2466,6 +2466,7 @@ pub enum DiscordCommand {
     /// Runs a slash command: the body of `POST /interactions`, without the
     /// session id. [`Event::CommandRan`] follows.
     RunCommand { body: serde_json::Value },
+    SubmitBotForm { id: String, body: serde_json::Value },
     /// A page of Discover's public servers, searched for `query` when it
     /// isn't empty. [`Event::Discovered`] follows.
     Discover { query: String, offset: u32 },
@@ -3867,6 +3868,8 @@ pub enum Event {
     },
     /// Whether [`DiscordCommand::RunCommand`] went to Discord.
     CommandRan { result: Result<(), String> },
+    BotFormOpened(serde_json::Value),
+    BotFormSubmitted { id: String, result: Result<(), String> },
     /// A page [`DiscordCommand::Discover`] asked for.
     Discovered {
         query: String,

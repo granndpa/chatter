@@ -402,6 +402,9 @@ pub enum Compose {
 
 #[derive(Default)]
 pub struct AppState {
+    pub bot_form: Option<crate::commands::bot_forms::BotForm>,
+    /// Recent interactions, used to bind a gateway form to its source channel.
+    pub bot_form_contexts: HashMap<String, serde_json::Value>,
     pub voice: voice::State,
     /// Discord is linked on this device and connected.
     pub discord_online: bool,
@@ -1459,6 +1462,9 @@ pub enum Action {
     /// An app's button was clicked or a menu's option chosen; see
     /// [`crate::commands::component`].
     UseComponent(String),
+    WriteBotForm { index: usize, value: String },
+    SubmitBotForm,
+    CloseBotForm,
     /// Open the dialog for starting a DM, look for people in it, start one, or close it.
     OpenNewDm,
     /// Edit this account's newest message that can be edited, as Up in an empty
@@ -2823,6 +2829,26 @@ impl Application {
                 vec![]
             }
             Action::MentionQuery(query) => self.mention_query(query),
+            Action::WriteBotForm { index, value } => {
+                if let Some(form) = &mut self.state.bot_form {
+                    if !form.busy {
+                        if let Some(field) = form.fields.get_mut(index) { field.value = value; form.error = None; }
+                    }
+                }
+                vec![]
+            }
+            Action::CloseBotForm => { self.state.bot_form = None; vec![] }
+            Action::SubmitBotForm => {
+                let Some(form) = &mut self.state.bot_form else { return vec![] };
+                if form.busy { return vec![]; }
+                match form.submit(&crate::commands::nonce(crate::clock::now_ms())) {
+                    Ok(body) => {
+                        form.busy = true; form.error = None;
+                        vec![Effect::Backend(Command::Discord(DiscordCommand::SubmitBotForm { id: form.id.clone(), body }))]
+                    }
+                    Err(error) => { form.error = Some(error); vec![] }
+                }
+            }
             Action::UseComponent(action) => {
                 let guild = self
                     .state
@@ -2834,6 +2860,8 @@ impl Application {
                 let nonce = crate::commands::nonce(crate::clock::now_ms());
                 match crate::commands::component(&action, guild.as_deref(), &nonce) {
                     Some(body) if !self.state.preview => {
+                        if self.state.bot_form_contexts.len() >= 32 { self.state.bot_form_contexts.clear(); }
+                        self.state.bot_form_contexts.insert(nonce, body.clone());
                         vec![Effect::Backend(Command::Discord(DiscordCommand::RunCommand { body }))]
                     }
                     _ => vec![],
@@ -3826,6 +3854,25 @@ impl Application {
                         tracing::warn!(%error, "could not list slash commands");
                         // Asked again the next time `/` starts a message.
                         self.state.commands.remove(&room);
+                    }
+                }
+            }
+            Event::BotFormOpened(modal) => {
+                let context = modal["nonce"].as_str().and_then(|nonce| self.state.bot_form_contexts.remove(nonce));
+                if let Some(context) = context.filter(|context| context["channel_id"] == modal["channel_id"] && context["application_id"] == modal["application"]["id"]) {
+                    match crate::commands::bot_forms::BotForm::parse(&modal, context) {
+                        Ok(form) => self.state.bot_form = Some(form),
+                        Err(error) => self.state.notice = Some(error),
+                    }
+                }
+            }
+            Event::BotFormSubmitted { id, result } => {
+                if let Some(form) = &mut self.state.bot_form {
+                    if form.id == id {
+                        match result {
+                            Ok(()) => self.state.bot_form = None,
+                            Err(error) => { form.busy = false; form.error = Some(error); }
+                        }
                     }
                 }
             }

@@ -445,6 +445,7 @@ impl Adapter {
         self.show_channel_settings(window);
         self.show_connections(window);
         self.show_mfa(window);
+        super::bot_forms::show(self, window);
         self.show_dialogs(window);
         self.show_reactions(window);
         self.show_gifs(window);

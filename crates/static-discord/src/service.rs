@@ -373,6 +373,8 @@ impl std::fmt::Debug for SharedNames {
 /// A message event from the gateway, for any channel.
 #[derive(Clone, Debug)]
 pub enum Live {
+    /// A bot responded to an interaction with a form.
+    BotForm(Value),
     Created(Message),
     /// A new message that should notify this account, by its notification settings,
     /// in a server or, with none, a DM.

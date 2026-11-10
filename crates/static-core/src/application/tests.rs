@@ -10119,3 +10119,5 @@ mod ownership;
 mod people;
 #[cfg(feature = "discord")]
 mod server_settings;
+
+mod bot_forms;

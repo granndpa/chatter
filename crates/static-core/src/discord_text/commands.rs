@@ -633,6 +633,10 @@ pub fn live(
     done: &UnboundedSender<Done>,
     events: &UnboundedSender<Event>,
 ) {
+    if let Ok(Live::BotForm(modal)) = &event {
+        let _ = events.send(Event::BotFormOpened(modal.clone()));
+        return;
+    }
     if let Ok(Live::FavoriteGifs(favorites)) = &event {
         let _ = events.send(Event::FavoriteGifs(Ok(gifs::favorites(favorites))));
         tokio::spawn(static_discord::service::keep_favorite_gifs(

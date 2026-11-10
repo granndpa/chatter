@@ -77,6 +77,8 @@ impl Application {
         let nonce = crate::commands::nonce(crate::clock::now_ms());
         match crate::commands::interaction(&command, &wired, guild, channel, &nonce) {
             Ok(body) => {
+                if self.state.bot_form_contexts.len() >= 32 { self.state.bot_form_contexts.clear(); }
+                self.state.bot_form_contexts.insert(nonce, body.clone());
                 self.state.drafts.remove(id);
                 self.state.mention_query = None;
                 self.state.notice = None;
