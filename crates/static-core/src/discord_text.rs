@@ -14,6 +14,23 @@ pub mod message_history {
     use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
     static ENABLED: AtomicBool = AtomicBool::new(true);
     static GENERATION: AtomicU64 = AtomicU64::new(0);
+    static EDITS: AtomicBool = AtomicBool::new(true);
+    static DELETES: AtomicBool = AtomicBool::new(true);
+    /// Earlier versions of edited messages are kept.
+    pub fn edits() -> bool {
+        EDITS.load(Ordering::Relaxed)
+    }
+    /// Deleted messages stay, marked deleted.
+    pub fn deletes() -> bool {
+        DELETES.load(Ordering::Relaxed)
+    }
+    /// Which of edits and deletions the logger keeps; the shown messages
+    /// are drawn again.
+    pub fn keep(edits: bool, deletes: bool) {
+        EDITS.store(edits, Ordering::Relaxed);
+        DELETES.store(deletes, Ordering::Relaxed);
+        GENERATION.fetch_add(1, Ordering::Relaxed);
+    }
     pub fn enabled() -> bool {
         ENABLED.load(Ordering::Relaxed)
     }

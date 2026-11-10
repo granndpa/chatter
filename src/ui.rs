@@ -1063,6 +1063,10 @@ struct Layout {
     /// Messages from people this account blocked don't show at all.
     hide_blocked: bool,
     retain_message_history: Option<bool>,
+    /// What the message logger keeps: edits, deletions, and ghost pings.
+    log_edits: Option<bool>,
+    log_deletes: Option<bool>,
+    log_ghost_pings: Option<bool>,
     /// A message that notifies while Static isn't in front flashes the
     /// taskbar; off unless turned on. Its key is new, so the flashing that
     /// was on for everyone before stays off until chosen.
@@ -1372,6 +1376,14 @@ impl Layout {
         window.set_show_idle(self.show_idle.unwrap_or(true));
         window.set_hide_blocked(self.hide_blocked);
         window.set_retain_message_history(self.retain_message_history.unwrap_or(true));
+        window.set_log_edits(self.log_edits.unwrap_or(true));
+        window.set_log_deletes(self.log_deletes.unwrap_or(true));
+        window.set_log_ghost_pings(self.log_ghost_pings.unwrap_or(true));
+        #[cfg(feature = "discord")]
+        static_core::discord_text::message_history::keep(
+            self.log_edits.unwrap_or(true),
+            self.log_deletes.unwrap_or(true),
+        );
         #[cfg(feature = "discord")]
         static_core::discord_text::message_history::configure(
             self.retain_message_history.unwrap_or(true),
@@ -2481,6 +2493,11 @@ impl Adapter {
                     {
                         self.linking = None;
                         self.link_run += 1;
+                    }
+                }
+                Effect::MessageGone { channel, id } => {
+                    if self.layout.log_ghost_pings.unwrap_or(true) {
+                        tweaks::ghost_ping(self, &channel, &id);
                     }
                 }
                 Effect::Notify(alert) => {

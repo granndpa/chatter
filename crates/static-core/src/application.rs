@@ -2129,6 +2129,9 @@ pub enum Effect {
     Backend(Command),
     /// Notify the person of a new message, if they aren't looking at Static.
     Notify(chat::Alert),
+    /// A Discord message was deleted: a ghost ping when it had mentioned
+    /// this account.
+    MessageGone { channel: String, id: String },
     /// Play one of Static's sounds, as the person set them.
     Sound(crate::sounds::Sound),
     /// List the system's audio devices for the preview, then report them
@@ -3669,6 +3672,7 @@ impl Application {
             // Do Not Disturb holds back message notifications, as in Discord.
             Event::Notify(_) if self.state.do_not_disturb() => {}
             Event::Notify(notification) => return vec![Effect::Notify(self.alert(notification))],
+            Event::MessageGone { channel, id } => return vec![Effect::MessageGone { channel, id }],
             Event::Typing { room, names } => {
                 if names.is_empty() {
                     self.state.typing.remove(&room);

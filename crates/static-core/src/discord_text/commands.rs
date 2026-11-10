@@ -731,6 +731,10 @@ pub fn live(
         });
         return;
     }
+    // A deletion anywhere, which may undo a mention: a ghost ping.
+    if let Ok(Live::Deleted { channel, id }) = &event {
+        let _ = events.send(Event::MessageGone { channel: channel.clone(), id: id.clone() });
+    }
     // A message ends its author's typing.
     if let Ok(Live::Created(message)) = &event {
         let room = channels

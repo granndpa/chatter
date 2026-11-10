@@ -1596,8 +1596,16 @@ impl OpenChannel {
             };
             let mut row = row;
             if super::message_history::enabled() {
-                let history = self.edit_history.get(order).cloned().unwrap_or_default();
+                let history = if super::message_history::edits() {
+                    self.edit_history.get(order).cloned().unwrap_or_default()
+                } else {
+                    Default::default()
+                };
                 let deleted = self.deleted.contains(order);
+                // Deletions not kept go, as Discord shows them.
+                if deleted && !super::message_history::deletes() {
+                    continue;
+                }
                 if !history.is_empty() || deleted {
                     let row = Arc::make_mut(&mut row);
                     row.edit_history = history;

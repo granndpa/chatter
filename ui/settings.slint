@@ -1542,6 +1542,10 @@ export component DiscordSettings inherits VerticalLayout {
     callback auto-update-toggled(bool);
     callback chat-tabs-toggled(bool);
     callback show-idle-toggled(bool);
+    in property <bool> log-edits;
+    in property <bool> log-deletes;
+    in property <bool> log-ghost-pings;
+    callback logger-changed(bool, bool, bool);
     /// Join one of Offset Studio's servers, by invite code.
     callback join-community(string);
     /// Which page: 0 Chatter, 1 Message Logger, 2 Tweaks, 3 Overlay.
@@ -1589,7 +1593,25 @@ export component DiscordSettings inherits VerticalLayout {
             checked: root.retain-message-history;
             toggled(enabled) => { root.message-history-action(enabled, false); }
         }
-        ActionButton { text: "Clear local message history"; clicked => { root.message-history-action(root.retain-message-history, true); } }
+            SettingsSwitch {
+                text: "Log deleted messages";
+                description: "Deleted messages stay, shown in red. Right-click one to remove it.";
+                checked: root.log-deletes;
+                toggled(on) => { root.logger-changed(root.log-edits, on, root.log-ghost-pings); }
+            }
+            SettingsSwitch {
+                text: "Log edits";
+                description: "Edited messages keep their earlier versions under them.";
+                checked: root.log-edits;
+                toggled(on) => { root.logger-changed(on, root.log-deletes, root.log-ghost-pings); }
+            }
+            SettingsSwitch {
+                text: "Log ghost pings";
+                description: "When someone mentions you and deletes it, you're told who, and it stays in your Inbox marked as a ghost ping.";
+                checked: root.log-ghost-pings;
+                toggled(on) => { root.logger-changed(root.log-edits, root.log-deletes, on); }
+            }
+            ActionButton { text: "Clear local message history"; clicked => { root.message-history-action(root.retain-message-history, true); } }
     }
     if root.part == 2: VerticalLayout {
         spacing: 20px;

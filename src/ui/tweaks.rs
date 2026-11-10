@@ -225,6 +225,31 @@ pub(super) fn record_alert(adapter: &mut Adapter, alert: &static_core::chat::Ale
     }
 }
 
+/// A message that mentioned this account was deleted: its Inbox entry says
+/// it was a ghost ping and shows as unread, and a notice says who.
+pub(super) fn ghost_ping(adapter: &mut Adapter, channel: &str, id: &str) {
+    let Some(entry) = adapter.tweaks.inbox.entries.iter_mut().find(|entry| {
+        entry.message.item.ends_with(id) && entry.message.room.ends_with(channel)
+    }) else {
+        return;
+    };
+    if entry.message.body.starts_with(GHOST) {
+        return;
+    }
+    entry.message.body = format!("{GHOST}{}", entry.message.body);
+    entry.read = false;
+    let (author, place) = (entry.message.author.clone(), entry.message.channel.clone());
+    adapter.app.state.notice = Some(format!("Ghost ping: {author} mentioned you in {place} and deleted it. It's in your Inbox."));
+    save_inbox(adapter);
+    if let Some(window) = adapter.window.upgrade() {
+        show(adapter, &window);
+        adapter.refresh(&window);
+    }
+}
+
+/// What starts a ghost ping's Inbox entry.
+const GHOST: &str = "[Ghost ping] ";
+
 fn save_reminders(adapter: &Adapter) {
     if let Some(dir) = &adapter.tweaks.dir
         && let Err(error) = tweaks::save(dir, reminders::FILE, &adapter.tweaks.reminders)

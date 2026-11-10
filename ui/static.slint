@@ -425,6 +425,10 @@ export component StaticWindow inherits Window {
     in property <string> update-version;
     in-out property <string> update-status;
     in-out property <bool> auto-update: true;
+    in-out property <bool> log-edits: true;
+    in-out property <bool> log-deletes: true;
+    in-out property <bool> log-ghost-pings: true;
+    callback logger-changed(bool, bool, bool);
     // The one-time card asking to join the Chatter Discord.
     in-out property <bool> community-card;
     callback join-community(string);
@@ -4213,6 +4217,11 @@ export component StaticWindow inherits Window {
             chat-tabs-toggled(on) => { root.chat-tabs-toggled(on); }
             auto-update-toggled(on) => { root.auto-update = on; root.auto-update-toggled(on); }
             join-community(code) => { root.join-community(code); }
+            log-edits: root.log-edits; log-deletes: root.log-deletes; log-ghost-pings: root.log-ghost-pings;
+            logger-changed(edits, deletes, ghosts) => {
+                root.log-edits = edits; root.log-deletes = deletes; root.log-ghost-pings = ghosts;
+                root.logger-changed(edits, deletes, ghosts);
+            }
             fake-deafen-toggled(fake) => { root.fake-deafen = fake; root.fake-deafen-toggled(fake); }
         }
     }
@@ -4928,6 +4937,42 @@ export component StaticWindow inherits Window {
         streamer-touch := TouchArea {
             mouse-cursor: root.streamer-mode ? MouseCursor.pointer : MouseCursor.default;
             clicked => { if root.streamer-mode { root.streamer-mode = false; root.preferences-changed(); } }
+        }
+    }
+    // While a new version downloads and Chatter restarts into it: a screen
+    // over everything, as Discord shows its own.
+    if root.update-status == "Updating...": Rectangle {
+        background: Theme.rail;
+        TouchArea { }
+        VerticalLayout {
+            alignment: center; spacing: 18px;
+            HorizontalLayout {
+                alignment: center;
+                Rectangle {
+                    width: 72px; height: 72px;
+                    Image {
+                        source: @image-url("icons/chatter-mono.svg"); width: 56px; height: 56px; colorize: #ffffff;
+                        rotation-angle: updating-turn.value * 360deg;
+                        rotation-origin-x: self.width / 2; rotation-origin-y: self.height / 2;
+                    }
+                }
+            }
+            Text { text: "Updating Chatter"; color: Theme.text; font-size: 20px; font-weight: 700; horizontal-alignment: center; }
+            Text { text: "Downloading version " + root.update-version + ". Chatter restarts by itself when it's ready."; color: Theme.muted; font-size: 14px; horizontal-alignment: center; }
+            HorizontalLayout {
+                alignment: center;
+                Rectangle {
+                    width: 220px; height: 4px; border-radius: 2px; background: Theme.raised; clip: true;
+                    Rectangle {
+                        width: 70px; height: 4px; border-radius: 2px; background: Theme.accent;
+                        x: -70px + updating-turn.value * 290px;
+                    }
+                }
+            }
+        }
+        updating-turn := Rectangle {
+            property <float> value: Math.mod(animation-tick() / 1400ms, 1);
+            width: 0px; height: 0px;
         }
     }
     // A newer Chatter is out: pressing this updates and restarts.

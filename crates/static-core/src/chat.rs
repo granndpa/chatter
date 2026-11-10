@@ -3501,6 +3501,8 @@ pub enum Event {
     },
     /// A new message to notify the person of.
     Notify(Notification),
+    /// A Discord message was deleted, by its channel and id.
+    MessageGone { channel: String, id: String },
     /// A role's name, colour and the members known to have it.
     RoleMembers {
         room: String,

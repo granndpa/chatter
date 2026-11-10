@@ -249,6 +249,21 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
     {
         let state = adapter.clone();
         let weak = window.as_weak();
+        {
+            let (state, weak) = (state.clone(), weak.clone());
+            window.on_logger_changed(move |edits, deletes, ghosts| {
+                let mut adapter = state.borrow_mut();
+                adapter.layout.log_edits = Some(edits);
+                adapter.layout.log_deletes = Some(deletes);
+                adapter.layout.log_ghost_pings = Some(ghosts);
+                adapter.layout.write(&adapter.root);
+                static_core::discord_text::message_history::keep(edits, deletes);
+                if let Some(window) = weak.upgrade() {
+                    adapter.restyle = true;
+                    adapter.refresh(&window);
+                }
+            });
+        }
         window.on_message_history_action(move |enabled, clear| {
             let mut adapter = state.borrow_mut();
             adapter.layout.retain_message_history = Some(enabled);
