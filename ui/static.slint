@@ -2896,6 +2896,24 @@ export component StaticWindow inherits Window {
                                 }
                             }
                         }
+                        // Read All and Saved sit with the header's buttons, as
+                        // Discord's inbox does, leaving the rail to servers.
+                        Middle {
+                            IconButton {
+                                icon: @image-url("icons/check.svg"); label: "Read All";
+                                size: 32px; glyph: 20px; tip-side: 2;
+                                clicked => { root.read-all(); }
+                            }
+                        }
+                        Middle {
+                            IconButton {
+                                icon: @image-url("icons/inbox.svg");
+                                label: root.saved-badge != "" ? "Saved, " + root.saved-badge + " new" : "Saved";
+                                size: 32px; glyph: 20px; tip-side: 2;
+                                tint: root.saved-badge != "" ? Theme.danger : root.saved-open ? Theme.text : Theme.secondary;
+                                clicked => { root.saved-show(root.saved-badge != "" ? 3 : root.saved-tab); }
+                            }
+                        }
                         if root.can-notify: Middle {
                             IconButton {
                                 icon: root.room-muted ? @image-url("icons/bell-off.svg") : @image-url("icons/bell.svg");

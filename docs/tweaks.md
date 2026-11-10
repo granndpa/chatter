@@ -42,7 +42,7 @@ channel goes away. Opening one whose conversation is gone says so instead.
 
 ## Servers and navigation
 
-- **Read All** under Direct Messages marks every server and DM read.
+- **Read All** (the check in the header) marks every server and DM read.
 - **Pinned servers and friends:** right-click a server for **Pin Server**, or
   a Discord friend (or their DM) for **Pin Friend**. Pins sit at the top of the
   rail, friends with their presence; **Move Pin Up/Down** reorders them and

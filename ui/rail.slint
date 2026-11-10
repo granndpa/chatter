@@ -900,32 +900,6 @@ export component ServerRail inherits Rectangle {
             selected: root.dms-selected; unread: root.dms-unread; badge: root.dms-badge;
             clicked => { root.navigate-dms(); }
         }
-        // Marks everything read, as Vencord's Read All button does.
-        Rectangle {
-            height: 20px;
-            Rectangle {
-                width: 52px; height: 20px; border-radius: 10px;
-                background: read-all-touch.has-hover ? Theme.active : Theme.raised;
-                Text { text: "Read All"; color: Theme.text; font-size: 10px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
-                read-all-touch := TouchArea {
-                    mouse-cursor: MouseCursor.pointer;
-                    clicked => { root.read-all(); }
-                }
-            }
-        }
-        // Bookmarks, reminders and the Hall of Fame.
-        Rectangle {
-            height: 20px;
-            Rectangle {
-                width: 52px; height: 20px; border-radius: 10px;
-                background: root.saved-badge != "" ? Theme.danger : saved-touch.has-hover ? Theme.active : Theme.raised;
-                Text { text: root.saved-badge != "" ? "Saved " + root.saved-badge : "Saved"; color: root.saved-badge != "" ? #ffffff : Theme.text; font-size: 10px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
-                saved-touch := TouchArea {
-                    mouse-cursor: MouseCursor.pointer;
-                    clicked => { root.open-saved(); }
-                }
-            }
-        }
         if ClientStyle.enabled: Rectangle {
             height: 1px;
             Rectangle { width: 32px; height: 1px; background: Theme.outline; }
