@@ -108,6 +108,29 @@ pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
             }
         });
     }
+    // The card asking to join the Chatter Discord shows once, signed in.
+    window.set_community_card(!adapter.borrow().layout.community_asked && !cfg!(test));
+    {
+        let (state, weak) = (Rc::downgrade(adapter), window.as_weak());
+        window.on_join_community(move |code| {
+            if let (Some(adapter), Some(window)) = (state.upgrade(), weak.upgrade()) {
+                let mut adapter = adapter.borrow_mut();
+                adapter.layout.community_asked = true;
+                adapter.layout.write(&adapter.root);
+                adapter.action(&window, static_core::application::Action::OpenInviteLink(code.into()));
+            }
+        });
+    }
+    {
+        let state = Rc::downgrade(adapter);
+        window.on_community_dismissed(move || {
+            if let Some(adapter) = state.upgrade() {
+                let mut adapter = adapter.borrow_mut();
+                adapter.layout.community_asked = true;
+                adapter.layout.write(&adapter.root);
+            }
+        });
+    }
     {
         let state = Rc::downgrade(adapter);
         window.on_auto_update_toggled(move |on| {

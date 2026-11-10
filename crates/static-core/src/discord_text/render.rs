@@ -677,9 +677,11 @@ pub(super) fn chat_card(
                     large: *large,
                 },
                 Row::Buttons(buttons) => CardRow::Buttons(buttons.iter().map(button).collect()),
-                Row::Select { text, disabled } => CardRow::Select {
+                Row::Select { text, disabled, options, action, .. } => CardRow::Select {
                     text: text.clone(),
                     disabled: *disabled,
+                    options: options.clone(),
+                    action: action.clone(),
                 },
                 Row::Unknown => CardRow::Unknown,
             })

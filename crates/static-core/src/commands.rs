@@ -554,6 +554,45 @@ pub fn interaction(
     Ok(body)
 }
 
+/// What starts a button's or menu's report of being used.
+#[cfg(feature = "discord")]
+pub use static_discord::components::INTERACT;
+#[cfg(not(feature = "discord"))]
+pub const INTERACT: &str = "chatter-interact";
+
+/// What `POST /interactions` takes for a button or menu used: `action` is
+/// what followed [`INTERACT`], the channel, message, application, message
+/// flags, component type and its id, then a menu's value, each on a line.
+pub fn component(action: &str, guild: Option<&str>, nonce: &str) -> Option<Value> {
+    let mut parts = action.trim_start_matches('\n').splitn(7, '\n');
+    let (channel, message, application, flags, kind, id) = (
+        parts.next()?,
+        parts.next()?,
+        parts.next()?,
+        parts.next()?.parse::<u64>().ok()?,
+        parts.next()?.parse::<u64>().ok()?,
+        parts.next()?,
+    );
+    let mut data = json!({"component_type": kind, "custom_id": id});
+    if let Some(value) = parts.next() {
+        data["type"] = json!(kind);
+        data["values"] = json!([value]);
+    }
+    let mut body = json!({
+        "type": 3,
+        "nonce": nonce,
+        "channel_id": channel,
+        "message_flags": flags,
+        "message_id": message,
+        "application_id": application,
+        "data": data,
+    });
+    if let Some(guild) = guild {
+        body["guild_id"] = json!(guild);
+    }
+    Some(body)
+}
+
 /// A Discord snowflake for now, as the nonce of an interaction.
 pub fn nonce(now_ms: u64) -> String {
     (now_ms.saturating_sub(1_420_070_400_000) << 22).to_string()
@@ -636,6 +675,17 @@ mod tests {
         assert!(named("/leave", &list).is_none());
         let dm = built_ins(false);
         assert_eq!(run_built_in(named("/leave", &dm).unwrap(), "/leave silent:True").unwrap(), BuiltIn::Leave);
+    }
+
+    #[test]
+    fn components_ask_their_app() {
+        let body = component("\n8\n77\n9\n64\n2\nopen:ticket", Some("7"), "1").unwrap();
+        assert_eq!(body["type"], 3);
+        assert_eq!(body["message_id"], "77");
+        assert_eq!(body["data"], json!({"component_type": 2, "custom_id": "open:ticket"}));
+        let body = component("\n8\n77\n9\n0\n3\ncategory\nbilling", None, "1").unwrap();
+        assert_eq!(body["data"], json!({"component_type": 3, "custom_id": "category", "type": 3, "values": ["billing"]}));
+        assert!(component("\nnope", None, "1").is_none());
     }
 
     #[test]

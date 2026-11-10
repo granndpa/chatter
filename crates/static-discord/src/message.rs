@@ -686,7 +686,19 @@ pub fn parse(value: &Value) -> Option<Message> {
     }
     // A message of components alone shows its files only where its
     // components place them.
-    let components = components::parse(&shown["components"]);
+    let mut components = components::parse(&shown["components"]);
+    // Its own buttons and menus ask the app that sent it; a forwarded
+    // message's don't.
+    if let (false, Some(channel), Some(id)) =
+        (forwarded_from_other(value, shown), value["channel_id"].as_str(), value["id"].as_str())
+    {
+        let application = value["application_id"]
+            .as_str()
+            .or_else(|| value["author"]["id"].as_str())
+            .unwrap_or_default();
+        let flags = value["flags"].as_u64().unwrap_or_default();
+        components::arm(&mut components.cards, &format!("{channel}\n{id}\n{application}\n{flags}"));
+    }
     let mut attachments =
         if shown["flags"].as_u64().unwrap_or_default() & components::IS_COMPONENTS_V2 == 0 {
             attachments
@@ -2475,4 +2487,9 @@ mod tests {
         assert!(!names.is_official("1"));
         assert!(!names.is_official("2"));
     }
+}
+
+/// Whether what a message shows is another message's, as a forward's is.
+fn forwarded_from_other(value: &Value, shown: &Value) -> bool {
+    !std::ptr::eq(value, shown)
 }

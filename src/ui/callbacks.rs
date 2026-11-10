@@ -1353,6 +1353,13 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
     let state = adapter.clone();
     let weak = window.as_weak();
     window.on_open_link(move |link| {
+        // An app's button or menu asks the app.
+        if let Some(action) = link.strip_prefix(static_core::commands::INTERACT) {
+            let Some(window) = weak.upgrade() else { return };
+            let action = action.to_string();
+            state.borrow_mut().action(&window, Action::UseComponent(action));
+            return;
+        }
         // A blocked message shows when asked for.
         if let Some(item) = link.strip_prefix(BLOCKED_LINK) {
             let Some(window) = weak.upgrade() else { return };

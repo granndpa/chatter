@@ -900,9 +900,16 @@ fn card_row<'a>(
             )),
             ..Default::default()
         },
-        Row::Select { text, .. } => CardRow {
+        Row::Select { text, options, action, .. } => CardRow {
             kind: CardRowKind::Select,
             select: text.as_str().into(),
+            select_action: action.as_str().into(),
+            select_labels: ModelRc::new(VecModel::from(
+                options.iter().map(|(label, _)| SharedString::from(label.as_str())).collect::<Vec<_>>(),
+            )),
+            select_values: ModelRc::new(VecModel::from(
+                options.iter().map(|(_, value)| SharedString::from(value.as_str())).collect::<Vec<_>>(),
+            )),
             ..Default::default()
         },
         Row::Unknown => CardRow {

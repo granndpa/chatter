@@ -83,6 +83,15 @@ pub enum Row {
     Select {
         text: String,
         disabled: bool,
+        /// The menu's id, and its options as label and value; a menu of
+        /// users, roles or channels lists none.
+        #[serde(default)]
+        custom_id: String,
+        #[serde(default)]
+        options: Vec<(String, String)>,
+        /// What choosing an option reports; see [`arm`].
+        #[serde(default)]
+        action: String,
     },
     /// Components of a kind Static can't show, one or more.
     Unknown,
@@ -102,9 +111,40 @@ pub struct Button {
     /// In Discord's markup: the emoji itself, or `<:name:id>`.
     pub emoji: Option<String>,
     pub style: Style,
-    /// Where a link button leads.
+    /// Where a link button leads; for an app's own button, what clicking
+    /// it reports, see [`arm`].
     pub url: Option<String>,
     pub disabled: bool,
+    /// An app's own button's id.
+    #[serde(default)]
+    pub custom_id: Option<String>,
+}
+
+/// What starts the `url` of a button, or the `action` of a menu, that asks
+/// its app: then the channel, message, application and message flags, the
+/// component's type and its id, each on a line.
+pub const INTERACT: &str = "chatter-interact";
+
+/// Makes a message's buttons and menus ask their app when used: `context`
+/// is the channel, message, application and flags, each on a line.
+pub fn arm(cards: &mut [Card], context: &str) {
+    let arm_button = |button: &mut Button| {
+        if let (Some(id), None, false) = (&button.custom_id, &button.url, button.disabled) {
+            button.url = Some(format!("{INTERACT}\n{context}\n{BUTTON}\n{id}"));
+        }
+    };
+    for row in cards.iter_mut().flat_map(|card| card.rows.iter_mut()) {
+        match row {
+            Row::Buttons(buttons) => buttons.iter_mut().for_each(arm_button),
+            Row::Text { beside: Some(Beside::Button(button)), .. } => arm_button(button),
+            Row::Select { custom_id, options, action, disabled, .. }
+                if !custom_id.is_empty() && !options.is_empty() && !*disabled =>
+            {
+                *action = format!("{INTERACT}\n{context}\n{STRING_SELECT}\n{custom_id}");
+            }
+            _ => {}
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -300,6 +340,10 @@ fn button(component: &Value) -> Option<Button> {
             .filter(|_| style == Style::Link)
             .map(str::to_owned),
         disabled: component["disabled"].as_bool().unwrap_or(false),
+        custom_id: component["custom_id"]
+            .as_str()
+            .filter(|_| style != Style::Link)
+            .map(str::to_owned),
     })
 }
 
@@ -323,6 +367,16 @@ fn select(component: &Value) -> Row {
     Row::Select {
         text,
         disabled: component["disabled"].as_bool().unwrap_or(false),
+        custom_id: component["custom_id"].as_str().unwrap_or_default().to_owned(),
+        options: component["options"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|option| {
+                Some((option["label"].as_str()?.to_owned(), option["value"].as_str()?.to_owned()))
+            })
+            .collect(),
+        action: String::new(),
     }
 }
 
@@ -452,7 +506,10 @@ mod tests {
                 Row::Unknown,
                 Row::Select {
                     text: "Pick one".into(),
-                    disabled: false
+                    disabled: false,
+                    custom_id: "pick".into(),
+                    options: vec![("A".into(), "a".into())],
+                    action: String::new(),
                 }
             ]
         );

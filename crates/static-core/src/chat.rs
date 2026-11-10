@@ -1421,10 +1421,13 @@ pub enum CardRow {
         large: bool,
     },
     Buttons(Vec<CardButton>),
-    /// A menu, by what it shows before it's opened.
+    /// A menu, by what it shows before it's opened, its options' labels
+    /// and values, and what choosing one reports; empty when it can't open.
     Select {
         text: String,
         disabled: bool,
+        options: Vec<(String, String)>,
+        action: String,
     },
     /// Components of a kind Static can't show.
     Unknown,

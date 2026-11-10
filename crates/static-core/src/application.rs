@@ -1456,6 +1456,9 @@ pub enum Action {
     /// The `@` or `#` word being typed in the composer changed, or there's
     /// none now: its sigil and what follows it.
     MentionQuery(Option<(char, String)>),
+    /// An app's button was clicked or a menu's option chosen; see
+    /// [`crate::commands::component`].
+    UseComponent(String),
     /// Open the dialog for starting a DM, look for people in it, start one, or close it.
     OpenNewDm,
     /// Edit this account's newest message that can be edited, as Up in an empty
@@ -2817,6 +2820,22 @@ impl Application {
                 vec![]
             }
             Action::MentionQuery(query) => self.mention_query(query),
+            Action::UseComponent(action) => {
+                let guild = self
+                    .state
+                    .selected
+                    .as_deref()
+                    .and_then(discord::parse_room)
+                    .map(|(guild, _)| guild.to_owned())
+                    .filter(|guild| guild != discord::DM_GUILD);
+                let nonce = crate::commands::nonce(crate::clock::now_ms());
+                match crate::commands::component(&action, guild.as_deref(), &nonce) {
+                    Some(body) if !self.state.preview => {
+                        vec![Effect::Backend(Command::Discord(DiscordCommand::RunCommand { body }))]
+                    }
+                    _ => vec![],
+                }
+            }
             Action::SetDraft(body) => self.set_draft(body),
             Action::Send => self.send(),
             Action::Reply(item) => self.reply(item),

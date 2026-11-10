@@ -439,6 +439,9 @@ export struct CardRow {
     divider: bool, large: bool,
     buttons: [CardButton],
     select: string,
+    // What choosing an option reports, with the option's value after it;
+    // empty for a menu that can't open.
+    select-action: string, select-labels: [string], select-values: [string],
 }
 /// A container of a Discord message's components, framed with a bar of its
 /// colour, or the components outside one.
@@ -1482,14 +1485,56 @@ export component EmbedView inherits HorizontalLayout {
     Rectangle { horizontal-stretch: 1; }
 }
 
-// A Discord app's button. A link's opens its page; the others show what the
-// app offers, but would ask the app, which Static can't yet.
+// A Discord app's menu: it opens its options, and choosing one asks the app.
+component CardSelect inherits Rectangle {
+    in property <CardRow> menu;
+    callback chosen(string);
+    property <bool> opens: root.menu.select-action != "";
+    max-width: 400px; horizontal-stretch: 100; height: 40px; border-radius: 8px; opacity: root.opens ? 1 : 0.5;
+    background: Theme.field; border-width: 1px; border-color: touch.has-hover && root.opens ? Theme.accent : Theme.edge;
+    accessible-role: combobox; accessible-label: root.menu.select; accessible-enabled: root.opens;
+    HorizontalLayout {
+        padding-left: 12px; padding-right: 12px; spacing: 8px;
+        Text { text: root.menu.select; color: Theme.secondary; font-weight: 500; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
+        Image { source: @image-url("icons/chevron-down.svg"); width: 18px; image-fit: contain; colorize: Theme.secondary; }
+    }
+    touch := TouchArea {
+        enabled: root.opens;
+        mouse-cursor: root.opens ? MouseCursor.pointer : MouseCursor.default;
+        clicked => { options.show(); }
+    }
+    options := PopupWindow {
+        y: root.height + 4px; width: root.width;
+        height: min(320px, list.preferred-height);
+        Rectangle {
+            background: Theme.raised; border-radius: 8px; border-width: 1px; border-color: Theme.edge;
+            drop-shadow-blur: 16px; drop-shadow-color: #00000080; drop-shadow-offset-y: 4px;
+            Flickable {
+                content-height: list.preferred-height;
+                list := VerticalLayout {
+                    padding: 4px;
+                    for label[index] in root.menu.select-labels: Rectangle {
+                        height: 36px; border-radius: 6px;
+                        background: option.has-hover ? Theme.hover : transparent;
+                        Text { x: 10px; width: parent.width - 20px; text: label; color: Theme.text; font-size: 14px; vertical-alignment: center; overflow: elide; }
+                        option := TouchArea {
+                            mouse-cursor: MouseCursor.pointer;
+                            clicked => { root.chosen(root.menu.select-action + "\n" + root.menu.select-values[index]); }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// A Discord app's button. A link's opens its page; the others ask the app.
 component CardButtonView inherits ActionButton {
     in property <CardButton> button;
     callback open-link(string);
     property <image> no-icon;
     text: root.button.label;
-    icon: root.button.style == CardButtonStyle.link ? @image-url("icons/external-link.svg") : root.no-icon;
+    icon: root.button.style == CardButtonStyle.link && root.button.url != "" ? @image-url("icons/external-link.svg") : root.no-icon;
     primary: root.button.style == CardButtonStyle.primary;
     success: root.button.style == CardButtonStyle.success;
     danger: root.button.style == CardButtonStyle.danger;
@@ -1586,17 +1631,7 @@ export component CardView inherits HorizontalLayout {
                     for button in row.buttons: CardButtonView { button: button; open-link(link) => { root.open-link(link); } }
                 }
                 if row.kind == CardRowKind.select: HorizontalLayout {
-                    // It doesn't open, so it shows as disabled.
-                    Rectangle {
-                        max-width: 400px; horizontal-stretch: 100; height: 40px; border-radius: 8px; opacity: 0.5;
-                        background: Theme.field; border-width: 1px; border-color: Theme.edge;
-                        accessible-role: combobox; accessible-label: row.select; accessible-enabled: false;
-                        HorizontalLayout {
-                            padding-left: 12px; padding-right: 12px; spacing: 8px;
-                            Text { text: row.select; color: Theme.secondary; font-weight: 500; vertical-alignment: center; overflow: elide; horizontal-stretch: 1; }
-                            Image { source: @image-url("icons/chevron-down.svg"); width: 18px; image-fit: contain; colorize: Theme.secondary; }
-                        }
-                    }
+                    CardSelect { menu: row; chosen(action) => { root.open-link(action); } }
                     Rectangle { horizontal-stretch: 1; }
                 }
                 // As Discord's client tells of components it doesn't know.

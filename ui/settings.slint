@@ -1542,7 +1542,22 @@ export component DiscordSettings inherits VerticalLayout {
     callback auto-update-toggled(bool);
     callback chat-tabs-toggled(bool);
     callback show-idle-toggled(bool);
+    /// Join one of Offset Studio's servers, by invite code.
+    callback join-community(string);
     spacing: 16px;
+    SettingsTitle { text: "Chatter"; }
+    for server in [
+        { name: "Chatter Discord", about: "Releases, help and bug reports for Chatter.", code: "JFwufmRHGx" },
+        { name: "Offset Studio", about: "The studio behind Chatter: news and new projects.", code: "R656f85ess" },
+    ]: HorizontalLayout {
+        spacing: 12px;
+        VerticalLayout {
+            alignment: center; horizontal-stretch: 1;
+            Text { text: server.name; color: Theme.text; font-size: 15px; font-weight: 600; }
+            Text { text: server.about; color: Theme.muted; font-size: 13px; wrap: word-wrap; }
+        }
+        VerticalLayout { alignment: center; ActionButton { text: "Join"; primary: true; clicked => { root.join-community(server.code); } } }
+    }
     SettingsTitle { text: "Discord Tweaks"; }
     SettingsSwitch {
         text: "Keep local message history";

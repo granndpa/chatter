@@ -1038,6 +1038,9 @@ struct Layout {
     fake_deafen: bool,
     /// Install a newer release when Chatter starts; on unless turned off.
     auto_update: Option<bool>,
+    /// The card asking to join the Chatter Discord was answered.
+    #[serde(default)]
+    community_asked: bool,
     /// Chat tabs, off unless turned on, and the conversations open in them.
     #[serde(default)]
     chat_tabs: bool,
