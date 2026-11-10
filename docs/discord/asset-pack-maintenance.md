@@ -15,12 +15,16 @@ Maintenance completed on 10 November 2026:
 - Repaired the existing latest Chatter release post and read it back.
 - Repeated the repair to verify that it creates no duplicate expressions
   or release posts.
+- Added each brand's reaction-logo emoji and updated its server icon from
+  the full-pack ZIP, then verified both through the API.
 - Rejected GIF input in the private sticker upload helper. Sticker
   uploads must use PNG, APNG or Lottie JSON.
 
 Both servers have five stickers and no remaining sticker slots. Seven
 additional PNG stickers from each brand's pack remain unuploaded. The five occupied sticker slots in each server now use the new PNG artwork;
 the selection of stickers was preserved.
+Neither server exposes banner or invite-splash support, so those pack
+assets remain unapplied.
 
 Credentials, server and channel identifiers, emoji mappings, release
 content, and maintenance helpers remain in the ignored private directory.
