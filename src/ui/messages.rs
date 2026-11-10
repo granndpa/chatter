@@ -159,6 +159,12 @@ pub(super) fn show_timeline(
         before_date = date;
     }
     let update = || {
+        if (!shown.is_empty() || !messages.is_empty()) && messages.iter().all(|message| !at.contains_key(message.id.as_str())) {
+            // Switching channels (including its empty/loading state) has no
+            // shared anchor. Keep the virtualized model and replace in bulk.
+            model.set_vec(rows.clone());
+            return;
+        }
         let same = |old: usize, new: usize| shown[old].id == messages[new].id;
         let common = shown.len().min(messages.len());
         let start = (0..common).take_while(|&index| same(index, index)).count();

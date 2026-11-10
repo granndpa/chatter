@@ -1,5 +1,24 @@
 # Resource measurements
 
+## Channel switching and scrolling, 10 November 2026
+
+The Windows release UI regression tests replace a 2,000-message timeline
+with an unrelated 2,000-message timeline and count model notifications.
+The previous per-row path made 2,000 remove calls and 2,000 insert calls.
+The replacement now emits one reset. Clearing a timeline and replacing
+unrelated sidebar rows also use one reset. The same virtualized list
+models remain in use; shared-row updates and history prepends retain their
+incremental, anchored path.
+
+Successful viewport reports and lazy picture requests now execute backend
+work without refreshing every window section. Backend errors and effects
+that can change other UI state still refresh normally. Picture arrivals
+continue to use the existing batched refresh.
+
+Validation: 156 release UI tests pass, including model-notification counts,
+virtualization, history anchoring and text-selection regressions. These
+are model-level measurements, not in-game frame-time or memory benchmarks.
+
 ## Vesktop 1.6.7 and Static
 
 | | Vesktop memory | Static memory | Vesktop CPU | Static CPU |

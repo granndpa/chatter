@@ -3192,7 +3192,7 @@ fn rows_with_ids_change_only_where_they_changed() {
             "changed 3"
         ]
     );
-    assert_eq!(update(vec![]).len(), 4, "each row goes");
+    assert_eq!(update(vec![]), ["reset"], "clearing unrelated rows is one notification");
 }
 
 #[test]
@@ -8263,3 +8263,5 @@ fn an_avatars_colour_is_worked_out_once_it_has_arrived() {
 }
 
 mod stickers;
+
+mod performance;

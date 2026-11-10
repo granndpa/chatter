@@ -2656,6 +2656,8 @@ impl Adapter {
             let draft = self.app.state.draft().to_owned();
             tweaks::record_sent(self, &draft);
         }
+        let background = matches!(action, Action::VisibleMessages { .. } | Action::LoadPictures(_));
+        let notice_before = background.then(|| self.app.state.notice.clone());
         let composing = matches!(action, Action::SetDraft(_) | Action::MentionQuery(_));
         let profiling = matches!(action, Action::WriteProfile { .. });
         // Typing on Roles changes only the settings, too.
@@ -2679,7 +2681,17 @@ impl Adapter {
             )
         );
         let effects = self.app.dispatch(action);
+        // Viewport bookkeeping and lazy image requests change no widgets.
+        // Unexpected effects and backend failures still take the full path.
+        let background = background && effects.iter().all(|effect| matches!(effect,
+            Effect::Backend(Command::VisibleMessages { .. })
+                | Effect::Backend(Command::Discord(static_core::chat::DiscordCommand::Pictures(_)))
+        ));
         self.execute(effects);
+        if background && notice_before.as_ref() == Some(&self.app.state.notice) {
+            self.open_pending_link(window);
+            return;
+        }
         if channel_setting {
             self.show_channel_settings(window);
         } else if composing {
@@ -3041,6 +3053,15 @@ fn update_model_by_id<T: Clone + PartialEq + 'static>(
     let after = (0..common - before)
         .take_while(|&back| same(shown.len() - 1 - back, rows.len() - 1 - back))
         .count();
+    // No surviving IDs means there is no focus or scroll anchor to retain.
+    // Check only when the inexpensive prefix/suffix comparison found none.
+    if before == 0 && after == 0 && (!shown.is_empty() || !rows.is_empty()) {
+        let old: HashSet<&str> = shown.iter().map(|id| id.as_str()).collect();
+        if rows.iter().all(|row| !old.contains(id(row).as_str())) {
+            model.set_vec(rows);
+            return;
+        }
+    }
     for _ in before..shown.len() - after {
         model.remove(before);
     }
