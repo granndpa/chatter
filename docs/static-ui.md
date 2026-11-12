@@ -6,6 +6,17 @@ Discord protocol, session or media code changes. `YAPFAST_UI=classic` selects
 the earlier metrics, typeface and widgets, for regression checks and
 comparison. Saved appearance choices and themes always win over these defaults.
 
+Channel rows use stronger names for selection, unread activity and mentions,
+with an edge pill for channels needing attention. Muted channels do not gain
+an unread pill from ordinary activity, while their mention counts retain full
+contrast. Mention badges are compact 16px pills in the default presentation.
+Hover fills use the theme's row colour and names become fully legible.
+
+The chat header keeps its 50px height, with 20px channel icons, 8px spacing
+and a 12px right inset. A long channel name yields space to the topic and
+toolbar. Topic hover increases text contrast. These bindings use existing
+theme colours, so saved themes continue to apply.
+
 ## Where it lives
 
 `ui/static/style.slint` owns the metrics (`ClientStyle`): 304px navigation

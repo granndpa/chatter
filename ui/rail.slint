@@ -479,8 +479,9 @@ export component ChannelRow inherits Rectangle {
     property <bool> has-detail: root.detail != "" || root.detail-emoji != "";
     property <bool> offers-wave: root.wave != "" && (pointer.has-hover || root.selected);
     height: root.person ? ClientStyle.dm-row-height : ClientStyle.channel-row-height;
-    border-radius: 6px;
-    background: root.selected ? Theme.active : pointer.has-hover ? Theme.hover : transparent;
+    property <bool> attention: root.badge != "" || (root.unread && !root.muted);
+    border-radius: ClientStyle.enabled ? 8px : 6px;
+    background: root.selected ? Theme.active : pointer.has-hover ? (ClientStyle.enabled ? Theme.row-hover : Theme.hover) : transparent;
     animate background { duration: 90ms; }
     border-width: focus.has-focus ? 2px : 0px;
     border-color: Theme.accent;
@@ -488,9 +489,9 @@ export component ChannelRow inherits Rectangle {
     accessible-label: root.label;
     accessible-action-default => { root.clicked(); }
     forward-focus: focus;
-    property <color> ink: root.danger ? Theme.danger : root.locked ? (root.selected ? Theme.muted : Theme.faint) : root.selected || root.unread ? Theme.text : pointer.has-hover ? Theme.secondary : Theme.muted;
+    property <color> ink: root.danger ? Theme.danger : root.locked ? (root.selected ? Theme.muted : Theme.faint) : root.selected || root.attention ? Theme.text : pointer.has-hover ? Theme.text : Theme.muted;
     // Unread activity is marked at the sidebar's edge, as on the server rail.
-    if root.unread && !root.selected: Rectangle {
+    if root.attention && !root.selected: Rectangle {
         // A thread sits further in, past the line from its channel.
         x: root.thread ? -36px : -8px; y: (parent.height - self.height) / 2; width: 4px; height: 8px;
         border-top-right-radius: 4px; border-bottom-right-radius: 4px; background: Theme.text;
@@ -539,7 +540,7 @@ export component ChannelRow inherits Rectangle {
             // them takes its own clicks while the row stays hovered.
             HorizontalLayout {
                 padding-left: 8px; padding-right: 8px; spacing: root.person ? 12px : 8px;
-                opacity: root.muted && !root.selected && !pointer.has-hover ? 0.5 : 1;
+                opacity: root.muted && !root.selected && !root.attention && !pointer.has-hover ? 0.5 : 1;
                 if root.person: Middle {
                     Avatar {
                         size: 32px; initial: root.initial; tint: root.tint; picture: root.picture; picture-url: root.picture-url;
@@ -553,13 +554,13 @@ export component ChannelRow inherits Rectangle {
                         }
                     }
                 }
-                if !root.person && !root.thread: Image { source: root.icon; width: 20px; image-fit: contain; colorize: root.danger ? Theme.danger : root.selected && ClientStyle.enabled ? Theme.text : root.selected || root.unread ? Theme.secondary : Theme.faint; }
+                if !root.person && !root.thread: Image { source: root.icon; width: 20px; image-fit: contain; colorize: root.danger ? Theme.danger : root.selected && ClientStyle.enabled ? Theme.text : root.selected || root.attention || pointer.has-hover ? Theme.secondary : Theme.faint; }
                 VerticalLayout {
                     alignment: center; spacing: 0px; horizontal-stretch: 1;
                     HorizontalLayout {
                         spacing: 4px;
                         Text {
-                            text: root.text; color: root.ink; font-size: ClientStyle.text-size; font-weight: ClientStyle.enabled ? 500 : root.unread ? 700 : root.selected ? 700 : 500;
+                            text: root.text; color: root.ink; font-size: ClientStyle.text-size; font-weight: ClientStyle.enabled ? (root.selected || root.attention ? 600 : 500) : root.unread ? 700 : root.selected ? 700 : 500;
                             vertical-alignment: center; overflow: elide; horizontal-stretch: 0;
                         }
                         if root.official: Middle {
@@ -623,8 +624,8 @@ export component ChannelRow inherits Rectangle {
                 }
                 if root.badge != "": Middle {
                     Rectangle {
-                        width: max(18px, badge-text.preferred-width + 10px); height: 18px; border-radius: 9px; background: Theme.danger;
-                        badge-text := Text { text: root.badge; color: Theme.on-danger; font-size: 11px; font-weight: 700; }
+                        width: max(ClientStyle.enabled ? 16px : 18px, badge-text.preferred-width + (ClientStyle.enabled ? 8px : 10px)); height: ClientStyle.enabled ? 16px : 18px; border-radius: self.height / 2; background: Theme.danger;
+                        badge-text := Text { text: root.badge; color: Theme.on-danger; font-size: ClientStyle.enabled ? 12px : 11px; font-weight: 700; }
                     }
                 }
                 // A voice channel's chat opens without joining it, from a
