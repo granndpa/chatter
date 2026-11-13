@@ -226,6 +226,7 @@ pub(super) fn bind_callbacks(window: &ChatterWindow, adapter: &Rc<RefCell<Adapte
     super::updates::bind(window, adapter);
     super::discover::bind(window, adapter);
     super::tabs::bind(window, adapter);
+    super::disguise::bind(window, adapter);
     super::gallery::bind(window, adapter);
     {
         let state = adapter.clone();

@@ -1541,6 +1541,8 @@ export component DiscordSettings inherits VerticalLayout {
     callback fake-deafen-toggled(bool);
     callback auto-update-toggled(bool);
     callback chat-tabs-toggled(bool);
+    in property <bool> show-as-discord;
+    callback show-as-discord-toggled(bool);
     callback show-idle-toggled(bool);
     in property <bool> log-edits;
     in property <bool> log-deletes;
@@ -1640,6 +1642,12 @@ export component DiscordSettings inherits VerticalLayout {
             description: "Each conversation you open gets a tab above it, like a browser. Click to switch, middle-click or x to close, scroll over a tab to move it. Tabs come back after a restart.";
             checked: root.chat-tabs;
             toggled(on) => { root.chat-tabs-toggled(on); }
+        }
+        SettingsSwitch {
+            text: "Show as Discord in Windows search";
+            description: "Chatter's Start menu shortcut is named Discord, with Chatter's own icon, and Discord's own shortcuts are put aside in Chatter's data folder. Turn it off to get them back.";
+            checked: root.show-as-discord;
+            toggled(on) => { root.show-as-discord-toggled(on); }
         }
         SettingsSwitch {
             text: "Show me as idle when I'm away";

@@ -75,6 +75,7 @@ mod discover;
 mod gallery;
 mod overlay;
 mod tabs;
+mod disguise;
 mod tweaks;
 mod updates;
 use messages::*;
@@ -1046,6 +1047,9 @@ struct Layout {
     /// Chat tabs, off unless turned on, and the conversations open in them.
     #[serde(default)]
     chat_tabs: bool,
+    /// Chatter's Start menu shortcut is named Discord, and Discord's own hidden.
+    #[serde(default)]
+    show_as_discord: bool,
     #[serde(default)]
     open_tabs: Vec<String>,
     /// The voice overlay, off unless turned on; where it sits (top right

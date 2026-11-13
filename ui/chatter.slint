@@ -1497,6 +1497,8 @@ export component ChatterWindow inherits Window {
     callback chat-tab-close(string);
     callback chat-tab-shift(string, int);
     callback chat-tabs-toggled(bool);
+    in-out property <bool> show-as-discord;
+    callback show-as-discord-toggled(bool);
     // Create a Server and Discover; see src/ui/discover.rs.
     in property <bool> create-server-open;
     in property <bool> create-server-busy;
@@ -4258,6 +4260,8 @@ export component ChatterWindow inherits Window {
             overlay-avatars <=> root.overlay-avatars;
             overlay-changed => { root.overlay-changed(root.overlay-enabled, root.overlay-corner, root.overlay-scale, root.overlay-opacity, root.overlay-avatars); }
             chat-tabs-toggled(on) => { root.chat-tabs-toggled(on); }
+            show-as-discord: root.show-as-discord;
+            show-as-discord-toggled(on) => { root.show-as-discord = on; root.show-as-discord-toggled(on); }
             auto-update-toggled(on) => { root.auto-update = on; root.auto-update-toggled(on); }
             join-community(code) => { root.join-community(code); }
             log-edits: root.log-edits; log-deletes: root.log-deletes; log-ghost-pings: root.log-ghost-pings;
