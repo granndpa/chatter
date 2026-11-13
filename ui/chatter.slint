@@ -1300,7 +1300,7 @@ export component ChatterWindow inherits Window {
         if root.settings-open && root.settings-section == 9 { root.connections-action("refresh", "", "", false); }
         if root.settings-open && (root.settings-section == 0 || root.settings-section == 10 || root.settings-section == 11) { root.account-wanted(); }
     }
-    out property <length> message-font-size: root.text-size == 0 ? 14px : root.text-size == 2 ? 18px : ClientStyle.text-size;
+    out property <length> message-font-size: root.text-size == 0 ? 14px : root.text-size == 2 ? 18px : (ClientStyle.enabled ? ClientStyle.text-size - 0.5px : ClientStyle.text-size);
     // The sidebar keeps 180 to 380px. Dragging also leaves the conversation 420px;
     // the window width cannot enter this binding, because it depends on the layout.
     out property <length> sidebar-shown: max(180px, min(380px, root.sidebar-width));

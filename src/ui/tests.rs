@@ -8111,7 +8111,7 @@ fn chatter_typography_is_compact_and_preserves_explicit_text_sizes() {
     i_slint_backend_testing::init_no_event_loop();
     let window = chatter_window::window().unwrap();
     assert_eq!(window.global::<ClientStyle>().get_font_family(), "DM Sans");
-    assert_eq!(window.get_message_font_size(), 15.);
+    assert_eq!(window.get_message_font_size(), 14.5);
     window.set_text_size(0);
     assert_eq!(window.get_message_font_size(), 14.);
     window.set_text_size(2);

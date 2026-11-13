@@ -1231,7 +1231,7 @@ impl Adapter {
                 status
             } else if let Some(playing) = playing {
                 &playing.name
-            } else if let Some(status) = &state.account_status {
+            } else if let Some(status) = state.account_status.as_deref().filter(|status| *status != "Online") {
                 status
             } else if state.online {
                 match state.discord_presence.as_deref() {

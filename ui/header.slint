@@ -228,7 +228,7 @@ component Popover inherits Rectangle {
                 Middle { Image { source: root.icon; width: 20px; height: 20px; colorize: Theme.secondary; } }
                 VerticalLayout {
                     alignment: center; horizontal-stretch: 1; spacing: 2px;
-                    Text { text: root.heading; color: Theme.text; font-size: 16px; font-weight: 700; overflow: elide; }
+                    Text { text: root.heading; color: Theme.text; font-size: 16px; font-weight: 500; overflow: elide; }
                     if root.detail != "": Text { text: root.detail; color: Theme.muted; font-size: 13px; overflow: elide; }
                 }
                 Middle { IconButton { icon: @image-url("icons/x.svg"); label: "Close"; size: 28px; glyph: 18px; tip-side: 2; clicked => { root.close(); } } }
