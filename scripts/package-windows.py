@@ -196,7 +196,7 @@ def main():
             encoding="utf-8",
         )
         (package / "run-chatter.cmd").write_text(
-            '@echo off\ncd /d "%~dp0"\nstatic.exe %*\n'
+            '@echo off\ncd /d "%~dp0"\nchatter.exe %*\n'
             'if errorlevel 1 (\n  echo Chatter exited with an error.\n  pause\n)\n',
             encoding="utf-8", newline="\r\n",
         )
