@@ -402,7 +402,7 @@ mod linux {
             && runtime
                 .file_name()
                 .and_then(|name| name.to_str())
-                .is_some_and(|name| name.starts_with("static-framework-display-"));
+                .is_some_and(|name| name.starts_with("chatter-framework-display-"));
         if private {
             Ok(())
         } else {

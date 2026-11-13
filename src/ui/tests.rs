@@ -1,9 +1,9 @@
 use super::*;
 
 // Keep the coordinate and appearance regressions in the classic mode.
-// The Static tests below exercise the new defaults separately.
-fn classic_window() -> StaticWindow {
-    let window = StaticWindow::new().unwrap();
+// The Chatter tests below exercise the new defaults separately.
+fn classic_window() -> ChatterWindow {
+    let window = ChatterWindow::new().unwrap();
     window.global::<ClientStyle>().set_enabled(false);
     window
 }
@@ -22,7 +22,7 @@ fn a_server_without_a_picture_shows_its_initials_in_capitals() {
 
 #[test]
 fn a_notice_is_a_group_of_its_own_with_an_icon() {
-    use static_core::chat::{Notice, NoticeKind};
+    use chatter_core::chat::{Notice, NoticeKind};
     let said = ChatMessage {
         item: "d:4".into(),
         author: "Alice".into(),
@@ -63,7 +63,7 @@ fn statuses_show_their_custom_emoji_as_pictures() {
     assert_eq!((words.as_str(), emoji.as_str()), ("☕ brb", ""));
 
     // The account's own status.
-    let mut status = static_core::chat::CustomStatus {
+    let mut status = chatter_core::chat::CustomStatus {
         text: "Shipping it".into(),
         emoji: Some("pog".into()),
         emoji_id: Some("5".into()),
@@ -87,11 +87,11 @@ fn equal_lists_stay_so_rows_count_as_unchanged() {
     assert_eq!(changed.row_data(1), Some(3));
 
     // A profile built again from the same view isn't set again.
-    let view = static_core::application::ProfileView {
-        profile: static_core::chat::Profile {
+    let view = chatter_core::application::ProfileView {
+        profile: chatter_core::chat::Profile {
             id: "@sam:test".into(),
             name: "Sam".into(),
-            servers: vec![static_core::chat::ProfileServer {
+            servers: vec![chatter_core::chat::ProfileServer {
                 id: "s".into(),
                 name: "Server".into(),
                 icon: None,
@@ -108,7 +108,7 @@ fn equal_lists_stay_so_rows_count_as_unchanged() {
         },
         ..Default::default()
     };
-    let state = static_core::application::AppState::default();
+    let state = chatter_core::application::AppState::default();
     let mut pictures = HashMap::new();
     let shown = profile_data(&mut pictures, &state, &view);
     let again = profile_data(&mut pictures, &state, &view);
@@ -245,7 +245,7 @@ fn the_composers_menu_cuts_copies_and_pastes_through_the_application() {
 }
 
 /// Presses and lets go of a key, as typed.
-fn tap(window: &StaticWindow, text: SharedString) {
+fn tap(window: &ChatterWindow, text: SharedString) {
     use slint::platform::WindowEvent;
     window
         .window()
@@ -260,7 +260,7 @@ fn escape_in_the_composer_cancels_a_reply_and_keeps_the_draft() {
     use slint::platform::Key;
     i_slint_backend_testing::init_no_event_loop();
     let directory = tempfile::tempdir().unwrap();
-    let window = StaticWindow::new().unwrap();
+    let window = ChatterWindow::new().unwrap();
     let adapter = Adapter::new(
         Arc::new(BackgroundRuntime::new().unwrap()),
         directory.path().into(),
@@ -489,11 +489,11 @@ fn files_dropped_on_the_thread_beside_go_with_its_message() {
     let (window, adapter, folder) = discord_server_window_changed(0, |server, _| {
         server
             .threads
-            .push(static_core::static_discord::ready::Channel {
+            .push(chatter_core::chatter_discord::ready::Channel {
                 id: "30".into(),
                 name: "Plans".into(),
                 parent: Some("11".into()),
-                thread: Some(Box::new(static_core::static_discord::ready::Thread {
+                thread: Some(Box::new(chatter_core::chatter_discord::ready::Thread {
                     joined: true,
                     ..Default::default()
                 })),
@@ -552,15 +552,15 @@ fn files_dropped_on_the_thread_beside_go_with_its_message() {
 #[test]
 #[cfg(feature = "discord")]
 fn the_thread_beside_suggests_mentions_and_emoji_above_its_composer() {
-    use static_core::chat::{ChatMember, Role};
+    use chatter_core::chat::{ChatMember, Role};
     let (window, adapter, _folder) = discord_server_window_changed(0, |server, _| {
         server
             .threads
-            .push(static_core::static_discord::ready::Channel {
+            .push(chatter_core::chatter_discord::ready::Channel {
                 id: "30".into(),
                 name: "Plans".into(),
                 parent: Some("11".into()),
-                thread: Some(Box::new(static_core::static_discord::ready::Thread {
+                thread: Some(Box::new(chatter_core::chatter_discord::ready::Thread {
                     joined: true,
                     ..Default::default()
                 })),
@@ -612,7 +612,7 @@ fn the_thread_beside_suggests_mentions_and_emoji_above_its_composer() {
     assert_eq!(adapter.borrow().app.state.aside_draft(), "hey @Carol ");
     assert_eq!(adapter.borrow().app.state.draft(), "");
     // It's marked as the channel's composer marks its own.
-    let marks = i_slint_core::static_marks::marks_of("hey @Carol ").expect("marked");
+    let marks = i_slint_core::chatter_marks::marks_of("hey @Carol ").expect("marked");
     assert_eq!(marks[0].0, 4..10);
     // `:name` too.
     window.invoke_aside_composer_caret("hey @Carol :pizz".into(), 16);
@@ -682,23 +682,23 @@ fn preferences_set_the_clock_text_size_previews_and_unmuting() {
     let message = ChatMessage {
         timestamp: 1_791_329_400,
         time: "23:30".into(),
-        embeds: vec![static_core::chat::Embed::default()],
+        embeds: vec![chatter_core::chat::Embed::default()],
         ..Default::default()
     };
     // Missing preferences take their defaults: 24 hours, default text, previews.
     let defaults: Layout = serde_json::from_str("{}").unwrap();
     assert_eq!(
         defaults.noise_suppression,
-        static_core::noise::Suppressor::DeepFilterNet
+        chatter_core::noise::Suppressor::DeepFilterNet
     );
     let row = defaults.restyle(&message, message_row(&message, &HashSet::new()));
     // A message from another day shows its date before its time, but beside
     // a grouped message only the time.
-    let now = static_core::clock::now_ms() / 1000;
-    let time = static_core::clock::time_on(message.timestamp, false);
+    let now = chatter_core::clock::now_ms() / 1000;
+    let time = chatter_core::clock::time_on(message.timestamp, false);
     assert_eq!(
         row.time,
-        static_core::clock::sent(message.timestamp, now, false, false)
+        chatter_core::clock::sent(message.timestamp, now, false, false)
     );
     assert!(row.time.contains('/') && row.time.ends_with(&format!(" {time}")));
     assert_eq!(row.short_time, time);
@@ -708,16 +708,16 @@ fn preferences_set_the_clock_text_size_previews_and_unmuting() {
         text_size: Some(2),
         link_previews: Some(false),
         unmute_on_join: Some(true),
-        noise_suppression: static_core::noise::Suppressor::RNNoise,
-        noise_strength: static_core::noise::Strength::Light,
+        noise_suppression: chatter_core::noise::Suppressor::RNNoise,
+        noise_strength: chatter_core::noise::Strength::Light,
         input_sensitivity: Some(-45),
         reduce_room_echo: true,
         ..Default::default()
     };
     let row = layout.restyle(&message, message_row(&message, &HashSet::new()));
-    let time = static_core::clock::time_on(message.timestamp, true);
+    let time = chatter_core::clock::time_on(message.timestamp, true);
     assert!(time.ends_with(" AM") || time.ends_with(" PM"));
-    let sent = static_core::clock::sent(message.timestamp, now, true, false);
+    let sent = chatter_core::clock::sent(message.timestamp, now, true, false);
     assert!(sent.ends_with(&time));
     assert_eq!(row.time, sent);
     assert_eq!(row.time_styled, slint::StyledText::from_plain_text(&sent));
@@ -729,7 +729,7 @@ fn preferences_set_the_clock_text_size_previews_and_unmuting() {
         "A card, hidden while link previews are off."
     );
     let titled = ChatMessage {
-        embeds: vec![static_core::chat::Embed {
+        embeds: vec![chatter_core::chat::Embed {
             title: "Server status".into(),
             ..Default::default()
         }],
@@ -759,8 +759,8 @@ fn preferences_set_the_clock_text_size_previews_and_unmuting() {
     assert_eq!(window.get_noise_suppression(), 1);
     assert_eq!(window.get_noise_strength(), 2);
     assert_eq!(
-        static_core::noise::chosen(),
-        static_core::noise::Suppressor::RNNoise
+        chatter_core::noise::chosen(),
+        chatter_core::noise::Suppressor::RNNoise
     );
     let saved = serde_json::to_value(&layout).unwrap();
     assert_eq!(saved["noise_suppression"], "rnnoise");
@@ -774,8 +774,8 @@ fn preferences_set_the_clock_text_size_previews_and_unmuting() {
     };
     assert_eq!(out_of_range.sensitivity(), 0);
     // The third choice is Off; an index out of range is the default.
-    assert_eq!(chosen(&SUPPRESSORS, 2), static_core::noise::Suppressor::Off);
-    assert_eq!(chosen(&STRENGTHS, -1), static_core::noise::Strength::Full);
+    assert_eq!(chosen(&SUPPRESSORS, 2), chatter_core::noise::Suppressor::Off);
+    assert_eq!(chosen(&STRENGTHS, -1), chatter_core::noise::Strength::Full);
     assert_eq!(window.get_message_font_size(), 18.);
     // Joining a call turns the microphone on once it connects.
     let unmuted = Rc::new(Cell::new(false));
@@ -817,13 +817,13 @@ fn push_to_talk_keeps_its_mode_key_and_release_delay() {
     assert_eq!(window.get_input_mode(), 1);
     assert_eq!(window.get_talk_key(), "V");
     assert_eq!(window.get_talk_delay(), 2000);
-    assert!(static_core::push_to_talk::on());
+    assert!(chatter_core::push_to_talk::on());
     let saved = serde_json::to_value(&layout).unwrap();
     assert_eq!(saved["input_mode"], "push_to_talk");
     assert_eq!(saved["push_to_talk_key"]["scancode"], 47);
     assert_eq!(saved["push_to_talk_key"]["trigger"], "v");
     defaults.apply(&window);
-    assert!(!static_core::push_to_talk::on());
+    assert!(!chatter_core::push_to_talk::on());
     assert_eq!(window.get_talk_key(), "");
 }
 
@@ -997,8 +997,8 @@ fn call_volumes_play_while_dragged_and_are_remembered() {
     window.set_microphone_volume(200);
     window.set_speaker_volume(50);
     window.invoke_call_volumes_changed();
-    assert!((static_core::volume::microphone() - 1.995).abs() < 1e-3);
-    assert!((static_core::volume::speakers() - 0.143).abs() < 1e-3);
+    assert!((chatter_core::volume::microphone() - 1.995).abs() < 1e-3);
+    assert!((chatter_core::volume::speakers() - 0.143).abs() < 1e-3);
     assert_eq!(
         Layout::read(directory.path()).microphone_volume,
         None,
@@ -1010,8 +1010,8 @@ fn call_volumes_play_while_dragged_and_are_remembered() {
     assert_eq!(read.speaker_volume, Some(50));
     let defaults: Layout = serde_json::from_str("{}").unwrap();
     defaults.apply(&window);
-    assert_eq!(static_core::volume::microphone(), 1.0);
-    assert_eq!(static_core::volume::speakers(), 1.0);
+    assert_eq!(chatter_core::volume::microphone(), 1.0);
+    assert_eq!(chatter_core::volume::speakers(), 1.0);
     read.apply(&window);
     assert_eq!(window.get_microphone_volume(), 200);
     assert_eq!(window.get_speaker_volume(), 50);
@@ -1080,12 +1080,12 @@ fn embed_fields_share_rows_three_inline_at_a_time() {
 }
 
 /// A window showing one styled message from Sam, with the composer.
-fn one_message(body: &str) -> StaticWindow {
+fn one_message(body: &str) -> ChatterWindow {
     messages(&[("Sam", body)])
 }
 
 /// A window showing styled messages, each starting a group, with the composer.
-fn messages(lines: &[(&str, &str)]) -> StaticWindow {
+fn messages(lines: &[(&str, &str)]) -> ChatterWindow {
     showing(
         lines
             .iter()
@@ -1115,7 +1115,7 @@ fn init_backend() {
 
 /// A window showing these messages, each starting a group and sent at 19:2 and its
 /// index, with the composer.
-fn showing(chat: Vec<ChatMessage>) -> StaticWindow {
+fn showing(chat: Vec<ChatMessage>) -> ChatterWindow {
     init_backend();
     let window = classic_window();
     copy_whole_messages(&window);
@@ -1150,7 +1150,7 @@ fn showing(chat: Vec<ChatMessage>) -> StaticWindow {
     window
 }
 
-fn gif_button_center(window: &StaticWindow) -> (f32, f32) {
+fn gif_button_center(window: &ChatterWindow) -> (f32, f32) {
     use i_slint_core::{accessibility::AccessibleStringProperty, item_tree::ItemRc};
     use std::ops::ControlFlow;
     let component = i_slint_core::window::WindowInner::from_pub(window.window()).component();
@@ -1166,7 +1166,7 @@ fn gif_button_center(window: &StaticWindow) -> (f32, f32) {
     (point.x + geometry.width() / 2., point.y + geometry.height() / 2.)
 }
 
-fn settle(window: &StaticWindow) {
+fn settle(window: &ChatterWindow) {
     for _ in 0..5 {
         slint::platform::update_timers_and_animations();
         let _ = window.invoke_timeline_extent();
@@ -1178,7 +1178,7 @@ fn settle(window: &StaticWindow) {
 /// until a copy changes the clipboard, which it returns. The first drag to start on a
 /// message starts at the end of the lowest, so it selects up to the end of that message.
 /// The list returns to the newest message before each.
-fn copy_upwards(window: &StaticWindow, wheel: usize) -> Option<String> {
+fn copy_upwards(window: &ChatterWindow, wheel: usize) -> Option<String> {
     use slint::platform::{Key, PointerEventButton, WindowEvent};
     let dispatch = |event| window.window().dispatch_event(event);
     let at = |x, y| slint::LogicalPosition::new(x, y);
@@ -1253,7 +1253,7 @@ fn a_selection_runs_across_messages_with_their_names_and_times() {
 
 #[test]
 fn pictures_on_their_way_hold_their_place_as_skeletons() {
-    let attachment = |name: &str, preview_failed| static_core::chat::Attachment {
+    let attachment = |name: &str, preview_failed| chatter_core::chat::Attachment {
         name: name.into(),
         size: Some(1000),
         image: true,
@@ -1289,14 +1289,14 @@ fn a_selection_copies_the_pictures_it_runs_through() {
     let picture = Arc::new(Picture {
         width: 40,
         height: 30,
-        rgba: static_core::chat::Pixels::new(40, 30, vec![128; 40 * 30 * 4]),
+        rgba: chatter_core::chat::Pixels::new(40, 30, vec![128; 40 * 30 * 4]),
         ..Default::default()
     });
     let window = showing(vec![
         ChatMessage {
             author: "Sam".into(),
             body: "Look at this.".into(),
-            attachments: vec![static_core::chat::Attachment {
+            attachments: vec![chatter_core::chat::Attachment {
                 name: "cat.png".into(),
                 size: None,
                 image: true,
@@ -1426,7 +1426,7 @@ fn a_click_on_an_emoji_in_a_message_reaches_its_card() {
 #[test]
 fn an_emoji_card_says_what_the_emoji_is() {
     let mut pictures = HashMap::new();
-    let state = static_core::application::AppState::default();
+    let state = chatter_core::application::AppState::default();
     let default = emoji_card(
         &emoji_text::Target::Unicode("😭".to_owned()),
         None,
@@ -1460,7 +1460,7 @@ fn an_emoji_card_says_what_the_emoji_is() {
 /// registry's, which this crate can reach and its own tests cannot run.
 #[test]
 fn an_animated_emoji_draws_a_frame_only_while_playing() {
-    use i_slint_core::static_emoji as registry;
+    use i_slint_core::chatter_emoji as registry;
     let (glyph, key) = ('\u{10ffe0}', "test-animation:1");
     let frame =
         || slint::Image::from_rgba8(slint::SharedPixelBuffer::<slint::Rgba8Pixel>::new(2, 2));
@@ -1487,8 +1487,8 @@ fn an_animated_emoji_draws_a_frame_only_while_playing() {
 #[test]
 fn an_emoji_card_says_how_many_of_its_servers_members_are_online() {
     let mut pictures = HashMap::new();
-    let mut state = static_core::application::AppState::default();
-    let server = static_core::chat::ChatServer {
+    let mut state = chatter_core::application::AppState::default();
+    let server = chatter_core::chat::ChatServer {
         id: "discord:10".into(),
         name: "Equicord".into(),
         channels: Vec::new(),
@@ -1503,7 +1503,7 @@ fn an_emoji_card_says_how_many_of_its_servers_members_are_online() {
         ..Default::default()
     };
     let target = emoji_text::Target::Custom("42".to_owned());
-    // Before Discord answers, the note follows the features Static has.
+    // Before Discord answers, the note follows the features Chatter has.
     let known = emoji_card(&target, Some(&server), &state, &mut pictures);
     assert_eq!(known.server_online, "", "nothing said yet");
     assert_eq!(known.server_note, "Discoverable Server");
@@ -1513,7 +1513,7 @@ fn an_emoji_card_says_how_many_of_its_servers_members_are_online() {
     );
     state.server_previews.insert(
         server.id.clone(),
-        static_core::chat::ServerPreview {
+        chatter_core::chat::ServerPreview {
             online: Some(3999),
             discoverable: true,
         },
@@ -1525,10 +1525,10 @@ fn an_emoji_card_says_how_many_of_its_servers_members_are_online() {
     );
     assert_eq!(answered.server_note, "Discoverable Server");
     // A server Discover doesn't list shows its count alone, whatever feature
-    // Static knew of it.
+    // Chatter knew of it.
     state.server_previews.insert(
         server.id.clone(),
-        static_core::chat::ServerPreview {
+        chatter_core::chat::ServerPreview {
             online: Some(12),
             discoverable: false,
         },
@@ -1569,7 +1569,7 @@ fn a_right_click_on_a_link_gives_its_menu_the_address() {
             .window()
             .dispatch_event(WindowEvent::PointerReleased { position, button });
         let at = |x: f32| {
-            i_slint_core::static_selection::pressed_link_at(
+            i_slint_core::chatter_selection::pressed_link_at(
                 i_slint_core::lengths::LogicalPoint::new(x, y as f32),
             )
         };
@@ -1722,7 +1722,7 @@ fn menus_list_their_choices_and_carry_them_out() {
     .unwrap();
     bind_callbacks(&window, &adapter);
     window.invoke_explore_preview();
-    let texts = |window: &StaticWindow| -> Vec<String> {
+    let texts = |window: &ChatterWindow| -> Vec<String> {
         window
             .get_menu_rows()
             .iter()
@@ -1786,7 +1786,7 @@ fn a_server_members_menu_follows_permissions_and_ticks_roles() {
     .unwrap();
     bind_callbacks(&window, &adapter);
     // Alice is Staff, below Leads; Dave, her friend, is below her.
-    adapter.borrow_mut().app = static_core::application::member_server(&["30"]);
+    adapter.borrow_mut().app = chatter_core::application::member_server(&["30"]);
     window.invoke_prepare_menu("4".into(), true);
     let rows: Vec<MenuRow> = window.get_menu_rows().iter().collect();
     let texts: Vec<&str> = rows.iter().map(|row| row.text.as_str()).collect();
@@ -1927,11 +1927,11 @@ fn a_server_members_menu_follows_permissions_and_ticks_roles() {
     window.invoke_choose_menu("3".into(), true, "mention".into());
     assert_eq!(adapter.borrow().app.state.draft(), "@Cara ");
     // The composer colours it as the message will show it.
-    let marks = i_slint_core::static_marks::marks_of("@Cara ").expect("the mention is marked");
+    let marks = i_slint_core::chatter_marks::marks_of("@Cara ").expect("the mention is marked");
     assert_eq!(marks.len(), 1);
     assert_eq!(marks[0].0, 0..5);
     window.invoke_draft_edited("@Carab".into());
-    assert_eq!(i_slint_core::static_marks::marks_of("@Carab"), None);
+    assert_eq!(i_slint_core::chatter_marks::marks_of("@Carab"), None);
 }
 
 #[test]
@@ -1947,8 +1947,8 @@ fn invite_to_server_lists_the_servers_in_a_submenu() {
     )
     .unwrap();
     bind_callbacks(&window, &adapter);
-    let mut app = static_core::application::member_server(&["30"]);
-    static_core::application::with_clubs(&mut app);
+    let mut app = chatter_core::application::member_server(&["30"]);
+    chatter_core::application::with_clubs(&mut app);
     adapter.borrow_mut().app = app;
     window.invoke_prepare_menu("4".into(), true);
     let rows: Vec<MenuRow> = window.get_menu_rows().iter().collect();
@@ -1975,7 +1975,7 @@ fn invite_to_server_lists_the_servers_in_a_submenu() {
 
 #[test]
 fn an_event_shows_when_it_runs_and_where() {
-    use static_core::{application::EventDialog, chat::EventPreview, clock};
+    use chatter_core::{application::EventDialog, chat::EventPreview, clock};
     i_slint_backend_testing::init_no_event_loop();
     let directory = tempfile::tempdir().unwrap();
     let window = classic_window();
@@ -2062,7 +2062,7 @@ fn menus_give_each_row_its_own_submenu_and_tick_checkboxes() {
     assert_eq!(menus::toggle(&window, "hide-muted"), Some(true));
     assert!(window.get_menu_rows().row_data(3).unwrap().checked);
     assert_eq!(menus::toggle(&window, "suppress-roles"), Some(true));
-    let ticked = |window: &StaticWindow| {
+    let ticked = |window: &ChatterWindow| {
         window
             .get_menu_submenus()
             .row_data(2)
@@ -2197,7 +2197,7 @@ fn a_window_made_again_shows_what_the_last_one_did() {
     adapter
         .borrow_mut()
         .action(&window, Action::SelectRoom("general".into()));
-    let topic = Arc::new(static_core::chat::Topic {
+    let topic = Arc::new(chatter_core::chat::Topic {
         body: "Plans for the weekend".into(),
         ..Default::default()
     });
@@ -2206,12 +2206,12 @@ fn a_window_made_again_shows_what_the_last_one_did() {
         topic: Some(topic),
     });
     adapter.borrow_mut().refresh(&window);
-    let shown = |window: &StaticWindow| {
+    let shown = |window: &ChatterWindow| {
         (
             window.get_sidebar_title(),
             window.get_filter_placeholder(),
             window.get_has_topic(),
-            i_slint_core::static_selection::plain(&window.get_room_topic()),
+            i_slint_core::chatter_selection::plain(&window.get_room_topic()),
         )
     };
     let before = shown(&window);
@@ -3280,7 +3280,7 @@ fn collapsed_categories_keep_the_open_unread_and_occupied_channels() {
             ("b", "", true, false),
             ("c", "", true, false),
             ("e", "VOICE", true, true),
-            // The voice channel Static is in stays.
+            // The voice channel Chatter is in stays.
             ("f", "", true, false),
             ("g", "OTHER", false, false),
             ("h", "", false, false),
@@ -3686,7 +3686,7 @@ fn an_unread_dm_shows_on_the_rail_above_the_servers_and_opens() {
     .unwrap();
     bind_callbacks(&window, &adapter);
     adapter.borrow_mut().action(&window, Action::Preview);
-    let rail = |window: &StaticWindow| -> Vec<(String, bool, bool)> {
+    let rail = |window: &ChatterWindow| -> Vec<(String, bool, bool)> {
         window
             .get_servers()
             .iter()
@@ -3727,13 +3727,13 @@ fn an_unread_dm_shows_on_the_rail_above_the_servers_and_opens() {
 
 #[test]
 fn a_folder_on_the_rail_holds_its_servers_until_opened() {
-    let folder = static_core::chat::ServerFolder {
+    let folder = chatter_core::chat::ServerFolder {
         id: "discord-folder:7".into(),
         name: None,
         color: Some(0xff0000),
     };
-    let server = |id: &str, folder: Option<&static_core::chat::ServerFolder>| {
-        static_core::chat::ChatServer {
+    let server = |id: &str, folder: Option<&chatter_core::chat::ServerFolder>| {
+        chatter_core::chat::ChatServer {
             id: id.into(),
             name: id.into(),
             channels: vec![],
@@ -3864,7 +3864,7 @@ fn a_right_click_on_a_folder_asks_for_its_menu() {
 #[cfg(feature = "discord")]
 #[test]
 fn a_profile_shows_activities_as_discord_cards() {
-    let activities = static_discord::activity::activities(&serde_json::json!([
+    let activities = chatter_discord::activity::activities(&serde_json::json!([
         {"type": 2, "name": "Spotify", "details": "Weightless", "state": "Marconi Union",
          "sync_id": "6kkwzB6hXLIONkEk9JciA6",
          "timestamps": {"start": 1_700_000_000_000_u64, "end": 1_700_000_480_000_u64},
@@ -3895,7 +3895,7 @@ fn a_profile_shows_activities_as_discord_cards() {
 
 #[test]
 fn friends_in_a_servers_voice_channel_show_where() {
-    use static_core::chat::{ChatRoom, ChatServer, VoicePerson};
+    use chatter_core::chat::{ChatRoom, ChatServer, VoicePerson};
     let person = |id: &str| VoicePerson {
         id: id.into(),
         name: id.into(),
@@ -3983,13 +3983,13 @@ fn friends_in_a_servers_voice_channel_show_where() {
 
 #[test]
 fn a_call_shows_on_its_servers_icon_and_its_closed_folder() {
-    let folder = static_core::chat::ServerFolder {
+    let folder = chatter_core::chat::ServerFolder {
         id: "discord-folder:7".into(),
         name: None,
         color: None,
     };
-    let server = |id: &str, channel: &str, folder: Option<&static_core::chat::ServerFolder>| {
-        static_core::chat::ChatServer {
+    let server = |id: &str, channel: &str, folder: Option<&chatter_core::chat::ServerFolder>| {
+        chatter_core::chat::ChatServer {
             id: id.into(),
             name: id.into(),
             channels: vec![channel.into()],
@@ -4023,7 +4023,7 @@ fn a_call_shows_on_its_servers_icon_and_its_closed_folder() {
     // A voice channel chosen but not joined yet shows nothing.
     state.voice.room = Some("bravo-lounge".into());
     assert_eq!(calls(&state, &[]), none);
-    state.voice.phase = static_core::voice::Phase::Connected;
+    state.voice.phase = chatter_core::voice::Phase::Connected;
     assert_eq!(
         calls(&state, &[]),
         [("Alpha".into(), false), ("discord-folder:7".into(), true)]
@@ -4058,7 +4058,7 @@ fn closing_the_viewer_lets_go_of_its_picture() {
     let mut adapter = adapter.borrow_mut();
     adapter.app.state.messages = Arc::new(vec![Arc::new(ChatMessage {
         item: "i0".into(),
-        attachments: vec![static_core::chat::Attachment {
+        attachments: vec![chatter_core::chat::Attachment {
             name: "a.png".into(),
             size: None,
             image: true,
@@ -4066,11 +4066,11 @@ fn closing_the_viewer_lets_go_of_its_picture() {
             preview: Some(Arc::new(Picture {
                 width: 40,
                 height: 30,
-                rgba: static_core::chat::Pixels::new(40, 30, vec![128; 40 * 30 * 4]),
+                rgba: chatter_core::chat::Pixels::new(40, 30, vec![128; 40 * 30 * 4]),
                 ..Default::default()
             })),
             preview_failed: false,
-            placement: static_core::chat::Placement::Message,
+            placement: chatter_core::chat::Placement::Message,
             gif: None,
             spoiler: false,
             video: false,
@@ -4078,7 +4078,7 @@ fn closing_the_viewer_lets_go_of_its_picture() {
         }],
         ..Default::default()
     })]);
-    adapter.app.state.viewer = Some(static_core::application::Viewer {
+    adapter.app.state.viewer = Some(chatter_core::application::Viewer {
         item: "i0".into(),
         index: 0,
         pictures: HashMap::new(),
@@ -4103,14 +4103,14 @@ fn a_pictures_menu_links_to_it_when_it_has_an_address() {
     )
     .unwrap();
     bind_callbacks(&window, &adapter);
-    let file = |url: Option<&str>| static_core::chat::Attachment {
+    let file = |url: Option<&str>| chatter_core::chat::Attachment {
         name: "a.png".into(),
         size: None,
         image: true,
         dimensions: None,
         preview: None,
         preview_failed: false,
-        placement: static_core::chat::Placement::Message,
+        placement: chatter_core::chat::Placement::Message,
         gif: None,
         spoiler: false,
         video: false,
@@ -4134,10 +4134,10 @@ fn a_pictures_menu_links_to_it_when_it_has_an_address() {
 /// it, muted with its own level; Alice is "1".
 #[cfg(feature = "discord")]
 fn discord_server_adapter(
-    window: &StaticWindow,
+    window: &ChatterWindow,
     directory: &std::path::Path,
 ) -> Rc<RefCell<Adapter>> {
-    use static_discord::{
+    use chatter_discord::{
         marked::{ChannelMarks, MarkedServer, ServerMarks},
         notifications::{Level, Mute, Notifications as Settings, Override},
         ready,
@@ -4191,7 +4191,7 @@ fn discord_server_adapter(
     adapter
         .borrow_mut()
         .app
-        .apply(static_core::chat::Event::Discord(Arc::new(Snapshot {
+        .apply(chatter_core::chat::Event::Discord(Arc::new(Snapshot {
             status: Status::Online,
             user_id: Some("1".into()),
             servers: vec![server],
@@ -4207,7 +4207,7 @@ fn the_bell_and_channel_menus_offer_the_same_notification_choices() {
     let directory = tempfile::tempdir().unwrap();
     let window = classic_window();
     let adapter = discord_server_adapter(&window, directory.path());
-    let rows = |window: &StaticWindow| -> Vec<(String, String, bool)> {
+    let rows = |window: &ChatterWindow| -> Vec<(String, String, bool)> {
         window
             .get_menu_rows()
             .iter()
@@ -4231,7 +4231,7 @@ fn the_bell_and_channel_menus_offer_the_same_notification_choices() {
     let submenus = window.get_menu_submenus();
     assert_eq!(
         submenus.row_data(0).unwrap().row_count(),
-        static_core::application::MUTE_TIMES.len()
+        chatter_core::application::MUTE_TIMES.len()
     );
     // Clicked itself, the row mutes until it's turned back on, as Discord's
     // does; the times are its submenu's.
@@ -4282,7 +4282,7 @@ fn the_bell_and_channel_menus_offer_the_same_notification_choices() {
     );
 
     // What each choice changes.
-    use static_core::chat::{Muting, NotificationChange, NotifyLevel};
+    use chatter_core::chat::{Muting, NotificationChange, NotifyLevel};
     let adapter = adapter.borrow();
     let general = menus::Notify::of(&adapter, "discord:10:11").unwrap();
     assert_eq!(
@@ -4312,7 +4312,7 @@ fn the_bell_and_channel_menus_offer_the_same_notification_choices() {
 #[test]
 #[cfg(feature = "discord")]
 fn a_server_search_names_the_server_and_heads_results_with_their_channels() {
-    use static_core::chat::{Event, SearchHit};
+    use chatter_core::chat::{Event, SearchHit};
     i_slint_backend_testing::init_no_event_loop();
     let directory = tempfile::tempdir().unwrap();
     let window = classic_window();
@@ -4369,7 +4369,7 @@ fn a_server_search_names_the_server_and_heads_results_with_their_channels() {
 /// Her settings for the server hide muted channels and suppress role
 /// mentions; #general mentions her.
 #[cfg(feature = "discord")]
-fn discord_server_window() -> (StaticWindow, Rc<RefCell<Adapter>>, tempfile::TempDir) {
+fn discord_server_window() -> (ChatterWindow, Rc<RefCell<Adapter>>, tempfile::TempDir) {
     discord_server_window_granting(0)
 }
 
@@ -4378,7 +4378,7 @@ fn discord_server_window() -> (StaticWindow, Rc<RefCell<Adapter>>, tempfile::Tem
 #[cfg(feature = "discord")]
 fn discord_server_window_granting(
     extra: u64,
-) -> (StaticWindow, Rc<RefCell<Adapter>>, tempfile::TempDir) {
+) -> (ChatterWindow, Rc<RefCell<Adapter>>, tempfile::TempDir) {
     discord_server_window_changed(extra, |_, _| {})
 }
 
@@ -4387,11 +4387,11 @@ fn discord_server_window_granting(
 fn discord_server_window_changed(
     extra: u64,
     change: impl FnOnce(
-        &mut static_core::static_discord::ready::Server,
-        &mut static_core::static_discord::marked::ServerMarks,
+        &mut chatter_core::chatter_discord::ready::Server,
+        &mut chatter_core::chatter_discord::marked::ServerMarks,
     ),
-) -> (StaticWindow, Rc<RefCell<Adapter>>, tempfile::TempDir) {
-    use static_core::static_discord::{
+) -> (ChatterWindow, Rc<RefCell<Adapter>>, tempfile::TempDir) {
+    use chatter_core::chatter_discord::{
         marked::{MarkedServer, ServerMarks},
         notifications::Notifications,
         ready::{self, permission},
@@ -4488,7 +4488,7 @@ fn account_switcher_loads_choices_and_reports_a_broken_account_list() {
 #[test]
 #[cfg(feature = "discord")]
 fn a_discord_servers_menus_show_and_change_its_notifications() {
-    use static_core::chat::{Muting, NotificationChange, NotifyLevel};
+    use chatter_core::chat::{Muting, NotificationChange, NotifyLevel};
     let (window, adapter, _directory) = discord_server_window();
     let texts = |rows: ModelRc<MenuRow>| -> Vec<String> {
         rows.iter().map(|row| row.text.to_string()).collect()
@@ -4665,7 +4665,7 @@ fn categories_of_the_same_name_head_and_fold_their_own_channels() {
 #[test]
 #[cfg(feature = "discord")]
 fn pinned_channels_leave_their_categories_for_the_top() {
-    use static_core::static_discord::notifications::{Notifications, Override};
+    use chatter_core::chatter_discord::notifications::{Notifications, Override};
     let (window, adapter, _directory) = discord_server_window_changed(0, |_, marks| {
         let mut settings = Notifications::clone(&marks.notifications);
         settings.overrides.insert(
@@ -4731,7 +4731,7 @@ fn pinned_channels_leave_their_categories_for_the_top() {
 #[test]
 #[cfg(feature = "discord")]
 fn a_community_server_lists_the_channels_followed_and_offers_following() {
-    use static_core::static_discord::notifications::Notifications;
+    use chatter_core::chatter_discord::notifications::Notifications;
     let (window, adapter, _directory) = discord_server_window_changed(0, |server, marks| {
         let mut settings = Notifications::clone(&marks.notifications);
         settings.flags = 1 << 14;
@@ -4801,7 +4801,7 @@ fn browse_channels_opens_from_a_community_servers_list_and_searches() {
     assert!(!window.get_browse_open());
     window.invoke_open_browse();
     assert!(window.get_browse_open());
-    let rows = |window: &StaticWindow| -> Vec<(String, String, bool, bool)> {
+    let rows = |window: &ChatterWindow| -> Vec<(String, String, bool, bool)> {
         window
             .get_browse_rows()
             .iter()
@@ -4874,12 +4874,12 @@ fn empty_categories_go_where_discords_order_puts_them() {
 #[cfg(feature = "discord")]
 fn the_invite_dialog_shows_its_link_and_how_long_it_lasts() {
     let (window, adapter, _directory) = discord_server_window();
-    let show = |invite: static_core::application::InviteDialog| {
+    let show = |invite: chatter_core::application::InviteDialog| {
         let mut adapter = adapter.borrow_mut();
         adapter.app.state.invite = Some(invite);
         adapter.refresh(&window);
     };
-    let invite = static_core::application::InviteDialog {
+    let invite = chatter_core::application::InviteDialog {
         server: "Test".into(),
         room: "discord:10:14".into(),
         channel: "Lounge".into(),
@@ -4904,7 +4904,7 @@ fn the_invite_dialog_shows_its_link_and_how_long_it_lasts() {
 
     // Choosing others stays while the dialog is open.
     window.set_invite_age(6);
-    show(static_core::application::InviteDialog {
+    show(chatter_core::application::InviteDialog {
         link: Some("https://discord.gg/abc".into()),
         making: false,
         ..invite.clone()
@@ -4917,7 +4917,7 @@ fn the_invite_dialog_shows_its_link_and_how_long_it_lasts() {
     );
     assert_eq!(window.get_invite_age(), 6);
 
-    show(static_core::application::InviteDialog {
+    show(chatter_core::application::InviteDialog {
         max_age: 0,
         max_uses: 1,
         channel: "general".into(),
@@ -4936,10 +4936,10 @@ fn the_invite_dialog_shows_its_link_and_how_long_it_lasts() {
 #[test]
 #[cfg(feature = "discord")]
 fn channel_menus_and_their_dialog_make_change_and_delete_channels() {
-    use static_core::{
+    use chatter_core::{
         application::{ChannelAsk, ChannelDialog},
         chat::{ChannelKind, ChannelSettings},
-        static_discord::ready::permission,
+        chatter_discord::ready::permission,
     };
     let (window, adapter, _directory) = discord_server_window_granting(permission::MANAGE_CHANNELS);
     let texts = |rows: ModelRc<MenuRow>| -> Vec<String> {
@@ -5028,7 +5028,7 @@ fn channel_menus_and_their_dialog_make_change_and_delete_channels() {
 #[cfg(feature = "discord")]
 fn channel_settings_cover_the_window_with_overview_and_permissions() {
     use slint::Model;
-    use static_core::static_discord::ready::permission;
+    use chatter_core::chatter_discord::ready::permission;
     let (window, adapter, _directory) =
         discord_server_window_granting(permission::MANAGE_CHANNELS | permission::MANAGE_ROLES);
     window.invoke_prepare_menu("discord:10:11".into(), false);
@@ -5148,7 +5148,7 @@ fn leaving_a_server_asks_first_in_red() {
 #[test]
 #[cfg(feature = "discord")]
 fn leaving_a_group_dm_asks_first_and_offers_to_tell_no_one() {
-    use static_core::static_discord::service::{Conversation, Snapshot, Status};
+    use chatter_core::chatter_discord::service::{Conversation, Snapshot, Status};
     let (window, adapter, _directory) = discord_server_window();
     adapter
         .borrow_mut()
@@ -5192,7 +5192,7 @@ fn leaving_a_group_dm_asks_first_and_offers_to_tell_no_one() {
 #[test]
 #[cfg(feature = "discord")]
 fn edit_server_profile_opens_the_per_server_profile_editor() {
-    use static_core::static_discord::ready::permission;
+    use chatter_core::chatter_discord::ready::permission;
     let (window, adapter, _directory) = discord_server_window_granting(permission::CHANGE_NICKNAME);
     window.invoke_prepare_menu("header:discord:10".into(), false);
     let texts: Vec<String> = window
@@ -5215,9 +5215,9 @@ fn edit_server_profile_opens_the_per_server_profile_editor() {
         let mut adapter = adapter.borrow_mut();
         adapter.app.apply(Event::OwnProfile {
             server: Some("discord:10".into()),
-            result: Ok(static_core::chat::OwnProfile {
+            result: Ok(chatter_core::chat::OwnProfile {
                 pronouns: "she/her".into(),
-                fallback: static_core::chat::Profile {
+                fallback: chatter_core::chat::Profile {
                     name: "Alice".into(),
                     handle: "alice".into(),
                     bio: "Main bio".into(),
@@ -5261,12 +5261,12 @@ fn edit_server_profile_opens_the_per_server_profile_editor() {
 #[cfg(feature = "discord")]
 fn server_settings_open_from_the_menu_and_hold_their_changes_until_saved() {
     use slint::Model;
-    use static_core::{
+    use chatter_core::{
         chat::{ServerProfile, ServerSettingsPage, SettingsSection},
-        static_discord::ready::permission,
+        chatter_discord::ready::permission,
     };
     let (window, adapter, _directory) = discord_server_window_granting(permission::MANAGE_GUILD);
-    let texts = |window: &StaticWindow| -> Vec<String> {
+    let texts = |window: &ChatterWindow| -> Vec<String> {
         window
             .get_menu_rows()
             .iter()
@@ -5347,9 +5347,9 @@ fn server_settings_open_from_the_menu_and_hold_their_changes_until_saved() {
 #[cfg(feature = "discord")]
 fn engagement_and_boost_perks_show_their_choices_and_locks() {
     use slint::Model;
-    use static_core::{
+    use chatter_core::{
         chat::{GuildSettings, ServerSettingsPage, SettingsSection},
-        static_discord::ready::permission,
+        chatter_discord::ready::permission,
     };
     let (window, adapter, _directory) = discord_server_window_granting(permission::MANAGE_GUILD);
     let names = |list: ModelRc<SharedString>| -> Vec<String> {
@@ -5425,9 +5425,9 @@ fn engagement_and_boost_perks_show_their_choices_and_locks() {
 #[test]
 fn moderation_shows_safety_setup_and_bans_as_discords_pages_do() {
     use slint::Model;
-    use static_core::{
+    use chatter_core::{
         chat::{Ban, GuildSettings, RoleMember, ServerSettingsPage, SettingsSection},
-        static_discord::ready::permission,
+        chatter_discord::ready::permission,
     };
     let (window, adapter, _directory) =
         discord_server_window_granting(permission::BAN_MEMBERS | permission::MANAGE_GUILD);
@@ -5548,9 +5548,9 @@ fn moderation_shows_safety_setup_and_bans_as_discords_pages_do() {
 #[test]
 fn audit_log_shows_rows_that_open_their_numbered_lines() {
     use slint::Model;
-    use static_core::{
+    use chatter_core::{
         chat::{AuditEntry, AuditLog, AuditUser, ServerSettingsPage, SettingsSection},
-        static_discord::ready::permission,
+        chatter_discord::ready::permission,
     };
     let (window, adapter, _directory) = discord_server_window_granting(permission::VIEW_AUDIT_LOG);
     window.invoke_prepare_menu("header:discord:10".into(), false);
@@ -5563,7 +5563,7 @@ fn audit_log_shows_rows_that_open_their_numbered_lines() {
         .collect();
     assert_eq!(rows, ["MODERATION", "Audit Log", "Bans"]);
     // A kick an hour ago, with its reason, and an unban without lines.
-    let now = static_core::clock::now_ms();
+    let now = chatter_core::clock::now_ms();
     let id = |ago_ms: u64| (((now - ago_ms) - 1_420_070_400_000) << 22).to_string();
     let entry = |id: String, action: u16, reason: Option<&str>| AuditEntry {
         id,
@@ -5640,12 +5640,12 @@ fn audit_log_shows_rows_that_open_their_numbered_lines() {
 #[test]
 fn members_and_invites_list_as_discords_pages_do() {
     use slint::Model;
-    use static_core::{
+    use chatter_core::{
         chat::{
             GuildSettings, JoinMethod, ListedMember, RoleMember, ServerInvite, ServerSettingsPage,
             SettingsSection,
         },
-        static_discord::ready::permission,
+        chatter_discord::ready::permission,
     };
     let (window, adapter, _directory) = discord_server_window_changed(
         permission::KICK_MEMBERS | permission::MANAGE_GUILD | permission::CREATE_INSTANT_INVITE,
@@ -5677,7 +5677,7 @@ fn members_and_invites_list_as_discords_pages_do() {
     // Members: a moderator joined three days ago, timed out, and someone
     // whose join Discord doesn't know.
     window.invoke_server_settings_section(7);
-    let now = static_core::clock::now_ms();
+    let now = chatter_core::clock::now_ms();
     let member = |id: &str, name: &str, roles: &[&str], joined_by| ListedMember {
         person: RoleMember {
             id: id.into(),
@@ -5853,12 +5853,12 @@ fn delete_server_ends_the_owners_sidebar_and_asks_for_the_name() {
 #[test]
 fn emoji_and_stickers_show_as_discords_pages_do() {
     use slint::Model;
-    use static_core::{
+    use chatter_core::{
         chat::{
             GuildSettings, RoleMember, ServerEmoji, ServerSettingsPage, ServerSticker,
             SettingsSection, StickerForm,
         },
-        static_discord::ready::permission,
+        chatter_discord::ready::permission,
     };
     let (window, adapter, _directory) =
         discord_server_window_changed(permission::CREATE_GUILD_EXPRESSIONS, |_, _| {});
@@ -5996,9 +5996,9 @@ fn emoji_and_stickers_show_as_discords_pages_do() {
 #[cfg(feature = "discord")]
 fn roles_lock_what_ranks_above_her_and_the_permissions_she_lacks() {
     use slint::Model;
-    use static_core::{
+    use chatter_core::{
         chat::{RoleDetail, ServerRoles, ServerSettingsPage, SettingsSection},
-        static_discord::ready::permission,
+        chatter_discord::ready::permission,
     };
     // She holds Staff, which may kick.
     let (window, adapter, _directory) =
@@ -6095,7 +6095,7 @@ fn roles_lock_what_ranks_above_her_and_the_permissions_she_lacks() {
 #[cfg(feature = "discord")]
 fn the_two_factor_prompt_offers_discords_methods() {
     use slint::Model;
-    use static_core::chat::MfaMethod;
+    use chatter_core::chat::MfaMethod;
     let (window, adapter, _directory) = discord_server_window_granting(0);
     {
         let mut adapter = adapter.borrow_mut();
@@ -6145,10 +6145,10 @@ fn edit_profile_opens_the_main_profile_editor() {
         let mut adapter = adapter.borrow_mut();
         adapter.app.apply(Event::OwnProfile {
             server: None,
-            result: Ok(static_core::chat::OwnProfile {
+            result: Ok(chatter_core::chat::OwnProfile {
                 name: "Alice".into(),
                 accent: Some(0x112233),
-                fallback: static_core::chat::Profile {
+                fallback: chatter_core::chat::Profile {
                     name: "alice".into(),
                     handle: "alice".into(),
                     ..Default::default()
@@ -6217,15 +6217,15 @@ fn a_theme_paints_the_window_and_the_mentions_in_its_rows() {
     let window = classic_window();
     assert_eq!(
         theme::Theme::shown(&window),
-        theme::STATIC_THEME,
+        theme::CHATTER_THEME,
         "the Slint defaults are Chatter's, for the first frame"
     );
     let message = ChatMessage {
         body: "hi @Bob".into(),
         formatted: true,
-        mentions: vec![static_core::mention::Mentioned {
+        mentions: vec![chatter_core::mention::Mentioned {
             text: "@Bob".into(),
-            target: static_core::mention::Target::User("2".into()),
+            target: chatter_core::mention::Target::User("2".into()),
             color: None,
             at: vec![3],
         }],
@@ -6236,13 +6236,13 @@ fn a_theme_paints_the_window_and_the_mentions_in_its_rows() {
         dark: false,
         chat: slint::Color::from_rgb_u8(0xfa, 0xf8, 0xf5),
         link: slint::Color::from_rgb_u8(0x1a, 0x5f, 0xb4),
-        ..theme::STATIC_THEME
+        ..theme::CHATTER_THEME
     };
     assert!(light.apply(&window), "mentions change colour");
     assert_eq!(theme::Theme::shown(&window), light);
     assert!(message_row_plain(&message).styled != yap_row.styled);
     assert!(!light.apply(&window), "nothing to build again");
-    assert!(theme::STATIC_THEME.apply(&window));
+    assert!(theme::CHATTER_THEME.apply(&window));
     assert!(message_row_plain(&message).styled == yap_row.styled);
 }
 
@@ -6275,8 +6275,8 @@ fn a_chosen_theme_is_kept_and_survives_a_window_made_again() {
     assert_eq!(theme::Theme::shown(&again), ocean);
     assert_eq!(again.get_theme_id(), "ocean");
 
-    // An id Static doesn't know changes nothing, and a stored one it no longer
-    // has shows Static.
+    // An id Chatter doesn't know changes nothing, and a stored one it no longer
+    // has shows Chatter.
     again.invoke_choose_theme("missing".into());
     assert_eq!(theme::Theme::shown(&again), ocean);
     let fresh = classic_window();
@@ -6285,7 +6285,7 @@ fn a_chosen_theme_is_kept_and_survives_a_window_made_again() {
         ..Default::default()
     }
     .apply(&fresh);
-    assert_eq!(theme::Theme::shown(&fresh), theme::STATIC_THEME);
+    assert_eq!(theme::Theme::shown(&fresh), theme::CHATTER_THEME);
     assert_eq!(fresh.get_theme_id(), "yap");
 }
 
@@ -6301,7 +6301,7 @@ fn built_in_themes_have_their_own_ids_and_say_whether_they_are_dark() {
     }
     assert_eq!(
         theme::BUILT_IN[0].theme,
-        theme::STATIC_THEME,
+        theme::CHATTER_THEME,
         "Chatter comes first"
     );
 }
@@ -6320,7 +6320,7 @@ fn a_colour_is_written_as_slint_writes_one() {
     }
     assert_eq!(
         theme::parse("#5865f226"),
-        Some(theme::STATIC_THEME.accent_soft)
+        Some(theme::CHATTER_THEME.accent_soft)
     );
 }
 
@@ -6363,10 +6363,10 @@ fn a_custom_theme_keeps_its_colours_by_name_and_falls_back_to_its_base() {
         custom
     );
 
-    // A base Static doesn't know is Static.
+    // A base Chatter doesn't know is Chatter.
     let unknown: theme::Custom =
         serde_json::from_value(serde_json::json!({ "base": "gone" })).unwrap();
-    assert_eq!((unknown.base, unknown.theme), ("yap", theme::STATIC_THEME));
+    assert_eq!((unknown.base, unknown.theme), ("yap", theme::CHATTER_THEME));
 }
 
 #[test]
@@ -6378,7 +6378,7 @@ fn custom_theme_ids_stay_apart_from_built_in_ones_and_each_other() {
         id: id.into(),
         name: id.into(),
         base: "yap",
-        theme: theme::STATIC_THEME,
+        theme: theme::CHATTER_THEME,
     };
     let mut themes = vec![
         custom("custom:2"),
@@ -6512,7 +6512,7 @@ fn a_custom_theme_is_made_edited_and_deleted_in_appearance() {
     window.invoke_cancel_theme();
     assert_eq!(theme::Theme::shown(&window), midnight);
 
-    // Renamed, then deleted while chosen: Static shows.
+    // Renamed, then deleted while chosen: Chatter shows.
     window.invoke_edit_theme("custom:1".into());
     window.set_theme_name("Dusk".into());
     window.invoke_save_theme();
@@ -6528,7 +6528,7 @@ fn a_custom_theme_is_made_edited_and_deleted_in_appearance() {
     window.invoke_delete_theme();
     assert!(!window.get_theme_editor());
     assert_eq!(window.get_theme_id(), "yap");
-    assert_eq!(theme::Theme::shown(&window), theme::STATIC_THEME);
+    assert_eq!(theme::Theme::shown(&window), theme::CHATTER_THEME);
     assert_eq!(window.get_themes().row_count(), theme::BUILT_IN.len());
     let layout = Layout::read(directory.path());
     assert_eq!(layout.theme.as_deref(), Some("yap"));
@@ -6563,7 +6563,7 @@ fn a_window_made_again_while_editing_drops_the_edit() {
         "rows lose the edited mention colour"
     );
     assert!(!again.get_theme_editor());
-    assert_eq!(theme::Theme::shown(&again), theme::STATIC_THEME);
+    assert_eq!(theme::Theme::shown(&again), theme::CHATTER_THEME);
     assert_eq!(theme::mention_color(), 0xc9cdfb);
     assert!(Layout::read(directory.path()).custom_themes.is_empty());
 }
@@ -6639,8 +6639,8 @@ fn the_thread_beside_keeps_its_rows_when_a_new_layout_builds_them_again() {
 #[cfg(feature = "discord")]
 #[test]
 fn requests_list_someone_once_with_their_message() {
-    use static_core::chat::{ChatRoom, FriendRequest, RequestPreview};
-    use static_core::network::Network;
+    use chatter_core::chat::{ChatRoom, FriendRequest, RequestPreview};
+    use chatter_core::network::Network;
     let request = |id: &str, name: &str, incoming, spam| FriendRequest {
         id: id.into(),
         name: name.into(),
@@ -6763,9 +6763,9 @@ fn join_a_server_shows_the_invites_server_and_a_link_opens_it() {
     assert_eq!(prompt.status, "Looking up the invite...");
 
     let mut adapter = adapter.borrow_mut();
-    adapter.app.state.join = Some(static_core::application::JoinDialog {
+    adapter.app.state.join = Some(chatter_core::application::JoinDialog {
         code: Some("abc".into()),
-        preview: Some(static_core::chat::InvitePreview {
+        preview: Some(chatter_core::chat::InvitePreview {
             code: "abc".into(),
             server: "discord:20".into(),
             name: "Builders".into(),
@@ -6806,7 +6806,7 @@ fn a_handed_link_waits_for_the_open_dialog() {
     );
     let shown = query(&adapter);
     assert!(shown.is_some());
-    // Another app hands Static a link to a different application while
+    // Another app hands Chatter a link to a different application while
     // the dialog is open: an Authorize click is still for the first.
     {
         let mut adapter = adapter.borrow_mut();
@@ -6827,8 +6827,8 @@ fn a_handed_link_waits_for_the_open_dialog() {
 #[test]
 #[cfg(feature = "discord")]
 fn authorizing_an_app_says_what_it_asks_for_and_where_it_goes() {
-    use static_core::application::OAuthDialog;
-    use static_core::chat::{OAuthGuild, OAuthPreview};
+    use chatter_core::application::OAuthDialog;
+    use chatter_core::chat::{OAuthGuild, OAuthPreview};
     let (window, adapter, _directory) = discord_server_window();
     adapter.borrow_mut().refresh(&window);
     // A plain bot link is the dialog's, not the browser's.
@@ -6968,7 +6968,7 @@ fn discord_links_open_channels_messages_and_profiles_here() {
 
 #[test]
 fn a_card_of_components_shows_headings_files_and_only_link_buttons_working() {
-    use static_core::chat::{
+    use chatter_core::chat::{
         Attachment, ButtonStyle, Card, CardButton as Button, CardRow as Row, Placement,
     };
     i_slint_backend_testing::init_no_event_loop();
@@ -7038,7 +7038,7 @@ fn headings_in_fenced_code_stay_as_typed() {
     let levels: Vec<_> = blocks.iter().map(|block| block.level).collect();
     assert_eq!(levels, [5, 2]);
     assert_eq!(
-        i_slint_core::static_selection::plain(&blocks[0].text),
+        i_slint_core::chatter_selection::plain(&blocks[0].text),
         "# not a heading"
     );
 }
@@ -7065,7 +7065,7 @@ fn a_message_shows_its_headings_quotes_and_code_apart() {
             (
                 block.level,
                 block.quoted,
-                i_slint_core::static_selection::plain(&block.text),
+                i_slint_core::chatter_selection::plain(&block.text),
             )
         })
         .collect();
@@ -7098,7 +7098,7 @@ fn text_alone_shows_as_one() {
     i_slint_backend_testing::init_no_event_loop();
     let row = message_row_plain(&formatted("plain **text**\n- and a list"));
     assert_eq!(row.blocks.row_count(), 0);
-    assert!(i_slint_core::static_selection::plain(&row.styled).starts_with("plain text\n"));
+    assert!(i_slint_core::chatter_selection::plain(&row.styled).starts_with("plain text\n"));
 }
 
 #[test]
@@ -7108,7 +7108,7 @@ fn text_beside_a_heading_keeps_its_formatting_and_blank_lines() {
     let plain: Vec<_> = row
         .blocks
         .iter()
-        .map(|block| i_slint_core::static_selection::plain(&block.text))
+        .map(|block| i_slint_core::chatter_selection::plain(&block.text))
         .collect();
     assert_eq!(plain, ["Title", "\u{a0}\nbold\n---"]);
 }
@@ -7122,7 +7122,7 @@ fn html_in_a_block_shows_as_typed() {
     let row = message_row_plain(&formatted(body));
     let last = row.blocks.iter().last().unwrap();
     assert_eq!(
-        i_slint_core::static_selection::plain(&last.text),
+        i_slint_core::chatter_selection::plain(&last.text),
         "<font color=\"#ff0000\">red</font>"
     );
 }
@@ -7132,9 +7132,9 @@ fn a_mention_in_a_quote_still_links() {
     i_slint_backend_testing::init_no_event_loop();
     let mut message = formatted("# Hi\n> and @Bob");
     let plain = message_row_plain(&message);
-    message.mentions = vec![static_core::mention::Mentioned {
+    message.mentions = vec![chatter_core::mention::Mentioned {
         text: "@Bob".into(),
-        target: static_core::mention::Target::User("2".into()),
+        target: chatter_core::mention::Target::User("2".into()),
         color: None,
         at: vec![message.body.find('@').unwrap()],
     }];
@@ -7142,7 +7142,7 @@ fn a_mention_in_a_quote_still_links() {
     let quote = |row: &MessageRow| row.blocks.row_data(1).unwrap().text;
     assert!(quote(&plain) != quote(&mentioned));
     assert_eq!(
-        i_slint_core::static_selection::plain(&quote(&mentioned)),
+        i_slint_core::chatter_selection::plain(&quote(&mentioned)),
         "and @Bob"
     );
 }
@@ -7170,15 +7170,15 @@ fn spoilers_count_on_across_blocks() {
 fn an_embed_shows_headings_and_code_in_its_description_and_fields() {
     i_slint_backend_testing::init_no_event_loop();
     let message = ChatMessage {
-        embeds: vec![static_core::chat::Embed {
+        embeds: vec![chatter_core::chat::Embed {
             description: "## Status\n```\nall good\n```".into(),
             fields: vec![
-                static_core::chat::EmbedField {
+                chatter_core::chat::EmbedField {
                     name: "Plain".into(),
                     value: "just **text**".into(),
                     inline: false,
                 },
-                static_core::chat::EmbedField {
+                chatter_core::chat::EmbedField {
                     name: "Quoted".into(),
                     value: "> said".into(),
                     inline: false,
@@ -7203,7 +7203,7 @@ fn an_embed_shows_headings_and_code_in_its_description_and_fields() {
         .collect();
     assert_eq!(fields[0].value_blocks.row_count(), 0);
     assert_eq!(
-        i_slint_core::static_selection::plain(&fields[0].value),
+        i_slint_core::chatter_selection::plain(&fields[0].value),
         "just text"
     );
     assert!(fields[1].value_blocks.row_data(0).unwrap().quoted);
@@ -7225,7 +7225,7 @@ fn a_found_message_shows_its_blocks_with_spoilers_hidden() {
     let plain: Vec<_> = row
         .blocks
         .iter()
-        .map(|block| i_slint_core::static_selection::plain(&block.text))
+        .map(|block| i_slint_core::chatter_selection::plain(&block.text))
         .collect();
     assert_eq!(plain, ["Plans", "meet at (spoiler)"]);
 }
@@ -7292,7 +7292,7 @@ fn resizing_the_window_carries_the_pickers_room_with_the_composer() {
 fn the_picker_draws_the_emoji_it_shows_as_pictures_of_the_grids_size() {
     i_slint_backend_testing::init_no_event_loop();
     let directory = tempfile::tempdir().unwrap();
-    let window = StaticWindow::new().unwrap();
+    let window = ChatterWindow::new().unwrap();
     let adapter = Adapter::new(
         Arc::new(BackgroundRuntime::new().unwrap()),
         directory.path().into(),
@@ -7332,7 +7332,7 @@ fn the_picker_draws_the_emoji_it_shows_as_pictures_of_the_grids_size() {
 fn resizing_the_grid_fills_the_rows_it_is_scrolled_to() {
     i_slint_backend_testing::init_no_event_loop();
     let directory = tempfile::tempdir().unwrap();
-    let window = StaticWindow::new().unwrap();
+    let window = ChatterWindow::new().unwrap();
     let adapter = Adapter::new(
         Arc::new(BackgroundRuntime::new().unwrap()),
         directory.path().into(),
@@ -7375,7 +7375,7 @@ fn resizing_the_grid_fills_the_rows_it_is_scrolled_to() {
 fn only_the_rows_the_picker_shows_are_drawn() {
     i_slint_backend_testing::init_no_event_loop();
     let directory = tempfile::tempdir().unwrap();
-    let window = StaticWindow::new().unwrap();
+    let window = ChatterWindow::new().unwrap();
     let adapter = Adapter::new(
         Arc::new(BackgroundRuntime::new().unwrap()),
         directory.path().into(),
@@ -7408,7 +7408,7 @@ fn only_the_rows_the_picker_shows_are_drawn() {
 fn rows_far_from_those_the_picker_shows_let_go_of_their_pictures() {
     i_slint_backend_testing::init_no_event_loop();
     let directory = tempfile::tempdir().unwrap();
-    let window = StaticWindow::new().unwrap();
+    let window = ChatterWindow::new().unwrap();
     let adapter = Adapter::new(
         Arc::new(BackgroundRuntime::new().unwrap()),
         directory.path().into(),
@@ -7452,7 +7452,7 @@ fn rows_far_from_those_the_picker_shows_let_go_of_their_pictures() {
 fn a_closed_picker_keeps_no_grid_and_builds_it_as_it_opens() {
     i_slint_backend_testing::init_no_event_loop();
     let directory = tempfile::tempdir().unwrap();
-    let window = StaticWindow::new().unwrap();
+    let window = ChatterWindow::new().unwrap();
     let adapter = Adapter::new(
         Arc::new(BackgroundRuntime::new().unwrap()),
         directory.path().into(),
@@ -7528,7 +7528,7 @@ fn the_picker_asks_for_the_pictures_of_the_custom_emoji_it_shows() {
 #[test]
 fn the_emoji_grid_fits_the_width_the_picker_shows_at() {
     // The widest row of the grid, which is the emoji a row fit.
-    fn widest(window: &StaticWindow) -> usize {
+    fn widest(window: &ChatterWindow) -> usize {
         let rows = window.get_emoji_rows();
         (0..rows.row_count())
             .map(|index| rows.row_data(index).unwrap().cells.row_count())
@@ -7537,7 +7537,7 @@ fn the_emoji_grid_fits_the_width_the_picker_shows_at() {
     }
     i_slint_backend_testing::init_no_event_loop();
     let directory = tempfile::tempdir().unwrap();
-    let window = StaticWindow::new().unwrap();
+    let window = ChatterWindow::new().unwrap();
     let adapter = Adapter::new(
         Arc::new(BackgroundRuntime::new().unwrap()),
         directory.path().into(),
@@ -7722,9 +7722,9 @@ fn dragging_the_pickers_left_edge_widens_it_no_further_than_the_server_list() {
 }
 
 #[test]
-fn static_navigation_matches_the_reference_column_width() {
+fn chatter_navigation_matches_the_reference_column_width() {
     i_slint_backend_testing::init_no_event_loop();
-    let window = StaticWindow::new().unwrap();
+    let window = ChatterWindow::new().unwrap();
     // The supplied 2560px reference places chat at x=376: 72px rail + 304px list.
     assert_eq!(window.get_sidebar_width(), 304.0);
     assert_eq!(window.get_sidebar_shown(), 304.0);
@@ -7737,9 +7737,9 @@ fn static_navigation_matches_the_reference_column_width() {
 }
 
 #[test]
-fn static_defaults_to_discord_dark_and_keeps_saved_appearance_choices() {
+fn chatter_defaults_to_discord_dark_and_keeps_saved_appearance_choices() {
     i_slint_backend_testing::init_no_event_loop();
-    let window = StaticWindow::new().unwrap();
+    let window = ChatterWindow::new().unwrap();
     Layout::default().apply_appearance(&window);
     assert_eq!(window.get_theme_id(), "yap");
     assert_eq!(window.get_sidebar_width(), 304.0);
@@ -7755,10 +7755,10 @@ fn static_defaults_to_discord_dark_and_keeps_saved_appearance_choices() {
 }
 
 #[test]
-fn static_caption_buttons_keep_the_existing_window_actions() {
+fn chatter_caption_buttons_keep_the_existing_window_actions() {
     use slint::platform::{PointerEventButton, WindowEvent};
     i_slint_backend_testing::init_no_event_loop();
-    let window = StaticWindow::new().unwrap();
+    let window = ChatterWindow::new().unwrap();
     window.set_own_title_bar(true);
     let actions = Rc::new(RefCell::new(Vec::new()));
     let seen = actions.clone();
@@ -7796,7 +7796,7 @@ fn static_caption_buttons_keep_the_existing_window_actions() {
 }
 
 #[test]
-fn static_inset_account_card_keeps_settings_and_audio_actions_reachable() {
+fn chatter_inset_account_card_keeps_settings_and_audio_actions_reachable() {
     use slint::platform::{PointerEventButton, WindowEvent};
     let window = one_message("Synthetic message");
     window.global::<ClientStyle>().set_enabled(true);
@@ -7834,7 +7834,7 @@ fn static_inset_account_card_keeps_settings_and_audio_actions_reachable() {
 }
 
 #[test]
-fn static_docked_profile_opens_the_existing_full_profile() {
+fn chatter_docked_profile_opens_the_existing_full_profile() {
     use slint::platform::{PointerEventButton, WindowEvent};
     let window = one_message("Synthetic message");
     window.global::<ClientStyle>().set_enabled(true);
@@ -7868,7 +7868,7 @@ fn static_docked_profile_opens_the_existing_full_profile() {
 }
 
 #[test]
-fn static_dm_heading_keeps_friend_and_new_message_actions() {
+fn chatter_dm_heading_keeps_friend_and_new_message_actions() {
     use slint::platform::{PointerEventButton, WindowEvent};
     let window = one_message("Synthetic message");
     window.global::<ClientStyle>().set_enabled(true);
@@ -7914,10 +7914,10 @@ fn static_dm_heading_keeps_friend_and_new_message_actions() {
 }
 
 #[test]
-fn static_settings_navigation_and_header_keep_the_existing_actions() {
+fn chatter_settings_navigation_and_header_keep_the_existing_actions() {
     use slint::platform::{Key, PointerEventButton, WindowEvent};
     i_slint_backend_testing::init_no_event_loop();
-    let window = StaticWindow::new().unwrap();
+    let window = ChatterWindow::new().unwrap();
     window.set_own_title_bar(true);
     window.set_account_name("Alex".into());
     window.set_account_initial("A".into());
@@ -7988,7 +7988,7 @@ fn static_settings_navigation_and_header_keep_the_existing_actions() {
 }
 
 #[test]
-fn static_account_popover_copies_its_id_and_opens_settings_without_changing_status() {
+fn chatter_account_popover_copies_its_id_and_opens_settings_without_changing_status() {
     use slint::platform::{PointerEventButton, WindowEvent};
     let window = one_message("Synthetic message");
     window.global::<ClientStyle>().set_enabled(true);
@@ -8029,10 +8029,10 @@ fn static_account_popover_copies_its_id_and_opens_settings_without_changing_stat
 }
 
 #[test]
-fn static_server_rail_keeps_home_pinned_without_a_duplicate_separator() {
+fn chatter_server_rail_keeps_home_pinned_without_a_duplicate_separator() {
     use slint::platform::{PointerEventButton, WindowEvent};
     i_slint_backend_testing::init_no_event_loop();
-    let window = StaticWindow::new().unwrap();
+    let window = ChatterWindow::new().unwrap();
     window.set_workspace(true);
     let mut rows = vec![ServerRow {
         divider: true,
@@ -8106,9 +8106,9 @@ fn static_server_rail_keeps_home_pinned_without_a_duplicate_separator() {
 }
 
 #[test]
-fn static_typography_is_compact_and_preserves_explicit_text_sizes() {
+fn chatter_typography_is_compact_and_preserves_explicit_text_sizes() {
     i_slint_backend_testing::init_no_event_loop();
-    let window = static_window::window().unwrap();
+    let window = chatter_window::window().unwrap();
     assert_eq!(window.global::<ClientStyle>().get_font_family(), "DM Sans");
     assert_eq!(window.get_message_font_size(), 15.);
     window.set_text_size(0);
@@ -8129,7 +8129,7 @@ fn static_typography_is_compact_and_preserves_explicit_text_sizes() {
 /// renderer: the testing backend here has no option to choose Skia.
 #[test]
 #[ignore = "manual renderer benchmark with the Skia testing feature"]
-fn static_server_rail_scroll_snapshot_benchmark() {
+fn chatter_server_rail_scroll_snapshot_benchmark() {
     use slint::platform::WindowEvent;
     use std::time::Instant;
     slint::platform::set_platform(Box::new(i_slint_backend_testing::TestingBackend::new(
@@ -8139,7 +8139,7 @@ fn static_server_rail_scroll_snapshot_benchmark() {
         },
     )))
     .unwrap();
-    let window = static_window::window().unwrap();
+    let window = chatter_window::window().unwrap();
     Layout::default().apply_appearance(&window);
     let directory = tempfile::tempdir().unwrap();
     let adapter = Adapter::new(

@@ -1,6 +1,6 @@
 import { ScrollView } from "scrollview.slint";
 import { Theme, Tip, Middle, Label } from "theme.slint";
-import { ClientStyle } from "static/style.slint";
+import { ClientStyle } from "chatter/style.slint";
 
 // A labelled action. Primary is mint, danger red, ghost transparent until hovered.
 export component ActionButton inherits Rectangle {
@@ -233,7 +233,7 @@ export global PictureStore {
 }
 
 // Animated emoji's frames, drawn in place of a still while they play; see
-// `static_emoji` in the Slint core. `revision` moves with the shared
+// `chatter_emoji` in the Slint core. `revision` moves with the shared
 // clock, so a tick draws the cells that read it again.
 export global EmojiAnimations {
     in property <int> revision;
@@ -481,7 +481,7 @@ export component CallButton inherits VerticalLayout {
     }
 }
 
-// Whether animations play: only while Static's window has the focus, as in
+// Whether animations play: only while Chatter's window has the focus, as in
 // Discord, so GIFs on another screen hold still where they are.
 export global Motion {
     in property <bool> playing: true;

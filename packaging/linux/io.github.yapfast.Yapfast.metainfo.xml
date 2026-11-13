@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- What software centers and AppImage catalogs show for Static. -->
+<!-- What software centers and AppImage catalogs show for Chatter. -->
 <component type="desktop-application">
   <id>io.github.yapfast.Yapfast</id>
-  <name>Static</name>
+  <name>Chatter</name>
   <summary>A Discord client without the web browser</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
@@ -11,7 +11,7 @@
   </developer>
   <description>
     <p>
-      Static talks to Discord's API itself and draws its own window with Slint
+      Chatter talks to Discord's API itself and draws its own window with Slint
       and Skia, so it runs in about 30 MB of RAM, where Discord's own app takes 720.
     </p>
     <p>
@@ -21,8 +21,8 @@
   </description>
   <launchable type="desktop-id">io.github.yapfast.Yapfast.desktop</launchable>
   <url type="homepage">https://yapfast.com</url>
-  <url type="bugtracker">https://github.com/yapfast/static-desktop/issues</url>
-  <url type="vcs-browser">https://github.com/yapfast/static-desktop</url>
+  <url type="bugtracker">https://github.com/yapfast/chatter-desktop/issues</url>
+  <url type="vcs-browser">https://github.com/yapfast/chatter-desktop</url>
   <categories>
     <category>Network</category>
     <category>InstantMessaging</category>

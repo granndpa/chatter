@@ -1,10 +1,10 @@
 //! Discord Tweaks' Saved panel: bookmarks, message reminders and the Hall of
-//! Fame, and drafts kept on disk. The data is `static_core::tweaks`'s; this
+//! Fame, and drafts kept on disk. The data is `chatter_core::tweaks`'s; this
 //! wires it to the window, per Discord account.
 
 use std::path::PathBuf;
 
-use static_core::tweaks::{
+use chatter_core::tweaks::{
     self, SavedMessage,
     bookmarks::{self, Bookmarks, Sort},
     drafts::{self, Drafts},
@@ -55,7 +55,7 @@ pub(super) struct Tweaks {
 }
 
 fn now() -> u64 {
-    static_core::clock::now_ms() / 1000
+    chatter_core::clock::now_ms() / 1000
 }
 
 /// Loads the account's files when the signed-in account changes, and brings
@@ -189,7 +189,7 @@ fn save_inbox(adapter: &Adapter) {
 
 /// Puts a notification's message in the Mentions Inbox when it mentions or
 /// replies to this account, or came in a DM.
-pub(super) fn record_alert(adapter: &mut Adapter, alert: &static_core::chat::Alert) {
+pub(super) fn record_alert(adapter: &mut Adapter, alert: &chatter_core::chat::Alert) {
     if alert.call {
         return;
     }
@@ -260,7 +260,7 @@ fn save_reminders(adapter: &Adapter) {
 
 /// Saves drafts that changed, shows reminders that came due, and keeps the
 /// panel's lists current.
-fn tick(adapter: &mut Adapter, window: &StaticWindow) {
+fn tick(adapter: &mut Adapter, window: &ChatterWindow) {
     sync_account(adapter);
     let Some(dir) = adapter.tweaks.dir.clone() else {
         return;
@@ -293,7 +293,7 @@ fn tick(adapter: &mut Adapter, window: &StaticWindow) {
         let text = format!(
             "{}: {}",
             message.author,
-            static_core::chat::plain_snippet(&message.body)
+            chatter_core::chat::plain_snippet(&message.body)
         );
         if let Some(tray) = &adapter.tray {
             tray.balloon(&title, &text);
@@ -446,7 +446,7 @@ fn place(message: &SavedMessage) -> String {
 }
 
 /// Fills the Saved panel's lists.
-fn show(adapter: &Adapter, window: &StaticWindow) {
+fn show(adapter: &Adapter, window: &ChatterWindow) {
     let state = &adapter.app.state;
     let tweaks = &adapter.tweaks;
     let twelve_hour = adapter.layout.twelve_hour_clock;
@@ -462,7 +462,7 @@ fn show(adapter: &Adapter, window: &StaticWindow) {
                 id: bookmark.id as i32,
                 author: message.author.as_str().into(),
                 place: place(message).into(),
-                time: static_core::clock::full(message.sent, twelve_hour).into(),
+                time: chatter_core::clock::full(message.sent, twelve_hour).into(),
                 body: message.body.as_str().into(),
                 collection: bookmark.collection.as_str().into(),
                 caption: bookmark.caption.as_str().into(),
@@ -506,7 +506,7 @@ fn show(adapter: &Adapter, window: &StaticWindow) {
             id: entry.id as i32,
             author: entry.message.author.as_str().into(),
             place: place(&entry.message).into(),
-            time: static_core::clock::full(entry.message.sent, twelve_hour).into(),
+            time: chatter_core::clock::full(entry.message.sent, twelve_hour).into(),
             body: entry.message.body.as_str().into(),
             read: entry.read,
         })
@@ -522,7 +522,7 @@ fn show(adapter: &Adapter, window: &StaticWindow) {
         } else {
             format!(
                 "Counting since {}{}. Only what Chatter saw on this computer.",
-                static_core::clock::day(tweaks.stats.started),
+                chatter_core::clock::day(tweaks.stats.started),
                 if tweaks.stats.enabled { "" } else { " (paused)" }
             )
         }
@@ -544,7 +544,7 @@ fn show(adapter: &Adapter, window: &StaticWindow) {
 }
 
 /// Opens a saved message where it was, unless that conversation is gone.
-fn open(adapter: &mut Adapter, window: &StaticWindow, message: SavedMessage) {
+fn open(adapter: &mut Adapter, window: &ChatterWindow, message: SavedMessage) {
     if !adapter.app.state.rooms.iter().any(|found| found.id == message.room) {
         window.set_saved_note("That conversation isn't available anymore.".into());
         return;
@@ -560,14 +560,14 @@ fn open(adapter: &mut Adapter, window: &StaticWindow, message: SavedMessage) {
 }
 
 /// Opens the message a reminder notification was about.
-pub(super) fn open_last_reminder(adapter: &mut Adapter, window: &StaticWindow) {
+pub(super) fn open_last_reminder(adapter: &mut Adapter, window: &ChatterWindow) {
     if let Some(message) = adapter.tweaks.last_fired.take() {
         open(adapter, window, message);
     }
 }
 
 /// Saves the part of the window a Hall of Fame card covers as a picture.
-fn export(window: &StaticWindow, x: f32, y: f32, width: f32, height: f32) {
+fn export(window: &ChatterWindow, x: f32, y: f32, width: f32, height: f32) {
     let Some(shot) = window.window().take_snapshot().ok() else {
         return;
     };
@@ -610,8 +610,8 @@ fn export(window: &StaticWindow, x: f32, y: f32, width: f32, height: f32) {
 
 /// Connects the Saved panel and the message menu's Bookmark, Hall of Fame and
 /// Remind Me, and starts checking reminders.
-pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
-    let with = |state: &Rc<RefCell<Adapter>>, weak: &slint::Weak<StaticWindow>| {
+pub(super) fn bind(window: &ChatterWindow, adapter: &Rc<RefCell<Adapter>>) {
+    let with = |state: &Rc<RefCell<Adapter>>, weak: &slint::Weak<ChatterWindow>| {
         (state.clone(), weak.clone())
     };
     let weak = window.as_weak();

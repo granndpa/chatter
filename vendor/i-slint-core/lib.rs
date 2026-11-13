@@ -67,13 +67,13 @@ pub mod string;
 pub mod styled_text;
 #[cfg(test)]
 mod testing;
-// Static: see the modules.
-pub mod static_anchor;
-pub mod static_autoscroll;
-pub mod static_emoji;
-pub mod static_marks;
-pub mod static_selection;
-pub mod static_typing;
+// Chatter: see the modules.
+pub mod chatter_anchor;
+pub mod chatter_autoscroll;
+pub mod chatter_emoji;
+pub mod chatter_marks;
+pub mod chatter_selection;
+pub mod chatter_typing;
 pub mod textlayout;
 pub mod timers;
 pub mod translations;

@@ -1,5 +1,5 @@
 {
-  description = "Static native desktop development environment";
+  description = "Chatter native desktop development environment";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
 
@@ -58,8 +58,8 @@
       # scripts/package-linux.py copies the notices of Skia's third-party
       # code from here; the prebuilt Linux archive carries only Skia's own.
       packages.${system}.skia-source = pkgs.symlinkJoin {
-        name = "static-skia-0.157.0-linux-source";
-        paths = [ windowsSkiaSource ] ++ map (dep: pkgs.runCommand "static-skia-${dep.name}" {} ''
+        name = "chatter-skia-0.157.0-linux-source";
+        paths = [ windowsSkiaSource ] ++ map (dep: pkgs.runCommand "chatter-skia-${dep.name}" {} ''
           mkdir -p "$out/third_party/externals/${dep.name}"
           cp -r ${dep.source}/. "$out/third_party/externals/${dep.name}/"
         '') linuxSkiaDependencies;
@@ -88,7 +88,7 @@
           shellHook = ''
             export LD_LIBRARY_PATH="/run/opengl-driver/lib:$LD_LIBRARY_PATH"
             # Only people see the greeting; commands run through the shell don't.
-            [ -t 1 ] && echo "Static dev shell. Run scripts/check --fast or cargo run --profile fast."
+            [ -t 1 ] && echo "Chatter dev shell. Run scripts/check --fast or cargo run --profile fast."
           '';
         };
         windows = pkgs.mkShell {

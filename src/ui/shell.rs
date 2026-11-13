@@ -1,5 +1,5 @@
 //! The window, which closing to the tray drops and opening makes again, and
-//! the tray icon that keeps Static running meanwhile, with its session, calls,
+//! the tray icon that keeps Chatter running meanwhile, with its session, calls,
 //! notifications and sounds.
 
 use std::rc::Weak;
@@ -12,16 +12,16 @@ thread_local! {
     static SHELL: RefCell<Weak<Shell>> = const { RefCell::new(Weak::new()) };
 }
 
-/// Static's window while it's open, and what makes it again.
+/// Chatter's window while it's open, and what makes it again.
 pub(super) struct Shell {
-    window: RefCell<Option<StaticWindow>>,
+    window: RefCell<Option<ChatterWindow>>,
     pub(super) adapter: Rc<RefCell<Adapter>>,
-    /// Shown in every window: why Static draws with Skia Software, if the GPU failed.
+    /// Shown in every window: why Chatter draws with Skia Software, if the GPU failed.
     notice: SharedString,
     gpu: bool,
-    /// The renderer setting changed and Static restarts to use it.
+    /// The renderer setting changed and Chatter restarts to use it.
     restart: Cell<bool>,
-    /// Why a window made after the first failed on the GPU; Static restarts
+    /// Why a window made after the first failed on the GPU; Chatter restarts
     /// with Skia Software.
     gpu_failure: RefCell<Option<String>>,
     /// What the closed window showed that the application doesn't keep.
@@ -36,9 +36,9 @@ struct View {
 }
 
 impl Shell {
-    /// Takes the first window, bound and refreshed, and puts Static in the tray.
+    /// Takes the first window, bound and refreshed, and puts Chatter in the tray.
     pub(super) fn new(
-        window: StaticWindow,
+        window: ChatterWindow,
         adapter: Rc<RefCell<Adapter>>,
         notice: SharedString,
         gpu: bool,
@@ -70,7 +70,7 @@ impl Shell {
         shell
     }
 
-    /// Whether Static ends to restart with another renderer.
+    /// Whether Chatter ends to restart with another renderer.
     pub(super) fn restarting(&self) -> bool {
         self.restart.get()
     }
@@ -114,7 +114,7 @@ impl Shell {
 
     /// As for the first window shown at start: Slint can go on with no window
     /// when the GPU surface fails, so check for the native one.
-    fn confirm_gpu(self: &Rc<Self>, window: &StaticWindow) {
+    fn confirm_gpu(self: &Rc<Self>, window: &ChatterWindow) {
         if !self.gpu {
             return;
         }
@@ -131,7 +131,7 @@ impl Shell {
         });
     }
 
-    /// A window failed to appear: with the GPU, Static restarts with Skia
+    /// A window failed to appear: with the GPU, Chatter restarts with Skia
     /// Software, which shows it.
     fn fail_on_gpu(&self, reason: String) {
         tracing::error!(%reason, "could not show the window");
@@ -141,7 +141,7 @@ impl Shell {
         }
     }
 
-    pub(super) fn window(&self) -> Option<StaticWindow> {
+    pub(super) fn window(&self) -> Option<ChatterWindow> {
         self.window
             .borrow()
             .as_ref()
@@ -149,8 +149,8 @@ impl Shell {
     }
 
     /// What every window does beyond its callbacks: closes to the tray, and
-    /// restarts Static.
-    fn watch(self: &Rc<Self>, window: &StaticWindow) {
+    /// restarts Chatter.
+    fn watch(self: &Rc<Self>, window: &ChatterWindow) {
         let shell = Rc::downgrade(self);
         window.window().on_close_requested(move || {
             let shell = shell.clone();
@@ -171,7 +171,7 @@ impl Shell {
         });
     }
 
-    /// The window's close button: Static goes on in the tray, or without a tray
+    /// The window's close button: Chatter goes on in the tray, or without a tray
     /// to show it, or with the setting off, quits.
     pub(super) fn close(&self) {
         let to_tray = {
@@ -214,7 +214,7 @@ impl Shell {
     }
 
     /// Brings the window to the front, making it again if it was closed.
-    pub(super) fn open(self: &Rc<Self>) -> Option<StaticWindow> {
+    pub(super) fn open(self: &Rc<Self>) -> Option<ChatterWindow> {
         if let Some(window) = self.window() {
             let _ = window.show();
             window.window().set_minimized(false);
@@ -251,7 +251,7 @@ impl Shell {
     /// is online and a window can open it.
     fn queue_link(self: &Rc<Self>, link: String) {
         #[cfg(feature = "discord")]
-        if static_core::discord::discord_route(&link).is_some() {
+        if chatter_core::discord::discord_route(&link).is_some() {
             self.adapter.borrow_mut().pending_link = Some(link);
             return;
         }
@@ -273,8 +273,8 @@ impl Shell {
     /// Makes the window again, as the closed one was: the same size and place,
     /// the conversation scrolled to the same message, and everything else from
     /// the application's state.
-    fn make(self: &Rc<Self>) -> Result<StaticWindow, slint::PlatformError> {
-        let window = static_window::window()?;
+    fn make(self: &Rc<Self>) -> Result<ChatterWindow, slint::PlatformError> {
+        let window = chatter_window::window()?;
         let view = self.view.borrow_mut().take();
         let adapter = self.adapter.borrow();
         title_bar::show(&window, adapter.layout.system_title_bar);
@@ -339,7 +339,7 @@ pub(super) fn remake_window() {
     }
 }
 
-/// Static started again on this folder, and the new start asked for the
+/// Chatter started again on this folder, and the new start asked for the
 /// window: shows it, taking the focus with the token the desktop gave that
 /// start.
 pub(super) fn launched(launch: crate::instance::Launch) {
@@ -432,8 +432,8 @@ impl Adapter {
             if ringing(state).next().is_none() || state.do_not_disturb() {
                 self.ringer = None;
             } else if self.ringer.is_none() {
-                self.ringer = static_core::ring::Ringer::start(
-                    static_core::ring::Tone::Incoming,
+                self.ringer = chatter_core::ring::Ringer::start(
+                    chatter_core::ring::Tone::Incoming,
                     state.voice.speaker.as_deref(),
                 )
                 .inspect_err(|error| tracing::warn!(%error, "could not ring"))
@@ -444,7 +444,7 @@ impl Adapter {
 
     /// The window's title, counting the mentions waiting, as a browser
     /// tab's does; every message in a DM counts as one.
-    pub(super) fn show_title(&self, window: &StaticWindow) {
+    pub(super) fn show_title(&self, window: &ChatterWindow) {
         let waiting: u64 = self.app.state.rooms.iter().map(|room| room.mentions).sum();
         let title = match waiting {
             0 => "Chatter".to_owned(),

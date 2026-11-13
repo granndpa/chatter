@@ -1,7 +1,7 @@
 //! Render bot forms without replacing field models while typing.
 use super::*;
 
-pub(super) fn show(adapter: &Adapter, window: &StaticWindow) {
+pub(super) fn show(adapter: &Adapter, window: &ChatterWindow) {
     let Some(form) = &adapter.app.state.bot_form else {
         window.set_bot_form_open(false);
         return;
@@ -33,7 +33,7 @@ pub(super) fn show(adapter: &Adapter, window: &StaticWindow) {
     window.set_bot_form_open(true);
 }
 
-pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
+pub(super) fn bind(window: &ChatterWindow, adapter: &Rc<RefCell<Adapter>>) {
     let (state, weak) = (adapter.clone(), window.as_weak());
     window.on_write_bot_form(move |index, value| {
         if let Some(window) = weak.upgrade() {

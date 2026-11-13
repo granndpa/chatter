@@ -1,6 +1,6 @@
 // Matrix sync's encrypted-event futures exceed rustc's default trait depth.
 #![recursion_limit = "256"]
-// Opened from Explorer, Static opens no console window beside its own; see
+// Opened from Explorer, Chatter opens no console window beside its own; see
 // `has_console`.
 #![cfg_attr(all(windows, feature = "desktop"), windows_subsystem = "windows")]
 
@@ -50,14 +50,14 @@ mod updater;
 mod zoom;
 
 use anyhow::{Context, Result, bail};
-use static_core::{cli, logging, runtime::BackgroundRuntime};
+use chatter_core::{cli, logging, runtime::BackgroundRuntime};
 #[cfg(feature = "matrix")]
-use static_core::{experiment, voice_demo};
+use chatter_core::{experiment, voice_demo};
 
 /// glibc maps a block of 128 KiB or more on its own and unmaps it when freed,
 /// but each such free raises that threshold to the block's size, up to 32 MiB:
 /// after the first decoded picture, every later one stayed in the heap. With a
-/// fixed threshold and glibc's own count of arenas, Static held 9.3 MiB less in
+/// fixed threshold and glibc's own count of arenas, Chatter held 9.3 MiB less in
 /// a call than with two arenas, and 5.1 MiB less after it; see
 /// docs/measurements/README.md. The environment's own setting wins.
 fn fix_mmap_threshold() {
@@ -70,7 +70,7 @@ fn fix_mmap_threshold() {
         unsafe extern "C" {
             fn mallopt(parameter: std::ffi::c_int, value: std::ffi::c_int) -> std::ffi::c_int;
         }
-        // SAFETY: this runs first in main, before Static starts any other thread.
+        // SAFETY: this runs first in main, before Chatter starts any other thread.
         unsafe { mallopt(M_MMAP_THRESHOLD, 128 * 1024) };
     }
 }
@@ -79,9 +79,9 @@ fn main() -> Result<()> {
     fix_mmap_threshold();
     // A stream worker starts nothing else: no UI, runtime or TLS.
     #[cfg(feature = "discord")]
-    if std::env::args().nth(1).as_deref() == Some(static_core::stream_worker::ARGUMENT) {
+    if std::env::args().nth(1).as_deref() == Some(chatter_core::stream_worker::ARGUMENT) {
         logging::init_to_stderr();
-        return static_core::stream_worker::run();
+        return chatter_core::stream_worker::run();
     }
     let mut arguments: Vec<_> = std::env::args().skip(1).collect();
     // First, so nothing a desktop handed over with the link is read as an option.
@@ -119,7 +119,7 @@ fn main() -> Result<()> {
         }
         written
     });
-    static_core::init_tls()?;
+    chatter_core::init_tls()?;
 
     let runtime = BackgroundRuntime::new().context("could not start background workers")?;
     #[cfg(feature = "matrix")]
@@ -136,9 +136,9 @@ fn main() -> Result<()> {
         open_link,
     };
     match arguments.as_slice() {
-        [] => launch(runtime, static_core::default_directory()?, false, start),
+        [] => launch(runtime, chatter_core::default_directory()?, false, start),
         [argument] if argument == "--preview" => {
-            launch(runtime, static_core::default_directory()?, true, start)
+            launch(runtime, chatter_core::default_directory()?, true, start)
         }
         [argument, path] if argument == "--data-dir" => launch(runtime, path.into(), false, start),
         [preview, argument, path] if preview == "--preview" && argument == "--data-dir" => {
@@ -146,11 +146,11 @@ fn main() -> Result<()> {
         }
         #[cfg(feature = "desktop")]
         [argument] if argument == RELEASE_DISCORD_LINKS => {
-            protocol::set_discord_enabled(&static_core::default_directory()?, false)
+            protocol::set_discord_enabled(&chatter_core::default_directory()?, false)
                 .context("could not give Discord links back")
         }
         [argument] if argument == "--smoke-test" => {
-            runtime.block_on(runtime.spawn(static_core::check_build()))?;
+            runtime.block_on(runtime.spawn(chatter_core::check_build()))?;
             println!(
                 "Chatter {}: Tokio, LiveKit{}{} build check passed.",
                 env!("CARGO_PKG_VERSION"),
@@ -188,7 +188,7 @@ fn main() -> Result<()> {
     }
 }
 
-/// Whether Static's output reaches someone: a file or pipe it was given, or
+/// Whether Chatter's output reaches someone: a file or pipe it was given, or
 /// the console it was started from, which it joins. A Windows program
 /// without a console of its own gets neither when opened from Explorer.
 #[cfg(all(windows, feature = "desktop"))]
@@ -197,7 +197,7 @@ fn has_console() -> bool {
         Foundation::INVALID_HANDLE_VALUE,
         System::Console::{ATTACH_PARENT_PROCESS, AttachConsole, GetStdHandle, STD_OUTPUT_HANDLE},
     };
-    // SAFETY: neither call takes a pointer; Static's other threads haven't started.
+    // SAFETY: neither call takes a pointer; Chatter's other threads haven't started.
     unsafe {
         let output = GetStdHandle(STD_OUTPUT_HANDLE);
         (!output.is_null() && output != INVALID_HANDLE_VALUE)
@@ -205,7 +205,7 @@ fn has_console() -> bool {
     }
 }
 
-/// The folder Static keeps its files in, which holds the log without a console.
+/// The folder Chatter keeps its files in, which holds the log without a console.
 #[cfg(all(windows, feature = "desktop"))]
 fn data_directory(arguments: &[String]) -> Option<std::path::PathBuf> {
     match arguments
@@ -213,7 +213,7 @@ fn data_directory(arguments: &[String]) -> Option<std::path::PathBuf> {
         .position(|argument| argument == "--data-dir")
     {
         Some(index) => arguments.get(index + 1).map(Into::into),
-        None => static_core::default_directory().ok(),
+        None => chatter_core::default_directory().ok(),
     }
 }
 
@@ -221,7 +221,7 @@ fn data_directory(arguments: &[String]) -> Option<std::path::PathBuf> {
 #[cfg(feature = "desktop")]
 const GPU_FALLBACK_REASON: &str = "YAPFAST_GPU_FALLBACK_REASON";
 
-/// How Static starts its window, besides its folder and the preview.
+/// How Chatter starts its window, besides its folder and the preview.
 #[cfg_attr(not(feature = "desktop"), allow(dead_code))]
 struct Start<'a> {
     renderer: Option<&'static str>,
@@ -246,7 +246,7 @@ fn launch(
     });
     let fallback = std::env::var(GPU_FALLBACK_REASON).ok();
     #[cfg(feature = "discord")]
-    static_core::keep_discord_files(&root);
+    chatter_core::keep_discord_files(&root);
     match ui::run(
         runtime,
         root,
@@ -313,8 +313,8 @@ fn flag_argument(arguments: &mut Vec<String>, flag: &str) -> bool {
     arguments.len() != before
 }
 
-/// Comes before the link a desktop hands Static, as its registrations
-/// write it: `static --open-link LINK`.
+/// Comes before the link a desktop hands Chatter, as its registrations
+/// write it: `chatter --open-link LINK`.
 const OPEN_LINK: &str = "--open-link";
 
 /// Gives `discord:` back to the app that had it; the uninstaller runs it.
@@ -340,24 +340,24 @@ fn handed_link(arguments: &mut Vec<String>) -> Result<Option<String>, usize> {
 }
 
 /// Links given as arguments, taking them out of `arguments`: anything
-/// under `discord:` or `yapfast:`, whether or not Static has a place for
+/// under `discord:` or `yapfast:`, whether or not Chatter has a place for
 /// it, and Discord's web links that it has.
 fn link_arguments(arguments: &mut Vec<String>) -> Vec<String> {
     arguments
         .extract_if(.., |argument| {
             argument.split_once(':').is_some_and(|(scheme, _)| {
                 scheme.eq_ignore_ascii_case("discord")
-                    || scheme.eq_ignore_ascii_case("static")
+                    || scheme.eq_ignore_ascii_case("chatter")
                     || scheme.eq_ignore_ascii_case("yapfast")
             }) || written_link(argument).is_some()
         })
         .collect()
 }
 
-/// A link as one word, when it names a place this Static can open.
+/// A link as one word, when it names a place this Chatter can open.
 fn written_link(link: &str) -> Option<String> {
     #[cfg(all(feature = "desktop", feature = "discord"))]
-    return static_core::discord::discord_link(link);
+    return chatter_core::discord::discord_link(link);
     #[cfg(not(all(feature = "desktop", feature = "discord")))]
     {
         let _ = link;
@@ -402,7 +402,7 @@ mod tests {
         assert_eq!(handed_link(&mut arguments), Ok(Some("--preview".into())));
         assert_eq!(arguments, ["--data-dir", "folder"]);
         // `discord://-/channels/1/2" --data-dir "\\host\share`, put
-        // into `"static.exe" --open-link "%1"` as Windows does.
+        // into `"chatter.exe" --open-link "%1"` as Windows does.
         let mut arguments = strings(&[
             OPEN_LINK,
             "discord://-/channels/1/2",

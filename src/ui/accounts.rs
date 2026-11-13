@@ -3,7 +3,7 @@
 
 use super::*;
 
-pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
+pub(super) fn bind(window: &ChatterWindow, adapter: &Rc<RefCell<Adapter>>) {
     let state = adapter.clone();
     let weak = window.as_weak();
     window.on_account_wanted(move || {
@@ -16,7 +16,7 @@ pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
     let state = adapter.clone();
     let weak = window.as_weak();
     window.on_account_change(move |what, value| {
-        use static_core::chat::AccountChange;
+        use chatter_core::chat::AccountChange;
         let Some(window) = weak.upgrade() else {
             return;
         };
@@ -42,7 +42,7 @@ pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
         };
         #[cfg(feature = "discord")]
         {
-            use static_core::static_discord::accounts;
+            use chatter_core::chatter_discord::accounts;
             let mut adapter = state.borrow_mut();
             if adapter.app.state.preview {
                 return;
@@ -118,8 +118,8 @@ pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
 
 /// Puts the saved accounts in the switcher and clears its last error.
 #[cfg(feature = "discord")]
-fn show_rows(window: &StaticWindow, root: &std::path::Path) -> Result<()> {
-    use static_core::static_discord::accounts;
+fn show_rows(window: &ChatterWindow, root: &std::path::Path) -> Result<()> {
+    use chatter_core::chatter_discord::accounts;
     let rows = accounts::list(root)?
         .into_iter()
         .map(|a| {

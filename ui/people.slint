@@ -1,5 +1,5 @@
 import { ConnectionIcons } from "connection-icons.slint";
-import { ClientStyle } from "static/style.slint";
+import { ClientStyle } from "chatter/style.slint";
 import { ScrollView, ListView } from "scrollview.slint";
 import { Theme, Middle, Label } from "theme.slint";
 import { ActionButton, IconButton, Avatar, StatusText, PictureStore, TextField } from "controls.slint";
@@ -1007,7 +1007,7 @@ export component ProfileModal inherits Rectangle {
     }
 }
 
-// A role mentioned in a message, as a card: who Static knows has it.
+// A role mentioned in a message, as a card: who Chatter knows has it.
 export component RoleCard inherits Rectangle {
     in property <string> role-name;
     in property <color> role-color;

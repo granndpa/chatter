@@ -1,5 +1,5 @@
-import { DmHeading } from "static/dm-heading.slint";
-import { ClientStyle } from "static/style.slint";
+import { DmHeading } from "chatter/dm-heading.slint";
+import { ClientStyle } from "chatter/style.slint";
 import { ListView } from "scrollview.slint";
 import { Theme, Tip, Middle, Label } from "theme.slint";
 import { Avatar, PictureStore, StatusText, VoiceSpot } from "controls.slint";
@@ -1303,7 +1303,7 @@ export component RoomList inherits Rectangle {
                     }
                 }
                 // Discord reports who is in every voice channel; Matrix
-                // only shows the call Static is in, below.
+                // only shows the call Chatter is in, below.
                 if room.voice && room.id != root.voice-channel && room.people.length > 0: VerticalLayout {
                     padding-left: 32px; padding-bottom: 4px; spacing: 0px;
                     for person in room.people: Rectangle {

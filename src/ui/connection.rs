@@ -19,7 +19,7 @@ pub(super) fn start() {
             .spawn(|| {
                 loop {
                     #[cfg(feature = "discord")]
-                    static_core::discord_network::set(online());
+                    chatter_core::discord_network::set(online());
                     std::thread::sleep(EVERY);
                 }
             });

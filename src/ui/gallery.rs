@@ -20,7 +20,7 @@ pub(super) struct Gallery {
 }
 
 /// Searches for the tab's kind in the place the gallery is about.
-fn search(adapter: &mut Adapter, window: &StaticWindow) {
+fn search(adapter: &mut Adapter, window: &ChatterWindow) {
     let has = KINDS[adapter.gallery.kind];
     let channel = adapter.gallery.channel.as_ref().and_then(|room| {
         adapter
@@ -41,7 +41,7 @@ fn search(adapter: &mut Adapter, window: &StaticWindow) {
 
 /// Opens the gallery for a server, by its id, or a channel or DM, by its
 /// room id.
-pub(super) fn open(adapter: &mut Adapter, window: &StaticWindow, place: &str) {
+pub(super) fn open(adapter: &mut Adapter, window: &ChatterWindow, place: &str) {
     let server = adapter.app.state.servers.iter().any(|server| server.id == place);
     if server {
         adapter.action(window, Action::Navigate(Navigation::Server(place.to_owned())));
@@ -81,7 +81,7 @@ fn links(body: &str) -> impl Iterator<Item = &str> {
 }
 
 /// Fills the gallery from the search's results.
-pub(super) fn show(adapter: &Adapter, window: &StaticWindow) {
+pub(super) fn show(adapter: &Adapter, window: &ChatterWindow) {
     if !adapter.gallery.open {
         return;
     }
@@ -95,7 +95,7 @@ pub(super) fn show(adapter: &Adapter, window: &StaticWindow) {
     let mut items: Vec<(u64, GalleryItem)> = Vec::new();
     for hit in &found.results {
         let message = &hit.message;
-        let date = static_core::clock::full(message.timestamp, twelve_hour);
+        let date = chatter_core::clock::full(message.timestamp, twelve_hour);
         let mut push = |name: String, url: String, picture: bool| {
             if !filter.is_empty()
                 && !name.to_lowercase().contains(&filter)
@@ -159,7 +159,7 @@ pub(super) fn show(adapter: &Adapter, window: &StaticWindow) {
     window.set_gallery_place(place.into());
 }
 
-pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
+pub(super) fn bind(window: &ChatterWindow, adapter: &Rc<RefCell<Adapter>>) {
     {
         let (state, weak) = (adapter.clone(), window.as_weak());
         window.on_gallery_kind_chosen(move |kind| {

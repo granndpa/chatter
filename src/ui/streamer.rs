@@ -73,7 +73,7 @@ pub(super) fn mask_invites(text: &str) -> std::borrow::Cow<'_, str> {
 
 /// Shows Streamer Mode as the window's settings and OBS say, and hides the
 /// window from capture while it should be.
-pub(super) fn apply(window: &StaticWindow) {
+pub(super) fn apply(window: &ChatterWindow) {
     // On only while something records or streams the screen.
     let active = window.get_streamer_mode() && BROADCASTING.load(Relaxed);
     ACTIVE.store(active, Relaxed);
@@ -92,7 +92,7 @@ pub(super) fn apply(window: &StaticWindow) {
 
 /// Looks for OBS and XSplit every few seconds while the automatic switch is
 /// on, for this window from now on.
-pub(super) fn watch(window: &StaticWindow) {
+pub(super) fn watch(window: &ChatterWindow) {
     let weak = window.as_weak();
     let look = move || {
         let Some(window) = weak.upgrade() else {
@@ -161,7 +161,7 @@ fn broadcaster_running() -> bool {
 
 /// Windows leaves the window out of screenshots, recordings and screen
 /// sharing while `hidden`; elsewhere this does nothing.
-fn hide_from_capture(window: &StaticWindow, hidden: bool) {
+fn hide_from_capture(window: &ChatterWindow, hidden: bool) {
     #[cfg(windows)]
     {
         use slint::winit_030::WinitWindowAccessor as _;

@@ -25,7 +25,7 @@ hash there; a `nix build` with the old one prints it.
 
 ## Dependencies
 
-Static pins Rust 1.97.1, Slint's master at `ac7d423f` and Skia 0.157.0.
+Chatter pins Rust 1.97.1, Slint's master at `ac7d423f` and Skia 0.157.0.
 Cargo.lock pins the complete Rust graph. That commit calls itself 1.19.0, which
 isn't released: `[patch.crates-io]` in Cargo.toml takes `=1.19.0` and the crates
 it needs from the commit. Its generated Rust compiles in half the time of
@@ -41,36 +41,36 @@ prebuilt Skia with Skia's own FreeType: the one built for the system's FreeType
 lacks FreeType's COLRv1 calls, so it drew nothing for the COLRv1 build of Noto
 Color Emoji, the only one Fedora installs. Rust-skia builds that Skia only with
 its text layout, which the linker leaves out, and without Vulkan, so the
-renderer goes without wgpu, whose Vulkan surface needs it. On Linux Static
+renderer goes without wgpu, whose Vulkan surface needs it. On Linux Chatter
 asks for Skia OpenGL or Skia Software by name; the wgpu renderers the winit
 backend still names make surfaces that fail to start. Windows turns wgpu back
-on through a dependency in Static's own `Cargo.toml`, for Skia GPU on Direct3D
-12 (see `src/graphics.rs`). Each change is marked `Static:` in
+on through a dependency in Chatter's own `Cargo.toml`, for Skia GPU on Direct3D
+12 (see `src/graphics.rs`). Each change is marked `Chatter:` in
 `itemrenderer.rs`, `cached_image.rs`, `lib.rs`, `font_cache.rs` or
 `Cargo.toml`. Copy the matching release over it, and reapply them, when
 upgrading Slint.
 
 `vendor/i-slint-core` is Slint's core at that commit with `StyledText` always
 selectable, across the texts around it, where upstream's `selectable` property
-selects inside one text and Static leaves it unset. Dragging selects, a double press selects a
+selects inside one text and Chatter leaves it unset. Dragging selects, a double press selects a
 word and a triple press a paragraph. Dragging past a text carries the selection
 on through the texts and pictures around it: those sharing its nearest flickable,
 such as a list's rows, in reading order. Pictures are the `Image`s with
 an `accessible-label`, and copy as `[Picture]`. Ctrl+C copies the selection
 as read, without its Markdown: texts level with each other joined by a space, the
-rest by line breaks. Static shows message authors and times as `StyledText` so the
+rest by line breaks. Chatter shows message authors and times as `StyledText` so the
 selection takes them in. The selection is kept as positions in the list's model,
 so it survives its rows scrolling away. Dragging near the top or bottom of the
-list scrolls it, and Static supplies the text of the rows in between through
-`static_selection::set_row_text`. A click that selects nothing still follows a
+list scrolls it, and Chatter supplies the text of the rows in between through
+`chatter_selection::set_row_text`. A click that selects nothing still follows a
 link and leaves the focus where it was. A left press anywhere clears the
 selection, as does Escape. Other buttons pass through a text to the items around
 it, so a right click on a message's text opens its menu, and
-`static_selection::copied_at` gives that menu the selection there, and
-`static_selection::pressed_link_at` the link pressed. The highlight is the text's `link-color` at 35%
+`chatter_selection::copied_at` gives that menu the selection there, and
+`chatter_selection::pressed_link_at` the link pressed. The highlight is the text's `link-color` at 35%
 opacity, since `StyledText` has no property of its own for it.
 
-The core of it is `static_selection.rs`. The other changes are marked `Static:` in:
+The core of it is `chatter_selection.rs`. The other changes are marked `Chatter:` in:
 
 - `items/text.rs`
 - `items/image.rs`, which tints covered pictures
@@ -93,7 +93,7 @@ It also keeps a timeline's rows in place as older messages go in above them.
 Upstream, a `ListView` keeps its rows where they are on screen when rows go in
 above the first one it shows, but rows that go in right above it, as when the
 top of the history is on screen, push everything shown down. Inside
-`static_anchor::hold`, which Static wraps around a page of older messages, those
+`chatter_anchor::hold`, which Chatter wraps around a page of older messages, those
 count as above it too. That row then keeps its bottom edge where it is in the
 view, rather than its top, while its height settles: it loses its date, its
 author line or the loading notice once the rows before it carry them, and
@@ -101,8 +101,8 @@ those parts change only when the list is next drawn. The anchor moves with
 scrolling, follows its row as rows go in or out above it, and ends when the
 row is no longer shown or goes. A wheel scroll animates
 `content-y` and would carry on to where it was going, so the list stops that
-animation when rows go in above inside `hold`. This is `static_anchor.rs` and the
-changes marked `Static:` in `model/repeater.rs`.
+animation when rows go in above inside `hold`. This is `chatter_anchor.rs` and the
+changes marked `Chatter:` in `model/repeater.rs`.
 
 When `content-y` moves to the end of a `ListView` or past it, as when the
 timeline follows its newest message or a scroll reaches the end, the list lays
@@ -111,24 +111,24 @@ each as drawn. Upstream lays them out down from the row the average row height
 puts there, which lands short of the end or past it, so `content-height`
 changes again and whatever follows the end moves `content-y` again, one round
 of change handlers each time. Slint allows ten such rounds in a row before it
-warns of a long callback chain. This is `static_layout_end` in
+warns of a long callback chain. This is `chatter_layout_end` in
 `model/repeater.rs`.
 
 A `TextInput` draws parts of its text as a `StyledText` draws a mention, in
 a colour on a pill of it, so the composer shows whom its message will
-mention. Static marks a text's byte ranges with
-`static_marks::mark`, and a `TextInput` showing that text, not a password
+mention. Chatter marks a text's byte ranges with
+`chatter_marks::mark`, and a `TextInput` showing that text, not a password
 or one composing with an input method, shapes them as links in a colour span.
-Upstream, a `TextInput` has one colour. This is `static_marks.rs` and the
-changes marked `Static:` about marks in `item_rendering.rs`, `items/text.rs`
+Upstream, a `TextInput` has one colour. This is `chatter_marks.rs` and the
+changes marked `Chatter:` about marks in `item_rendering.rs`, `items/text.rs`
 and `textlayout/sharedparley/shaping.rs`.
 
 A mouse wheel spun fast scrolls farther for each notch. Upstream, each notch
 scrolls 60 pixels however fast the notches come, so a hard spin through a long
-history crawls. Static weighs the recent notches, each counting less with time,
+history crawls. Chatter weighs the recent notches, each counting less with time,
 and above 12 notches a second scales each notch by the speed over 12, at most
 six times. Deltas smaller than a notch, as from touchpads that send no phases,
-keep their pace. These are the changes marked `Static:` around
+keep their pace. These are the changes marked `Chatter:` around
 `accelerate_wheel` in `items/flickable.rs`.
 
 A middle click autoscrolls, as browsers do: the innermost flickable under it
@@ -137,33 +137,33 @@ away the pointer is from where it clicked, until the next press, key or wheel.
 Holding the button and moving away scrolls until it's let go. A middle press
 in a `TextInput` still pastes there. While it scrolls the window gives the
 pointer's events to it, not to the items under the pointer, and the press
-that ends it goes no further. Static marks where it began through
-`static_autoscroll::on_marker`, with the `Autoscroll` global in
+that ends it goes no further. Chatter marks where it began through
+`chatter_autoscroll::on_marker`, with the `Autoscroll` global in
 `ui/scrollview.slint`. Upstream Slint has no autoscroll. This is
-`static_autoscroll.rs` and the changes marked `Static:` about it in
+`chatter_autoscroll.rs` and the changes marked `Chatter:` about it in
 `items/flickable.rs`, `items/text.rs` and `window.rs`.
 
 A key no item takes, as after a menu closes, goes to the function given to
-`static_typing::on_unclaimed`, which Static points at the composer, as
+`chatter_typing::on_unclaimed`, which Chatter points at the composer, as
 Discord's window sends typing anywhere to it. Printable text, Backspace, Delete
 and Escape go, and Tab with nothing focused, without Ctrl, Alt or Super held and
 with no popup open. For text, Backspace and Delete the function moves the focus,
 and the key then goes to the item now focused. Upstream drops them, since with
-no item focused a key has nowhere to go. This is `static_typing.rs` and the
-change marked `Static:` about it in `window.rs`.
+no item focused a key has nowhere to go. This is `chatter_typing.rs` and the
+change marked `Chatter:` about it in `window.rs`.
 
 Reapply them to the matching release when upgrading Slint. Styled paragraphs now
 have byte ranges as if joined by newlines, where upstream gives them all `0..0`.
 
-`ui/scrollview.slint` is Static's own `ScrollView` and `ListView`, in place of
+`ui/scrollview.slint` is Chatter's own `ScrollView` and `ListView`, in place of
 the std-widgets ones: the Fluent style's from Slint 1.18.1, with its scroll
 arrows copied to `ui/icons/scroll-*.svg`. The Fluent scrollbar starts a thumb
 drag over each time `maximum` changes, dropping part of the pointer's travel,
 and a `ListView`'s `maximum` changes all through a drag as rows are measured,
-so the thumb fell behind the pointer. Static's bar sets the viewport from where
+so the thumb fell behind the pointer. Chatter's bar sets the viewport from where
 the pointer has moved the thumb since the drag began, as a share of the track,
 and again when `maximum` changes. The compiler virtualizes any component named
-`ListView` with the viewport's lengths, so Static's is virtualized as upstream's
+`ListView` with the viewport's lengths, so Chatter's is virtualized as upstream's
 is. Compare it with the Fluent style's when upgrading Slint.
 
 The Matrix SDK revision follows the pinned MatrixRTC revision. Keep those two
@@ -173,13 +173,13 @@ The picker's, the reaction buttons' and the emoji suggestions' emoji are drawn
 from Twemoji's pictures, the artwork Discord's client uses: `vendor/twemoji` is
 `assets/72x72` from https://github.com/discord/twemoji at the revision
 `vendor/twemoji/REVISION` names, under CC-BY 4.0, which asks for the attribution
-`vendor/twemoji/README.static.md` gives. `build.rs` makes them one font the program
+`vendor/twemoji/README.chatter.md` gives. `build.rs` makes them one font the program
 carries, which message text draws and maps rather than copies, and
 `src/twemoji.rs` finds a picture in it by the emoji's code points; a code point it has
 no picture for stays a glyph from the system's emoji font (`src/emoji_glyphs.rs`
 draws that once into a picture). `scripts/release_package.py` copies the
 licences and attribution into each package and `THIRD-PARTY.json`. Update by
-taking the new commit's files over these, as `vendor/twemoji/README.static.md`
+taking the new commit's files over these, as `vendor/twemoji/README.chatter.md`
 says.
 
 libDF, DeepFilterNet's Rust implementation, comes from DeepFilterNet's
@@ -221,7 +221,7 @@ either way, and one that adds an element in 80 seconds rather than 100. Use it f
 
 ### Dependency sources
 
-Static patches these crates in `vendor/`, through `[patch.crates-io]` or a path
+Chatter patches these crates in `vendor/`, through `[patch.crates-io]` or a path
 dependency in Cargo.toml:
 
 - `i-slint-core`: Slint's core at `ac7d423f` with selectable `StyledText`,
@@ -259,10 +259,10 @@ patches let NVENC, AMF and VA-API change their bitrate without a keyframe.
 Its build script compiles it, and NASM assembles its x86-64 assembly, with
 every symbol prefixed, apart from the FFmpeg in libwebrtc, and it loads
 libva, NVIDIA's driver and AMD's AMF runtime only when an encoder opens.
-Its `README.static.md` explains the rest. Targets without a `gen/` folder build without hardware
+Its `README.chatter.md` explains the rest. Targets without a `gen/` folder build without hardware
 encoding or H265 decoding.
 
-Each has a `README.static.md` with its changes, except the two Slint crates, which
+Each has a `README.chatter.md` with its changes, except the two Slint crates, which
 this section describes. The Slint crates keep their `.rs` files at the crate
 root, with no `src/`, both in `vendor/` and in Cargo's registry.
 
@@ -276,7 +276,7 @@ the short form of the revision pinned in Cargo.toml. libDF's is
 ### Media libraries
 
 Three libraries decode and encode media, each for its own formats. The C
-files named here are in `crates/static-core/native/`.
+files named here are in `crates/chatter-core/native/`.
 
 - LiveKit's libwebrtc archive, `$LK_CUSTOM_WEBRTC` in the development shell,
   holds libvpx, dav1d, libyuv and Chromium's FFmpeg, which has H264 and
@@ -302,7 +302,7 @@ nm $LK_CUSTOM_WEBRTC/lib/libwebrtc.a | grep ' T avformat_open_input'
 
 On NixOS, a binary run outside `nix develop` opens NVENC only with
 `LD_LIBRARY_PATH=/run/opengl-driver/lib`, which the dev shell and the Nix
-package's wrapper add. Static names the libva driver for each render node
+package's wrapper add. Chatter names the libva driver for each render node
 itself, but `vainfo` or FFmpeg's command line on a host that sets
 `LIBVA_DRIVER_NAME=nvidia` needs `env -u LIBVA_DRIVER_NAME` to reach AMD's
 or Intel's driver.
@@ -326,12 +326,12 @@ and the tests with Matrix beside Discord, Clippy for the Matrix-only build,
 then the headless build's Clippy and smoke test in
 `target/check-combinations/`, so the headless binary doesn't replace the
 desktop one. Run it before a release and after a change to code that Matrix
-shares, such as `#[cfg(feature = "matrix")]` branches in `static-core` and
+shares, such as `#[cfg(feature = "matrix")]` branches in `chatter-core` and
 the app. The Matrix-only step also selects `crates/feature-union`, a crate
 without code that turns on the features the full build turns on in the
 crates below Slint. Slint and the UI crate then resolve as in the Clippy step
 with Matrix, and the Matrix-only step reuses its check of the UI crate,
-taking seconds instead of several minutes. When it compiles `static-ui`
+taking seconds instead of several minutes. When it compiles `chatter-ui`
 again, a dependency has drifted and `feature-union` needs its features. The
 default steps leave `feature-union` out, so they resolve as a plain
 `cargo build`. Each step prints `=== step` and `rc=N` when it ends,
@@ -356,20 +356,20 @@ checks formatting only, so commits stay quick.
 
 ## Seeing the app
 
-`scripts/ui-session` runs Static on a private Weston display, for screenshots and
+`scripts/ui-session` runs Chatter on a private Weston display, for screenshots and
 checks by hand, without touching the desktop or a real account:
 
 ```sh
 scripts/ui-session start      # the preview; --discord for the fake Discord
 scripts/ui-session do 'click 40 100' 'type hello' 'key enter' 'shot sent'
-scripts/ui-session relaunch   # rebuild and restart Static on the same display
+scripts/ui-session relaunch   # rebuild and restart Chatter on the same display
 scripts/ui-session stop
 ```
 
 `start --discord` builds with the release's features (see
-[Networks](#networks)) into the same `target/fast/static` as a default build
+[Networks](#networks)) into the same `target/fast/chatter` as a default build
 (`build()` in `scripts/ui-session`). Slint and the UI crate resolve the same
-for both, so switching between the two rebuilds only `static-core`, the
+for both, so switching between the two rebuilds only `chatter-core`, the
 Discord crate and the app, about 5 to 15 seconds; `--live` changes Slint's
 features and recompiles it.
 Screenshots go to `.local/ui-session/shots/`, and `scripts/ui-session --help`
@@ -381,7 +381,7 @@ For UI work, `start --live` builds with the `live-preview` feature. Slint then
 generates a wrapper around its interpreter instead of compiled code: the window
 loads `ui/*.slint` at startup and reloads them under a second after each save,
 keeping its state. An edit that took a two-minute rebuild of
-`crates/static-ui` shows without one. Slint's watcher misses a save that
+`crates/chatter-ui` shows without one. Slint's watcher misses a save that
 renames a new file over the old one, as `sed -i`, Claude's Edit tool and some
 editors' atomic saves do; `touch` the file after such a save. Rust
 changes, and properties or callbacks that Rust code starts using, still need
@@ -398,7 +398,7 @@ scripts/ui-session do 'record start tour' 'glide 400 600' 'click 170 264 glide' 
 
 `testing/record_host.rs` takes the frames through Weston's capture protocol
 and ffmpeg encodes them to `.local/ui-session/videos/tour.mp4`, which later
-starts keep. `--zoom` opens Static at that zoom level, `--cursor` shows the
+starts keep. `--zoom` opens Chatter at that zoom level, `--cursor` shows the
 pointer, `glide` and `click … glide` move it as a hand would, and `scroll
 PIXELS SECONDS` scrolls smoothly. Weston's headless display repaints about
 58.5 times a second at most, so about one frame in 40 repeats the one
@@ -432,14 +432,14 @@ network only opens `--preview`.
 `testing/fake_discord.ts` (`bun testing/fake_discord.ts --port 18400`). It uses
 a test token instead of the linked account, so the real token never reaches it.
 `scripts/test-fake-discord [FILTER]` runs the ignored tests in
-`crates/static-discord/tests/fake_server.rs` with the `fast` profile, one area
+`crates/chatter-discord/tests/fake_server.rs` with the `fast` profile, one area
 each, such as `forum` or `calls_in_dms`, a second or so apiece. Each starts a
 fake of its own, so none depends on another and a filter runs any alone. `cargo
 nextest`, in the development shell, runs them side by side, eight at a time
 (`.config/nextest.toml`), and the whole file takes about 15 seconds; without
 it, `cargo test` runs them one after another in about a minute. The script then
-runs static-core's Discord tests against one fake, and
-`crates/static-discord/tests/fake_env.rs` against a fake that runs the example
+runs chatter-core's Discord tests against one fake, and
+`crates/chatter-discord/tests/fake_env.rs` against a fake that runs the example
 environment.
 
 `--env PATH` replaces the fake's built-in content with an environment, for
@@ -461,7 +461,7 @@ Media paths are relative to the environment file. Videos need `ffprobe` and
 and the result is cached in the system's temporary directory. Without
 `--env`, the fake serves its built-in content unchanged, and the tests rely
 on it.
-`YAPFAST_DISCORD_TEST_UNLINKED=1` starts Static unlinked, to link against the fake.
+`YAPFAST_DISCORD_TEST_UNLINKED=1` starts Chatter unlinked, to link against the fake.
 [Network memory](measurements/README.md) compares the three builds.
 
 With [direnv](https://direnv.net/), the repository's `.envrc` loads the Nix
@@ -475,12 +475,12 @@ The Linux cross-build and portable ZIP route is documented in the
 [Windows beta guide](windows-beta.md). It supplies the matching Windows WebRTC
 archive and checksum-pinned Skia source through the Windows Nix shell.
 `scripts/build-windows` prepares and caches a static-runtime Skia build before
-compiling Static. The executable uses static CRT linkage to match LiveKit.
+compiling Chatter. The executable uses static CRT linkage to match LiveKit.
 `scripts/build-windows [discord|full] [options]` builds the Discord-only release,
 the default, or the full preview with Matrix, and passes the options to
 `scripts/package-windows.py`, such as `--no-installer`.
 `scripts/package-windows.py`, which `scripts/build-windows` runs, makes the
-flavour's portable ZIP and compiles the installer, `packaging/windows/static.iss`, with
+flavour's portable ZIP and compiles the installer, `packaging/windows/chatter.iss`, with
 Inno Setup 7.1.0 under Wine. The first run downloads Inno Setup's installer,
 pinned by SHA-256, and installs it into its own Wine prefix in
 `.local/windows/inno-setup`, under `xvfb-run`, since it opens windows even
@@ -517,7 +517,7 @@ and `%USERPROFILE%\scoop\apps\llvm\current`; the preparation script passes it
 the LLVM it found on `PATH`. Skia preparation also needs Python 3 and Ninja;
 Ninja comes with Visual Studio, and the script fetches its pinned GN. A network
 connection is needed once for the pinned Skia source and libwebrtc archive.
-`vendor/ffmpeg-src/build.rs` and `crates/static-core/build.rs` select
+`vendor/ffmpeg-src/build.rs` and `crates/chatter-core/build.rs` select
 `clang-cl` for MSVC targets only when `CC`/`CXX` are unset, because FFmpeg's x86
 assembly and the camera shim's Clang warning flags need it; an explicitly
 selected compiler wins.
@@ -550,10 +550,10 @@ on the tester's actual GPU.
 
 ## Logs
 
-Static logs only its own operational events at info level and above. Dependency
+Chatter logs only its own operational events at info level and above. Dependency
 logs are disabled on purpose, because they can expose authentication data or
-message content. Static ignores `RUST_LOG`; `YAPFAST_LOG=debug` turns on Static's own
-debug logs (`crates/static-core/src/logging.rs`).
+message content. Chatter ignores `RUST_LOG`; `YAPFAST_LOG=debug` turns on Chatter's own
+debug logs (`crates/chatter-core/src/logging.rs`).
 Typed text never enters the log. Future errors must use fixed event
 names and safe classifications rather than raw protocol responses or SDK Debug
 output.
@@ -561,10 +561,10 @@ output.
 ## Initial resource measurement
 
 After a `measure` build with the release's features (see
-[Networks](#networks)), open `target/measure/static` inside the Nix shell;
+[Networks](#networks)), open `target/measure/chatter` inside the Nix shell;
 measure `release` only for the shipped build's absolute numbers. Leave it
 inactive for at least 15 seconds, then sample its PID on Linux.
-`scripts/ui-session` writes the PID of the Static it runs to
+`scripts/ui-session` writes the PID of the Chatter it runs to
 `.local/ui-session/static.pid`.
 
 ```sh
@@ -583,7 +583,7 @@ Synapse and the authorization service communicate over an internal TLS listener
 using a throwaway self-signed certificate. LiveKit and authorization share a
 network namespace, and use the same signaling port inside and outside Docker.
 Authorization uses the standalone `/get_token` mode from lk-jwt-service 0.7.0.
-Static's native experiment sets the local authorization fallback explicitly,
+Chatter's native experiment sets the local authorization fallback explicitly,
 because this stack does not advertise a production RTC discovery endpoint.
 See [sessions](sessions.md) for credential storage and headless sign-in.
 

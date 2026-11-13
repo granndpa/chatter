@@ -112,10 +112,10 @@ def dependency_notices(metadata, package, licenses, skia_archive, skia_source, w
             shutil.copy2(notice, destination)
     shutil.copy2(webrtc / "LICENSE.md", licenses / "libwebrtc-LICENSE.md")
     # Twemoji's pictures, which the picker's and reactions' emoji are drawn from:
-    # CC-BY 4.0, which asks for the attribution its README.static.md carries.
+    # CC-BY 4.0, which asks for the attribution its README.chatter.md carries.
     twemoji = ROOT / "vendor" / "twemoji"
     twemoji_licenses = []
-    for name in ["LICENSE-GRAPHICS", "LICENSE", "README.md", "README.static.md"]:
+    for name in ["LICENSE-GRAPHICS", "LICENSE", "README.md", "README.chatter.md"]:
         target = licenses / ("twemoji-" + name)
         shutil.copy2(twemoji / name, target)
         twemoji_licenses.append(target.relative_to(package).as_posix())

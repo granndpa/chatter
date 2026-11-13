@@ -1,25 +1,25 @@
-//! Whether someone is using Static, judged as Discord's web client judges it:
+//! Whether someone is using Chatter, judged as Discord's web client judges it:
 //! a key, a click or the wheel in the window counts, a passing pointer
 //! doesn't. Once nobody has for [`QUIET`], Discord hears since when, and
 //! goes AFK and then idle on its own clock; see
-//! `static_discord::settings::Away`. One timer runs while someone uses Static,
+//! `chatter_discord::settings::Away`. One timer runs while someone uses Chatter,
 //! and none once nobody does.
 
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use slint::{Timer, TimerMode};
-use static_core::application::Action;
+use chatter_core::application::Action;
 
-use super::{Adapter, StaticWindow};
+use super::{Adapter, ChatterWindow};
 
-/// How long without input before Static tells Discord. Discord's shortest AFK
+/// How long without input before Chatter tells Discord. Discord's shortest AFK
 /// timeout that matters is a minute; its timeouts count from the last
 /// input, not from this.
 const QUIET: Duration = Duration::from_secs(15);
 
 pub(super) struct Away {
     last: Instant,
-    /// Discord heard nobody is using Static.
+    /// Discord heard nobody is using Chatter.
     inactive: bool,
     timer: Timer,
 }
@@ -35,19 +35,19 @@ impl Default for Away {
 }
 
 impl Adapter {
-    /// Whether nobody has used Static for a while, so animation holds still.
+    /// Whether nobody has used Chatter for a while, so animation holds still.
     pub(super) fn is_inactive(&self) -> bool {
         self.away.inactive
     }
 
-    /// Watches for nobody using Static, from now.
+    /// Watches for nobody using Chatter, from now.
     pub(super) fn watch_away(&mut self) {
         self.away.last = Instant::now();
         self.wait_away(QUIET);
     }
 
     /// Someone used the window.
-    pub(super) fn used(&mut self, window: &StaticWindow) {
+    pub(super) fn used(&mut self, window: &ChatterWindow) {
         self.away.last = Instant::now();
         if self.away.inactive {
             self.away.inactive = false;
@@ -59,7 +59,7 @@ impl Adapter {
     }
 
     /// Tells Discord again, as the setting to show idle changed.
-    pub(super) fn idle_setting_changed(&mut self, window: &StaticWindow) {
+    pub(super) fn idle_setting_changed(&mut self, window: &ChatterWindow) {
         if self.away.inactive {
             self.tell_away(window);
         }
@@ -82,7 +82,7 @@ impl Adapter {
         });
     }
 
-    fn tell_away(&mut self, window: &StaticWindow) {
+    fn tell_away(&mut self, window: &ChatterWindow) {
         let since = self.away.inactive.then(|| {
             let last = SystemTime::now() - self.away.last.elapsed();
             last.duration_since(UNIX_EPOCH)

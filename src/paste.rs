@@ -15,7 +15,7 @@ pub enum Clipboard {
     Files(Vec<PathBuf>),
     /// A picture's file contents, and the extension for its type.
     Picture(Vec<u8>, &'static str),
-    /// Text, or nothing Static can attach.
+    /// Text, or nothing Chatter can attach.
     Other,
 }
 
@@ -28,7 +28,7 @@ const PICTURES: [(&str, &str); 4] = [
 ];
 
 /// Reads the clipboard. Blocks while the copying app sends its data, so it
-/// runs off the UI thread; Static itself may be that app.
+/// runs off the UI thread; Chatter itself may be that app.
 pub fn read() -> Clipboard {
     #[cfg(target_os = "linux")]
     {
@@ -138,8 +138,8 @@ mod wayland {
 #[cfg(target_os = "linux")]
 mod x11 {
     //! The CLIPBOARD selection, asked of its owner as the ICCCM has it: its
-    //! targets, then the one Static takes, each into a property on a window
-    //! of Static's own. Data too big for one request comes in parts (INCR).
+    //! targets, then the one Chatter takes, each into a property on a window
+    //! of Chatter's own. Data too big for one request comes in parts (INCR).
     //! Text comes before pictures, as office suites offer a picture of the
     //! cells or text they copy.
 
@@ -347,7 +347,7 @@ mod windows {
 
     use super::{Clipboard, PICTURES, bitmap, png};
 
-    // The standard formats Static takes, from WinUser.h.
+    // The standard formats Chatter takes, from WinUser.h.
     const CF_TEXT: u32 = 1;
     const CF_OEMTEXT: u32 = 7;
     const CF_DIB: u32 = 8;

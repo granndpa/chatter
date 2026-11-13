@@ -1282,7 +1282,7 @@ impl core::fmt::Debug for VisitChildrenResult {
 #[repr(u8)]
 #[derive(Debug)]
 pub enum ItemTreeNode {
-    /// Static item
+    /// Chatter item
     Item {
         /// True when the item has accessibility properties attached
         is_accessible: bool,

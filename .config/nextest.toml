@@ -5,5 +5,5 @@
 fake-discord = { max-threads = 8 }
 
 [[profile.default.overrides]]
-filter = 'package(static-discord) and binary(fake_server)'
+filter = 'package(chatter-discord) and binary(fake_server)'
 test-group = 'fake-discord'

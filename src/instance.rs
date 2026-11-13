@@ -1,4 +1,4 @@
-//! One Static for each data folder, unless Settings → Advanced allows more:
+//! One Chatter for each data folder, unless Settings → Advanced allows more:
 //! starting it again brings the running one's window forward and ends. The
 //! first start holds `instance.lock` in the folder, which the system lets go
 //! of when the process ends, and listens for later starts: on a Unix socket
@@ -16,16 +16,16 @@ const SOCKET: &str = "instance.socket";
 const PATIENCE: Duration = Duration::from_secs(5);
 const RETRY: Duration = Duration::from_millis(100);
 
-/// What this start of Static goes on to do.
+/// What this start of Chatter goes on to do.
 pub enum Start {
     /// Run, as the first on the folder or one more beside it.
     Run(Instance),
-    /// Another Static runs on the folder and was asked to show its window,
+    /// Another Chatter runs on the folder and was asked to show its window,
     /// unless this start was for the tray only: nothing is left to do.
     Handed,
 }
 
-/// What a later start asks the running Static to show: the desktop's
+/// What a later start asks the running Chatter to show: the desktop's
 /// activation token, and a Discord link when the desktop handed it one.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Launch {
@@ -33,14 +33,14 @@ pub struct Launch {
     pub link: Option<String>,
 }
 
-/// A running Static's hold on its folder, while it's the first there.
+/// A running Chatter's hold on its folder, while it's the first there.
 #[derive(Default)]
 pub struct Instance {
     _lock: Option<File>,
     listener: Option<Listener>,
 }
 
-/// Starts Static on `root`. With another running there and `alone`, hands
+/// Starts Chatter on `root`. With another running there and `alone`, hands
 /// this start to it, which shows its window unless `background`.
 pub fn claim(root: &Path, alone: bool, background: bool, link: Option<String>) -> Start {
     claim_with(
@@ -127,7 +127,7 @@ fn activation_token() -> Option<String> {
     None
 }
 
-/// Asks the first Static to show its window, waiting a little for it to listen.
+/// Asks the first Chatter to show its window, waiting a little for it to listen.
 fn hand(root: &Path, launch: &Launch) -> bool {
     let started = std::time::Instant::now();
     loop {
@@ -187,7 +187,7 @@ impl Listener {
     fn bind(root: &Path) -> Option<Self> {
         let path = root.join(SOCKET);
         // Holding the lock, this start is the only one: a socket there is a
-        // gone Static's.
+        // gone Chatter's.
         let _ = std::fs::remove_file(&path);
         match std::os::unix::net::UnixListener::bind(&path) {
             Ok(listener) => Some(Self(Some(listener))),
@@ -203,7 +203,7 @@ impl Listener {
             return;
         };
         let thread = std::thread::Builder::new()
-            .name("static-instance".into())
+            .name("chatter-instance".into())
             .stack_size(64 * 1024)
             .spawn(move || {
                 use std::io::Read;
@@ -229,7 +229,7 @@ impl Listener {
 #[cfg(windows)]
 mod windows {
     //! A named auto-reset event for the folder: a later start sets it, and the
-    //! first Static's thread, waiting on it, shows the window. A second,
+    //! first Chatter's thread, waiting on it, shows the window. A second,
     //! unnamed event stops the thread before a restart starts the next process.
 
     use std::path::Path;
@@ -243,7 +243,7 @@ mod windows {
         UI::WindowsAndMessaging::{ASFW_ANY, AllowSetForegroundWindow},
     };
 
-    /// The event's name: `Local\static-` and an FNV-1a hash of the folder's
+    /// The event's name: `Local\chatter-` and an FNV-1a hash of the folder's
     /// absolute path, as Windows compares paths, without case.
     fn name(root: &Path) -> Vec<u16> {
         use std::os::windows::ffi::OsStrExt;
@@ -255,7 +255,7 @@ mod windows {
                 hash = (hash ^ u64::from(byte)).wrapping_mul(0x0100_0000_01b3);
             }
         }
-        format!("Local\\static-{hash:016x}")
+        format!("Local\\chatter-{hash:016x}")
             .encode_utf16()
             .chain([0])
             .collect()
@@ -331,7 +331,7 @@ mod windows {
             let (event, stop) = (self.event, self.stop);
             let root = self.root.clone();
             let thread = std::thread::Builder::new()
-                .name("static-instance".into())
+                .name("chatter-instance".into())
                 .stack_size(64 * 1024)
                 .spawn(move || {
                     let handles = [event as HANDLE, stop as HANDLE];
@@ -385,11 +385,11 @@ mod windows {
 use windows::{Listener, ask};
 
 /// The folder under a data folder holding links handed to its running
-/// Static on Windows, whose named event carries no words of its own.
+/// Chatter on Windows, whose named event carries no words of its own.
 #[cfg(any(windows, test))]
 const LINK_QUEUE: &str = "instance-links";
 
-/// Leaves a link for the running Static on `root` to take when its event
+/// Leaves a link for the running Chatter on `root` to take when its event
 /// is set. The file lands whole under its final name, so the running one
 /// never reads a half-written link.
 #[cfg(any(windows, test))]
@@ -437,7 +437,7 @@ fn drain_link_queue(root: &Path) -> Vec<String> {
         .collect()
 }
 
-/// Drops links left for a Static that has gone; the new first start on a
+/// Drops links left for a Chatter that has gone; the new first start on a
 /// folder opens no stale link when a later start shows its window.
 #[cfg(any(windows, test))]
 fn clear_link_queue(root: &Path) {
@@ -595,7 +595,7 @@ mod tests {
         // A start writes a link with a space as one word, which arrives whole.
         #[cfg(feature = "discord")]
         {
-            let link = static_core::discord::discord_link("https://discord.com/channels/10/11?a b");
+            let link = chatter_core::discord::discord_link("https://discord.com/channels/10/11?a b");
             let spaced = launch(None, link.as_deref());
             assert_eq!(launch_from_line(&launch_line(&spaced)), Some(spaced));
         }

@@ -18,12 +18,12 @@ modules = []
 tone = None
 try:
     for args in (
-        ["module-null-sink", "sink_name=static_test_input", "sink_properties=device.description=Static_test_input", "rate=48000"],
-        ["module-remap-source", "master=static_test_input.monitor", "source_name=static_test_microphone", "source_properties=device.description=Static_test_microphone"],
-        ["module-null-sink", "sink_name=static_test_output", "sink_properties=device.description=Static_test_speakers", "rate=48000"],
+        ["module-null-sink", "sink_name=chatter_test_input", "sink_properties=device.description=Chatter_test_input", "rate=48000"],
+        ["module-remap-source", "master=chatter_test_input.monitor", "source_name=chatter_test_microphone", "source_properties=device.description=Chatter_test_microphone"],
+        ["module-null-sink", "sink_name=chatter_test_output", "sink_properties=device.description=Chatter_test_speakers", "rate=48000"],
     ):
         modules.append(subprocess.check_output(["pactl", "load-module", *args], text=True).strip())
-    with tempfile.TemporaryDirectory(prefix="static-voice-") as directory:
+    with tempfile.TemporaryDirectory(prefix="chatter-voice-") as directory:
         path = Path(directory) / "tone.wav"
         # Only generated samples enter these test devices.
         second = b"".join(struct.pack("<h", round(4000 * math.sin(2 * math.pi * 440 * i / 48000))) for i in range(48000))
@@ -33,12 +33,12 @@ try:
             output.setframerate(48000)
             for _ in range(180):
                 output.writeframesraw(second)
-        tone = subprocess.Popen(["pw-play", "--volume=1.0", "--target=static_test_input", str(path)])
+        tone = subprocess.Popen(["pw-play", "--volume=1.0", "--target=chatter_test_input", str(path)])
         # Limit even a library's default-device fallback to these virtual devices.
-        env = dict(os.environ, PULSE_SOURCE="static_test_microphone", PULSE_SINK="static_test_output")
+        env = dict(os.environ, PULSE_SOURCE="chatter_test_microphone", PULSE_SINK="chatter_test_output")
         if "--fast" in sys.argv:
             env["YAPFAST_TEST_FAST"] = "1"
-        result = subprocess.run(["cargo", "test", "--locked", "--profile", "fast", "-p", "static-core", "--features", "matrix", "matrix_voice::tests::persistent_encrypted_voice_and_native_audio", "--", "--ignored", "--nocapture"], env=env)
+        result = subprocess.run(["cargo", "test", "--locked", "--profile", "fast", "-p", "chatter-core", "--features", "matrix", "matrix_voice::tests::persistent_encrypted_voice_and_native_audio", "--", "--ignored", "--nocapture"], env=env)
         raise SystemExit(result.returncode)
 finally:
     if tone:

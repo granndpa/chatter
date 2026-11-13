@@ -57,7 +57,7 @@ steps=(fmt doc-links clippy test build smoke)
 
 run fmt cargo fmt --all -- --check
 run doc-links scripts/check-doc-links
-# static-ui is outside the workspace (see Cargo.toml), so Clippy checks it
+# chatter-ui is outside the workspace (see Cargo.toml), so Clippy checks it
 # only as a dependency, with plain rustc: it neither lints the generated
 # interface nor checks it a second time in test mode, as --all-targets would
 # a member despite its `test = false`.
@@ -81,11 +81,11 @@ fi
 # compile of the UI crate takes several GiB, and two or three at once ran the
 # machine out of memory.
 if [[ $matrix ]]; then
-  full=(--features static/matrix,static-core/matrix)
+  full=(--features static/matrix,chatter-core/matrix)
   run clippy-matrix "${clippy[@]}" --workspace "${full[@]}" -- -D warnings
   run test-matrix cargo test --locked "${profile[@]}" --workspace "${full[@]}"
-  run clippy-matrix-only "${clippy[@]}" -p static -p static-core -p feature-union \
-    --no-default-features --features static/desktop,static/matrix,static-core/matrix -- -D warnings
+  run clippy-matrix-only "${clippy[@]}" -p static -p chatter-core -p feature-union \
+    --no-default-features --features static/desktop,static/matrix,chatter-core/matrix -- -D warnings
   # The headless build, in a target directory of its own, so its binary stays
   # out of target/<profile>/.
   export CARGO_TARGET_DIR=target/check-combinations

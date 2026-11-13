@@ -1,13 +1,13 @@
 # Themes
 
-Settings → Appearance shows the window in one of the themes Static comes with,
+Settings → Appearance shows the window in one of the themes Chatter comes with,
 or one of the person's own. Each is a full set of the colours of the Slint
 global `Theme` (`ui/theme.slint`), plus whether it's dark, which sets the
 std-widgets' colour scheme and the scrollbars'. `src/ui/theme.rs` holds the built-in ones as
 `BUILT_IN`; `ui/theme.slint` says what each colour paints. The choice
 is kept in `layout.json` as `theme`, the theme's id, and applied before the
-window's first frame, and again to a window made anew. An id Static doesn't
-know, or a deleted theme's, shows Static.
+window's first frame, and again to a window made anew. An id Chatter doesn't
+know, or a deleted theme's, shows Chatter.
 
 ## Custom themes
 
@@ -18,7 +18,7 @@ for a copy of any other. The editor lists every colour by its name in
 window is the preview. Save keeps the theme and chooses it; Cancel, leaving
 Appearance or closing settings shows the theme from before. A saved theme's
 card has a pencil that opens it again to rename, change or delete it;
-deleting the chosen one shows Static. A window rebuilt while the editor is open,
+deleting the chosen one shows Chatter. A window rebuilt while the editor is open,
 as closing to the [tray](tray.md) does, drops the unsaved edit.
 
 `layout.json` keeps them in `custom_themes`, in the order Appearance shows
@@ -35,11 +35,11 @@ them after the built-in ones:
 ```
 
 `base` is the built-in theme the first copy came from (a copy of a custom
-theme takes its base). Static writes every colour, but a colour that's missing,
+theme takes its base). Chatter writes every colour, but a colour that's missing,
 such as one added in a later version, or that isn't a colour, takes the
-base's value, and a name Static doesn't know is ignored, so themes survive new
+base's value, and a name Chatter doesn't know is ignored, so themes survive new
 colours. Ids are `custom:` and a number, and no built-in id has a colon, so
-they can't collide; on reading, Static gives a fresh one to any custom theme
+they can't collide; on reading, Chatter gives a fresh one to any custom theme
 whose id isn't of that form or repeats another's. The editor's rows are a
 Slint model only while it's open; otherwise a custom theme costs its parsed
 colours and a card.
@@ -59,7 +59,7 @@ colours and a card.
 | Discord Light | `light` | no | blurple | Discord's light theme |
 | Paper | `paper` | no | teal | Warm off-white |
 
-All are Static's own palettes. The Discord ones follow the CSS variables of
+All are Chatter's own palettes. The Discord ones follow the CSS variables of
 Discord's web client: the rail and sidebar are `--background-base-lowest`
 (#121214) and the chat `--background-base-lower` (#1a1a1e) on Dark. A layout
 that chose a theme this version no longer has shows Discord Dark, and a custom
@@ -70,4 +70,4 @@ on, with raised surfaces and the composer one step off the chat. Light themes
 wash hovers with a dark overlay instead of white and draw the tooltip light.
 
 Discord role colours stay as servers set them, and some read faintly on a
-light theme; Static doesn't adjust them yet.
+light theme; Chatter doesn't adjust them yet.

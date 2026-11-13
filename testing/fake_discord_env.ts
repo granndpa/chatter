@@ -201,7 +201,7 @@ const TYPES: Record<string, string> = {
 };
 
 /** Where converted media is kept, by a hash of what it came from. */
-const CACHE = join(tmpdir(), "static-fake-discord-env");
+const CACHE = join(tmpdir(), "chatter-fake-discord-env");
 
 function run(command: string[]): Buffer {
   const done = Bun.spawnSync(command, { stdout: "pipe", stderr: "pipe" });

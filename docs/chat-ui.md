@@ -1,12 +1,12 @@
 # Chat UI
 
 A refined presentation of these widgets is the default; see
-[Static UI](static-ui.md) for its metrics and the switch back to
+[Chatter UI](chatter-ui.md) for its metrics and the switch back to
 the earlier look.
 
 The chat window for Matrix and Discord, laid out after Discord's client.
 Matrix messages are sent through the SDK's Markdown feature, and Slint's
-Markdown draws formatted text. `pulldown-cmark` in `static-core` reads
+Markdown draws formatted text. `pulldown-cmark` in `chatter-core` reads
 Markdown for links, spoilers, reply snippets and notification text
 (`links.rs`, `spoiler.rs`, `chat.rs`). `image` decodes pictures within bounds,
 and `rfd` opens native file dialogs.
@@ -53,7 +53,7 @@ errors make it taller than the minimum window. SSO and OAuth are still pending.
   The arrow keys or Tab choose, and Enter or a click goes there: a server
   opens on its channel shown last. Unread places show bold, and mentions as
   a count.
-- Restore each server's last selected channel and the last selected DM. Static
+- Restore each server's last selected channel and the last selected DM. Chatter
   keeps each server's channel in `layout.json`, so after a restart a server
   opens its last channel; a server opened for the first time shows its top one.
 - List the joined members of the open text channel or group DM on the right,
@@ -65,7 +65,7 @@ errors make it taller than the minimum window. SSO and OAuth are still pending.
   hides or shows. A Discord text channel
   lists whoever can read it, grouped as in Discord: under hoisted roles, then
   ONLINE and OFFLINE, with counts, avatars, status dots, role colours,
-  custom statuses, and a red clock beside someone timed out. Static subscribes to the list's
+  custom statuses, and a red clock beside someone timed out. Chatter subscribes to the list's
   first 100 rows while the channel is open, and Discord keeps them current.
 - Read live text messages. Earlier history loads once the timeline has
   stayed within a screen of its top for 50 ms, a page at a time (30 events
@@ -88,7 +88,7 @@ errors make it taller than the minimum window. SSO and OAuth are still pending.
   under the last one, as scrolling up loads earlier ones. New messages don't
   go in the window, and the conversation stays unread. Jump to present,
   sending a message, or a newer page that reaches the newest shows the
-  newest again, as Static kept them, and leaving the conversation lets the
+  newest again, as Chatter kept them, and leaving the conversation lets the
   window go. A jump to a conversation that isn't open opens it at the
   message.
 - Recover encryption keys or recheck verification performed in another client.
@@ -96,14 +96,14 @@ errors make it taller than the minimum window. SSO and OAuth are still pending.
   plaintext rooms are read-only.
 - Write Markdown. Messages with formatting render bold, italic, strikethrough,
   inline code, lists and links through Slint's Markdown, and headings, subtext,
-  quotes and fenced code as blocks that `crates/static-core/src/blocks.rs`
+  quotes and fenced code as blocks that `crates/chatter-core/src/blocks.rs`
   splits out by Discord's rules (`TextBlocks` in `ui/messages.slint`); see
   [Discord](discord/README.md) for the details. Message text, authors and times are
-  selectable across messages through Static's patched Slint
+  selectable across messages through Chatter's patched Slint
   ([building](building.md#dependencies)); Ctrl+C or the menu's Copy selection
   copies it, and Copy text copies a whole message.
 - Start a DM from the pen in the DM list's header: type a name to search the
-  homeserver's user directory, or a full Matrix id. Static opens the DM you
+  homeserver's user directory, or a full Matrix id. Chatter opens the DM you
   already have with them, or starts an encrypted one and opens it once sync
   lists it.
 - Use the keyboard for messages: Up in an empty composer edits your last
@@ -120,7 +120,7 @@ errors make it taller than the minimum window. SSO and OAuth are still pending.
   unmuted in a call. Stepping through the messages, only letters and digits go.
 - Clicking a mention, a link to a Matrix user, opens their profile card.
 - Emoji in message text are drawn by Twemoji's picture of them, as the picker's
-  are, in a colour bitmap font made of them when Static is built
+  are, in a colour bitmap font made of them when Chatter is built
   (`src/emoji_text.rs`); see [Discord](discord/messages.md) for
   how that font is made. A glyph whose emoji is animated has the emoji's
   current frame drawn over it as the text draws, so the text, its wrapping and
@@ -141,7 +141,7 @@ errors make it taller than the minimum window. SSO and OAuth are still pending.
   message links to them (`[Name](https://matrix.to/#/@user:server)`) and lists
   them in `m.mentions`, so their client notifies them. Who else is typing
   shows just above the composer, gently pulsing, after three dots under the
-  avatars that rise in turn, and Static tells the room while you type unless a
+  avatars that rise in turn, and Chatter tells the room while you type unless a
   setting turns it off.
 - Hover or click a message for its toolbar: your three most used reactions, Add
   reaction, Edit on your own message or Reply on someone else's, and More.
@@ -153,7 +153,7 @@ errors make it taller than the minimum window. SSO and OAuth are still pending.
   Copy selection while text is selected, and Edit on your own messages only.
   Delete appears on your own messages, and on anyone's for a Discord moderator
   with Manage Messages. Until you have reacted, the most used reactions are 👍,
-  ❤️, 😂 and 🎉. Static counts the reactions you add, not the ones you remove,
+  ❤️, 😂 and 🎉. Chatter counts the reactions you add, not the ones you remove,
   in `layout.json` on this computer. The icons have tooltips and accessible
   names. Add reaction opens a picker with a search field, frequently used emoji
   and every category of the `emojis` crate up to Unicode 15.0, which Noto Color
@@ -203,7 +203,7 @@ errors make it taller than the minimum window. SSO and OAuth are still pending.
   `layout.json` (`picker_width`), and it comes back at the next start. See
   [Discord](discord/messages.md#gifs).
 - GIFs, animated emoji, stickers and the picker's tiles play only while
-  Static's window has the focus, as in Discord: on another screen they hold
+  Chatter's window has the focus, as in Discord: on another screen they hold
   still on the frame they were showing, and go on from there when the
   window has the focus again. Animated emoji stop too when nobody has
   touched the window for 15 seconds and while it is minimised, and go on
@@ -218,13 +218,13 @@ errors make it taller than the minimum window. SSO and OAuth are still pending.
   lists the message's reactions down the left, the most first, and who
   reacted with the chosen one, 100 at a time, the next page as the list nears
   its end. Hovering your own row offers to remove your reaction; a Discord
-  moderator, with Manage Messages, may remove anyone's. Static keeps the last
+  moderator, with Manage Messages, may remove anyone's. Chatter keeps the last
   32 tooltips' names while their counts stay, and the window's people only
   while it's open. Matrix rooms answer from the timeline, which holds every
   reaction's senders.
 - Forward a sent message from a dialog with a search field: choose up to five
   conversations on the message's own network, add a message if you like, and
-  send; with one chosen, it opens. On Matrix, Static forwards only into
+  send; with one chosen, it opens. On Matrix, Chatter forwards only into
   encrypted conversations and sends the message's current content as a new
   message, without its reply quote. An encrypted attachment keeps its uploaded
   file, and its key travels in the new encrypted event. On Discord it forwards
@@ -244,13 +244,13 @@ errors make it taller than the minimum window. SSO and OAuth are still pending.
   window dims it under Discord's card, "Upload to #general" (`@Sam` in a DM,
   the name in quotes for a thread, the name alone for a group DM), with "You
   can add comments before uploading." Discord's second line, "Hold shift to
-  upload directly.", is left out: Static can't see Shift during a drag on
+  upload directly.", is left out: Chatter can't see Shift during a drag on
   Wayland or X11. A drop goes whole or not at all, as in Discord's client,
   which then says why until Got It, a click or the next drag: "Too many
   uploads!" past ten files with those waiting, "Your files are too powerful"
   with "Max file size is 20.00 MB please." for a file past the limit, and
   "Invalid file type" for a folder. winit takes drops on X11 and Windows; on
-  Wayland, where it has none, Static keeps a data device for each seat on
+  Wayland, where it has none, Chatter keeps a data device for each seat on
   winit's own connection, which a small thread watches, and takes
   `text/uri-list`. A drop is taken only where the composer can take files,
   as a paste is. They wait above the text as tiles, with a preview for pictures and an
@@ -262,14 +262,14 @@ errors make it taller than the minimum window. SSO and OAuth are still pending.
   stays animated. Wayland's clipboard is read through the data-control
   protocol, and X11's by asking the CLIPBOARD selection's owner, taking large
   pictures in parts (INCR). Windows apps offer a picture under a name they
-  register, "PNG", "GIF", "JFIF" or the MIME type, which Static takes when
+  register, "PNG", "GIF", "JFIF" or the MIME type, which Chatter takes when
   the bytes are of that type; one copied only as a bitmap (`CF_DIB` or
-  `CF_DIBV5`, whichever the app put) is decoded by Static and saved as PNG,
+  `CF_DIBV5`, whichever the app put) is decoded by Chatter and saved as PNG,
   keeping alpha in a 32-bit bitmap's fourth byte as Chromium writes it, and
   opaque when that byte is zero throughout. On X11 and Windows, text on the
   clipboard wins over a picture beside it, since office suites put a picture
   of the cells or text they copy there too. Pasted pictures are saved as
-  `image.<extension>` in a temporary folder removed when Static closes. Text
+  `image.<extension>` in a temporary folder removed when Chatter closes. Text
   on the clipboard pastes as text. A right click in the
   composer opens Discord's menu for the field, without its spelling
   suggestions: Cut and Copy while text is selected, Paste, which pastes as
@@ -282,7 +282,7 @@ errors make it taller than the minimum window. SSO and OAuth are still pending.
   decrypted file where you choose. A Discord message with several images shows
   them as square tiles, two to a row.
 - Click an image to see it large over the window. It opens at the image's full
-  proportions with the preview, then sharpens when Static has downloaded it at up
+  proportions with the preview, then sharpens when Chatter has downloaded it at up
   to 1920×1200. The left and right arrow keys or the side buttons step through
   the message's other images, a counter shows which one it is, and Escape, the
   close button or a click outside the image closes it. It can save the image
@@ -291,7 +291,7 @@ errors make it taller than the minimum window. SSO and OAuth are still pending.
   "Sending...". After a connection problem it shows "Not sent yet" and goes out
   by itself when sync recovers. Sync uses the SDK's offline mode, which keeps
   probing the homeserver. A refused message shows "Not sent" with Retry. Queued
-  messages can be cancelled, and they survive closing Static.
+  messages can be cancelled, and they survive closing Chatter.
 - Save each room's draft in the encrypted session store, so drafts survive
   restarts. Sending clears the saved draft.
 - Show unread channels in bold with a short pill at the sidebar edge, and the
@@ -323,8 +323,8 @@ errors make it taller than the minimum window. SSO and OAuth are still pending.
   them as mentioned, so it counts as a mention only when its text names
   them. Matrix's push rules decide which messages mention the user; a reply
   stays a mention when its text has their user ID or a link to it, or
-  @room. Their own messages are never highlighted. Static counts unread messages on this device; for a room that isn't open,
-  sync often delivers only the newest event, so Static shows that something is
+  @room. Their own messages are never highlighted. Chatter counts unread messages on this device; for a room that isn't open,
+  sync often delivers only the newest event, so Chatter shows that something is
   unread rather than how much.
 - Show sync status in the account panel. Reconnect appears there when offline;
   sign out (which retains encrypted stores) is in settings.
@@ -334,15 +334,15 @@ errors make it taller than the minimum window. SSO and OAuth are still pending.
 Ctrl with + or -, or with the scroll wheel, zooms the whole window, text and
 layout together, from 50% to 200%: 5% a step up to 150%, then 10%. Ctrl+0
 returns to 100%. The level shows
-for a moment at the top and is kept in `layout.json`. Static multiplies the
+for a moment at the top and is kept in `layout.json`. Chatter multiplies the
 display's scale factor by it, so the window lays out in fewer logical pixels,
 and zooming in stops before those would fall below the window's 800×560
 minimum, which would make it grow.
 
-The window starts at the size it had when Static last ran, maximized if it
+The window starts at the size it had when Chatter last ran, maximized if it
 was, and on Windows in the same place (`window` in `layout.json`,
-`src/ui/placement.rs`). Static writes it a second after the window stops
-moving or resizing, and as it quits, so a Windows shutdown that ends Static
+`src/ui/placement.rs`). Chatter writes it a second after the window stops
+moving or resizing, and as it quits, so a Windows shutdown that ends Chatter
 without closing it keeps it too. Maximized, it keeps the size and place
 un-maximizing returns to. On Windows a place whose title bar would show on no
 monitor, as after one was unplugged, is dropped and Windows chooses one, and a
@@ -351,10 +351,10 @@ the size: Wayland doesn't let a window choose its place, and an X11 place could
 be on a monitor that's gone. A window made again from the tray comes back
 from the same record.
 
-On Linux desktops that give their windows title bars, Static draws its own
+On Linux desktops that give their windows title bars, Chatter draws its own
 in place of the desktop's, as Discord does (`src/ui/title_bar.rs`,
 `ui/title_bar.slint`): a 32px bar on the rail's ground across the top, with
-the server's name, "Direct messages" or "Static" in the middle and
+the server's name, "Direct messages" or "Chatter" in the middle and
 minimize, maximize or restore, and close at the right. Pressing on it and
 moving moves the window, a double click maximizes it, and close does what
 the desktop's close button did. Without the desktop's frame, the window's
@@ -362,7 +362,7 @@ outer 5px resize it, its 8px corners both ways, except while maximized. The
 desktop doesn't say whether it would draw a title bar: KWin and Hyprland
 both answer xdg-decoration with server-side, and only KWin draws one. So
 `XDG_CURRENT_DESKTOP` decides: KDE, GNOME, Cinnamon, XFCE, MATE, LXQt, LXDE,
-Budgie, Pantheon, Deepin, COSMIC, Unity and Enlightenment get Static's bar,
+Budgie, Pantheon, Deepin, COSMIC, Unity and Enlightenment get Chatter's bar,
 and a tiling compositor such as Hyprland, sway or niri, or any desktop not
 listed, keeps whatever the desktop draws, which may be nothing. "Use the
 system title bar" in Appearance overrides it either way
@@ -380,7 +380,7 @@ desktop's title bar menu isn't offered: winit can't show it on Linux. In
 full screen, as a call's stage is, the bar goes. The earlier
 presentation on Windows keeps its own frame. The refined presentation
 defaults to an integrated Windows bar, with the same saved system-frame
-setting; see [Static UI](static-ui.md).
+setting; see [Chatter UI](chatter-ui.md).
 
 The window follows Discord's arrangement:
 
@@ -419,7 +419,7 @@ The window follows Discord's arrangement:
   category's menu: Mark as read when its channels have messages to read,
   its mute and notification settings (below), Edit category and Delete
   category where the account may manage it, and Copy ID. The heading
-  names its first channel, or an empty category's own id, and Static finds
+  names its first channel, or an empty category's own id, and Chatter finds
   the category from that.
   DMs show the person's avatar. Participants of the call you are in appear under
   its voice channel, with a green ring while they speak and a muted icon; for
@@ -509,7 +509,7 @@ The window follows Discord's arrangement:
 - A 240px member sidebar right of the conversation, under its header, on the
   sidebar's tone. The member count in a group DM's header shows or hides it,
   as the people icon does in a server channel's, bright while the list
-  shows, and Static remembers a closed list. While it shows, dragging the left sidebar still
+  shows, and Chatter remembers a closed list. While it shows, dragging the left sidebar still
   leaves the conversation 420px.
 - A right click on someone, in the member list, on a message author's avatar
   or name, or in the friends list, opens their menu: Profile, Message to open
@@ -545,11 +545,11 @@ are on screen. There is no UI polling loop. On Matrix, only joined Spaces and
 their joined channels appear. DMs stay in the DM list even if linked to a
 Space. Matrix standalone rooms outside Spaces, channel discovery, room
 creation, threads, video and audio playback, and deleting other people's
-messages remain later work. Closing the last window exits Static.
+messages remain later work. Closing the last window exits Chatter.
 
 ## Validation
 
-The Matrix chat integration tests in `crates/static-core/src/matrix_chat.rs`
+The Matrix chat integration tests in `crates/chatter-core/src/matrix_chat.rs`
 create disposable accounts and cover restoration, encryption and its gates,
 Spaces, Markdown, replies, reactions, edits, deletion, attachments, drafts,
 offline sending across a restart, and messages missed while a room was
@@ -557,16 +557,16 @@ closed. Run them after `scripts/test-stack up`:
 
 ```sh
 nix develop path:./nix --command cargo test --locked --profile fast -p
-static-core matrix_chat::tests -- --ignored --test-threads=1
+chatter-core matrix_chat::tests -- --ignored --test-threads=1
 ```
 
 To check the window by hand, see [Seeing the app](building.md#seeing-the-app).
 The native file dialogs need an XDG portal, which `scripts/ui-session` doesn't
 run, so Attach and Save are checked only through the integration test.
 
-On Linux Static finds an installed emoji font with CBDT or sbix bitmaps and
+On Linux Chatter finds an installed emoji font with CBDT or sbix bitmaps and
 no COLR table, or failing that a COLR one, maps it and registers it with Slint
-as "Static Color Emoji" (`src/emoji.rs`); fontconfig alone can prefer the
+as "Chatter Color Emoji" (`src/emoji.rs`); fontconfig alone can prefer the
 COLRv1 build of Noto Color Emoji when both are installed. That font also leads
 the sans-serif and UI fallback lists, ahead of display fonts that carry a few
 monochrome emoji, so emoji in message text draw in color too; symbols the UI
@@ -579,7 +579,7 @@ On Windows, fontique falls back by script, with a sample of each script, and
 its sans-serif and UI lists are only Arial and Segoe UI. Emoji, most symbols
 and the styled letters of Unicode's mathematical alphabets that Discord names
 use, such as 𝓯𝓪𝓷𝓬𝔂, are all of the Common script, so they would show as boxes.
-Static puts Segoe UI Emoji, Segoe UI, Segoe UI Symbol, Cambria Math and Segoe
+Chatter puts Segoe UI Emoji, Segoe UI, Segoe UI Symbol, Cambria Math and Segoe
 UI Historic at the front of both lists (`emoji::WINDOWS_FALLBACK`). Wine draws
 no emoji from a bitmap font standing in for Segoe UI Emoji, so color emoji in
 message text need a check on real Windows.

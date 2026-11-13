@@ -1,11 +1,11 @@
-//! Starting Static when the person signs in to their computer: a value in the
+//! Starting Chatter when the person signs in to their computer: a value in the
 //! registry's Run key on Windows, an XDG autostart entry on Linux. The entry is
 //! the setting, so one turned off in Task Manager, or a deleted file, shows as
-//! off in Settings too. It starts Static with `--background`, in the tray.
+//! off in Settings too. It starts Chatter with `--background`, in the tray.
 
 use std::path::PathBuf;
 
-/// Whether this platform can start Static at sign-in.
+/// Whether this platform can start Chatter at sign-in.
 pub const SUPPORTED: bool = cfg!(any(target_os = "linux", windows));
 
 /// The name the entry goes by: the Run key's value, and the Inno Setup
@@ -13,12 +13,12 @@ pub const SUPPORTED: bool = cfg!(any(target_os = "linux", windows));
 #[cfg(windows)]
 const NAME: &str = "Yapfast";
 
-/// Whether Static starts when the person signs in.
+/// Whether Chatter starts when the person signs in.
 pub fn enabled() -> bool {
     platform::enabled()
 }
 
-/// Starts Static at sign-in, or stops it.
+/// Starts Chatter at sign-in, or stops it.
 pub fn set(on: bool) -> std::io::Result<()> {
     match on {
         true => platform::write(&command()?),
@@ -26,7 +26,7 @@ pub fn set(on: bool) -> std::io::Result<()> {
     }
 }
 
-/// Points an entry at this Static, after its folder moved or an update.
+/// Points an entry at this Chatter, after its folder moved or an update.
 pub fn refresh() {
     if enabled()
         && let Err(error) = set(true)
@@ -35,7 +35,7 @@ pub fn refresh() {
     }
 }
 
-/// What starts Static in the tray, with the data folder this one uses.
+/// What starts Chatter in the tray, with the data folder this one uses.
 fn command() -> std::io::Result<Vec<String>> {
     let program = std::env::current_exe()?;
     #[cfg(target_os = "linux")]
@@ -166,8 +166,8 @@ mod linux {
             .map(|argument| desktop_entry::quoted(argument))
             .collect();
         let text = format!(
-            "[Desktop Entry]\nType=Application\nName=Static\n\
-             Comment=Starts Static in the system tray when you sign in\n\
+            "[Desktop Entry]\nType=Application\nName=Chatter\n\
+             Comment=Starts Chatter in the system tray when you sign in\n\
              Exec={}\nIcon={}\nTerminal=false\nX-GNOME-Autostart-enabled=true\n",
             exec.join(" "),
             crate::icon::APP_ID,
@@ -184,7 +184,7 @@ mod linux {
             let config = tempfile::tempdir().unwrap();
             assert!(!entry_enabled(config.path()));
             let command = [
-                "/opt/Static Builds/static".to_owned(),
+                "/opt/Chatter Builds/chatter".to_owned(),
                 "--background".to_owned(),
                 "--data-dir".to_owned(),
                 "/home/a/100% $data".to_owned(),
@@ -193,15 +193,15 @@ mod linux {
             assert!(entry_enabled(config.path()));
             let text = std::fs::read_to_string(entry(config.path())).unwrap();
             assert!(text.contains(
-                r#"Exec="/opt/Static Builds/static" --background --data-dir "/home/a/100%% \$data""#
+                r#"Exec="/opt/Chatter Builds/chatter" --background --data-dir "/home/a/100%% \$data""#
             ));
-            assert!(text.contains("Name=Static\n"));
+            assert!(text.contains("Name=Chatter\n"));
         }
 
         #[test]
         fn an_entry_a_desktop_turned_off_is_off() {
             let config = tempfile::tempdir().unwrap();
-            write_entry(config.path(), &["static".to_owned()]).unwrap();
+            write_entry(config.path(), &["chatter".to_owned()]).unwrap();
             let path = entry(config.path());
             let text = std::fs::read_to_string(&path).unwrap();
             std::fs::write(&path, text.replace("enabled=true", "enabled=false")).unwrap();
@@ -340,7 +340,7 @@ mod windows {
             remove().unwrap();
             assert!(!enabled());
             write(&[
-                r"C:\Program Files\Static\static.exe".into(),
+                r"C:\Program Files\Chatter\chatter.exe".into(),
                 "--background".into(),
             ])
             .unwrap();
@@ -353,7 +353,7 @@ mod windows {
                 .collect();
             assert_eq!(
                 String::from_utf16(&text).unwrap(),
-                r#""C:\Program Files\Static\static.exe" --background"#
+                r#""C:\Program Files\Chatter\chatter.exe" --background"#
             );
             // Task Manager turns it off with an odd first byte.
             let disabled = [3u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -369,7 +369,7 @@ mod windows {
             };
             checked(status).unwrap();
             assert!(!enabled());
-            write(&["static.exe".into()]).unwrap();
+            write(&["chatter.exe".into()]).unwrap();
             assert!(enabled(), "turning it on here turns it on in Task Manager");
             remove().unwrap();
             assert!(!enabled());
@@ -403,8 +403,8 @@ mod tests {
     fn quotes_windows_arguments_as_windows_splits_them() {
         assert_eq!(windows_argument("--background"), "--background");
         assert_eq!(
-            windows_argument(r"C:\Users\A B\Static\static.exe"),
-            r#""C:\Users\A B\Static\static.exe""#
+            windows_argument(r"C:\Users\A B\Chatter\chatter.exe"),
+            r#""C:\Users\A B\Chatter\chatter.exe""#
         );
         assert_eq!(windows_argument(r"C:\A B\"), r#""C:\A B\\""#);
         assert_eq!(windows_argument(r#"say "hi""#), r#""say \"hi\"""#);
@@ -414,12 +414,12 @@ mod tests {
     #[test]
     fn quotes_a_program_whether_or_not_it_needs_it() {
         assert_eq!(
-            windows_program(r"C:\Apps\Static\static.exe"),
-            r#""C:\Apps\Static\static.exe""#
+            windows_program(r"C:\Apps\Chatter\chatter.exe"),
+            r#""C:\Apps\Chatter\chatter.exe""#
         );
         assert_eq!(
-            windows_program(r"C:\A B\static.exe"),
-            r#""C:\A B\static.exe""#
+            windows_program(r"C:\A B\chatter.exe"),
+            r#""C:\A B\chatter.exe""#
         );
     }
 }

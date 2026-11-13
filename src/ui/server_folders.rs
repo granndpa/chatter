@@ -12,7 +12,7 @@ fn native(id: &str) -> Option<String> {
 
 pub(super) fn arrange(
     adapter: &mut Adapter,
-    window: &StaticWindow,
+    window: &ChatterWindow,
     source: &str,
     target: &str,
     mode: i32,
@@ -40,7 +40,7 @@ pub(super) fn arrange(
     );
 }
 
-pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
+pub(super) fn bind(window: &ChatterWindow, adapter: &Rc<RefCell<Adapter>>) {
     let state = adapter.clone();
     let weak = window.as_weak();
     window.on_arrange_servers(move |source, target, mode, name| {

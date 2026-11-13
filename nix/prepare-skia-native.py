@@ -39,7 +39,7 @@ new_symbol: str = 'static_skia_jpeg_natural_order'
 target: Path = Path(os.environ['YAPFAST_SKIA_OUTPUT'])
 archive_path: Path = target / package
 upstream_path: Path = target / 'upstream' / package
-stamp_path: Path = target / 'static-skia-native.json'
+stamp_path: Path = target / 'chatter-skia-native.json'
 script_sha256: str = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 objcopy: str | None = os.environ.get('YAPFAST_SKIA_OBJCOPY') or shutil.which('llvm-objcopy')
 if not objcopy:
@@ -177,7 +177,7 @@ with tempfile.TemporaryDirectory(prefix='skia-native-prepare-', dir=target.paren
         for library in libraries:
             directives = subprocess.check_output(['llvm-readobj', '--coff-directives', str(library)], text=True)
             if 'MD_Dynamic' in directives or 'MT_StaticRelease' not in directives:
-                raise SystemExit('Skia must use the same static release CRT as WebRTC')
+                raise SystemExit('Skia must use the same chatter release CRT as WebRTC')
     for library in libraries:
         original_symbols[library.name] = symbols(library)
         original_payloads[library.name] = archive_members(library)

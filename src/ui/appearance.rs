@@ -4,8 +4,8 @@ use super::*;
 
 impl Adapter {
     /// Shows the window in a theme, built in or the person's own, and keeps
-    /// it chosen. False for an id Static doesn't know, which changes nothing.
-    pub(super) fn choose_theme(&mut self, window: &StaticWindow, id: &str) -> bool {
+    /// it chosen. False for an id Chatter doesn't know, which changes nothing.
+    pub(super) fn choose_theme(&mut self, window: &ChatterWindow, id: &str) -> bool {
         let Some((id, chosen)) =
             theme::lookup(id, &self.layout.custom_themes).map(|(id, theme)| (id.to_owned(), theme))
         else {
@@ -21,7 +21,7 @@ impl Adapter {
     /// Shows the window in another theme's colours, building again what
     /// carries the old mention colour in its markup: message rows, the
     /// topic, pins and search results.
-    pub(super) fn set_theme(&mut self, window: &StaticWindow, theme: &theme::Theme) {
+    pub(super) fn set_theme(&mut self, window: &ChatterWindow, theme: &theme::Theme) {
         if theme.apply(window) {
             self.restyle_mentions();
             self.refresh(window);
@@ -39,7 +39,7 @@ impl Adapter {
 
     /// Opens the editor on a copy of the theme shown, which the person can
     /// swap for any other.
-    pub(super) fn new_theme(&mut self, window: &StaticWindow) {
+    pub(super) fn new_theme(&mut self, window: &ChatterWindow) {
         let current = window.get_theme_id();
         let starts: Vec<_> = theme::starts(&self.layout.custom_themes).collect();
         let index = starts
@@ -55,7 +55,7 @@ impl Adapter {
     }
 
     /// Opens the editor on one of the person's own themes.
-    pub(super) fn edit_theme(&mut self, window: &StaticWindow, id: &str) {
+    pub(super) fn edit_theme(&mut self, window: &ChatterWindow, id: &str) {
         let Some(custom) = self
             .layout
             .custom_themes
@@ -69,7 +69,7 @@ impl Adapter {
         self.open_theme_editor(window, editor);
     }
 
-    fn open_theme_editor(&mut self, window: &StaticWindow, editor: theme::Editor) {
+    fn open_theme_editor(&mut self, window: &ChatterWindow, editor: theme::Editor) {
         window.set_theme_editing_saved(editor.editing.is_some());
         window.set_theme_dark(editor.theme.dark);
         window.set_theme_colours(editor.rows());
@@ -81,7 +81,7 @@ impl Adapter {
 
     /// The new theme starts again from another, and takes its name too
     /// unless the person named it.
-    pub(super) fn theme_start_chosen(&mut self, window: &StaticWindow, index: i32) {
+    pub(super) fn theme_start_chosen(&mut self, window: &ChatterWindow, index: i32) {
         let custom = &self.layout.custom_themes;
         let start = |index: i32| {
             let index = usize::try_from(index).ok()?;
@@ -107,7 +107,7 @@ impl Adapter {
 
     /// A colour's field changed: the window shows it at once if it's a
     /// colour.
-    pub(super) fn theme_colour_edited(&mut self, window: &StaticWindow, index: i32, text: &str) {
+    pub(super) fn theme_colour_edited(&mut self, window: &ChatterWindow, index: i32, text: &str) {
         let Some(editor) = self.theme_editor.as_mut() else {
             return;
         };
@@ -119,7 +119,7 @@ impl Adapter {
         }
     }
 
-    pub(super) fn theme_dark_toggled(&mut self, window: &StaticWindow, dark: bool) {
+    pub(super) fn theme_dark_toggled(&mut self, window: &ChatterWindow, dark: bool) {
         let Some(editor) = self.theme_editor.as_mut() else {
             return;
         };
@@ -129,7 +129,7 @@ impl Adapter {
     }
 
     /// Keeps the theme as edited, among the person's own, and chooses it.
-    pub(super) fn save_theme(&mut self, window: &StaticWindow) {
+    pub(super) fn save_theme(&mut self, window: &ChatterWindow) {
         let Some(editor) = self.theme_editor.take_if(|editor| editor.valid()) else {
             return;
         };
@@ -165,7 +165,7 @@ impl Adapter {
     }
 
     /// Closes the editor and shows the theme from before it opened.
-    pub(super) fn cancel_theme(&mut self, window: &StaticWindow) {
+    pub(super) fn cancel_theme(&mut self, window: &ChatterWindow) {
         if self.theme_editor.take().is_some() {
             close_theme_editor(window);
             let (_, before) =
@@ -174,8 +174,8 @@ impl Adapter {
         }
     }
 
-    /// Deletes the theme being edited. If it was the chosen one, Static shows.
-    pub(super) fn delete_theme(&mut self, window: &StaticWindow) {
+    /// Deletes the theme being edited. If it was the chosen one, Chatter shows.
+    pub(super) fn delete_theme(&mut self, window: &ChatterWindow) {
         let Some(editor) = self.theme_editor.take() else {
             return;
         };
@@ -197,7 +197,7 @@ fn copy_name(name: &str) -> String {
 
 /// Drops the editor's models from the window, so they're held only while
 /// it's open.
-fn close_theme_editor(window: &StaticWindow) {
+fn close_theme_editor(window: &ChatterWindow) {
     window.set_theme_editor(false);
     window.set_theme_colours(ModelRc::default());
     window.set_theme_starts(ModelRc::default());

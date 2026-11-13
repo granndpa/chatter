@@ -1,6 +1,6 @@
 # Matrix sessions
 
-Static supports password sign-in, restoration, recovery-key import and logout
+Chatter supports password sign-in, restoration, recovery-key import and logout
 through the CLI and native desktop. Launch `cargo run --locked` to sign in or
 restore an account, or add `-- --preview` to try the layout locally first. The
 desktop exposes masked password and recovery-key fields and a device-trust
@@ -12,9 +12,9 @@ Run these commands inside the development shell. This example uses fish's hidden
 prompt so the password stays out of shell history and process arguments:
 
 ```fish
-read --silent --prompt-str 'Matrix password: ' static_password
-printf '%s\n' "$static_password" | cargo run --locked --no-default-features --features matrix,discord -- session login --homeserver http://localhost:18008 --user alice --password-stdin --data-dir .local/manual-session
-set --erase static_password
+read --silent --prompt-str 'Matrix password: ' chatter_password
+printf '%s\n' "$chatter_password" | cargo run --locked --no-default-features --features matrix,discord -- session login --homeserver http://localhost:18008 --user alice --password-stdin --data-dir .local/manual-session
+set --erase chatter_password
 cargo run --locked --no-default-features --features matrix,discord -- session status --data-dir .local/manual-session
 ```
 
@@ -25,9 +25,9 @@ only on loopback. Homeserver URLs containing credentials are rejected.
 Import an existing recovery key with the same hidden-prompt pattern:
 
 ```fish
-read --silent --prompt-str 'Recovery key: ' static_recovery_key
-printf '%s\n' "$static_recovery_key" | cargo run --locked --no-default-features --features matrix,discord -- session recover --key-stdin --data-dir .local/manual-session
-set --erase static_recovery_key
+read --silent --prompt-str 'Recovery key: ' chatter_recovery_key
+printf '%s\n' "$chatter_recovery_key" | cargo run --locked --no-default-features --features matrix,discord -- session recover --key-stdin --data-dir .local/manual-session
+set --erase chatter_recovery_key
 ```
 
 The CLI reads one secret line from stdin and refuses a terminal as input.
@@ -36,7 +36,7 @@ prints the account ID, device ID and current cross-signing trust result.
 
 ## Storage and lifecycle
 
-Without `--data-dir`, Static uses the platform's local application data directory.
+Without `--data-dir`, Chatter uses the platform's local application data directory.
 Each directory has one active session and an exclusive process lock. Since
 that lock keeps the stores to one process, the SDK's own cross-process store
 lock is off; it would rewrite a lease in the crypto store every 50 ms. Corrupt
@@ -60,10 +60,10 @@ metadata. The fallback password is protected by file permissions, so someone
 with access as the same Linux user can also read it.
 
 Discord's token lives in the same credential store, with no file fallback,
-and so does the key of what Static keeps to show while it connects: the
+and so does the key of what Chatter keeps to show while it connects: the
 account, recent messages, profiles, favourite GIFs and the previews of
 attachments and links, each file encrypted with XChaCha20-Poly1305
-(`crates/static-discord/src/cache/sealed.rs`). The names of the messages'
+(`crates/chatter-discord/src/cache/sealed.rs`). The names of the messages'
 and profiles' files carry channel and user ids. Avatars, emoji and other
 pictures public on Discord's CDN are kept plain, as is the video playing,
 deleted once it stops. Unlinking deletes the files and the key.

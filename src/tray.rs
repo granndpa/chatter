@@ -1,7 +1,7 @@
-//! Static's icon in the system tray, which keeps Static running with its window
-//! closed: a StatusNotifierItem on Linux, on the session bus Static is given,
+//! Chatter's icon in the system tray, which keeps Chatter running with its window
+//! closed: a StatusNotifierItem on Linux, on the session bus Chatter is given,
 //! and a notification-area icon on Windows. Clicking it opens the window; its
-//! menu opens Static, leaves a call and quits.
+//! menu opens Chatter, leaves a call and quits.
 
 use std::cell::Cell;
 
@@ -32,7 +32,7 @@ pub struct Tray {
 }
 
 impl Tray {
-    /// Puts Static's icon in the tray. `chosen` runs on Slint's event loop with
+    /// Puts Chatter's icon in the tray. `chosen` runs on Slint's event loop with
     /// what the person picked. `None` where there's no tray to use.
     pub fn start(chosen: fn(Choice)) -> Option<Self> {
         let platform = platform::Tray::start(chosen)?;
@@ -138,7 +138,7 @@ mod linux {
             let (updates, shown) = mpsc::channel();
             // Registering waits on the bus, and so does each update.
             let started = std::thread::Builder::new()
-                .name("static-tray".into())
+                .name("chatter-tray".into())
                 .spawn(move || run(item, shown));
             if let Err(error) = started {
                 tracing::warn!(%error, "could not start the tray icon");
@@ -165,7 +165,7 @@ mod linux {
         let chosen = item.chosen;
         // Until registering says otherwise; it reports a missing watcher.
         online.store(true, Ordering::Relaxed);
-        // A tray that starts after Static, or comes back, still gets the icon.
+        // A tray that starts after Chatter, or comes back, still gets the icon.
         let handle = match item.assume_sni_available(true).spawn() {
             Ok(handle) => handle,
             Err(error) => {
@@ -198,7 +198,7 @@ mod linux {
 
     impl ksni::Tray for Item {
         fn id(&self) -> String {
-            "static".into()
+            "chatter".into()
         }
 
         fn title(&self) -> String {
@@ -333,7 +333,7 @@ mod windows {
                 let class = WNDCLASSW {
                     lpfnWndProc: Some(procedure),
                     hInstance: instance,
-                    lpszClassName: w!("StaticTray"),
+                    lpszClassName: w!("ChatterTray"),
                     ..std::mem::zeroed()
                 };
                 RegisterClassW(&class);
@@ -341,7 +341,7 @@ mod windows {
                 // which wouldn't hear that Explorer restarted.
                 let window = CreateWindowExW(
                     0,
-                    w!("StaticTray"),
+                    w!("ChatterTray"),
                     w!("Chatter"),
                     WS_OVERLAPPED,
                     0,

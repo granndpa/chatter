@@ -2,7 +2,7 @@
 // Blurple marks selection and primary actions, red mention counts and destructive
 // actions, green live voice;
 // a microphone's level goes from green through orange to red as it nears clipping.
-// These are Static's default colours; the application sets others from Rust
+// These are Chatter's default colours; the application sets others from Rust
 // (src/ui/theme.rs), so the defaults here only paint the first frame.
 export global Theme {
     in-out property <color> rail: #121214;
@@ -64,7 +64,7 @@ export global Theme {
     in-out property <color> reply-spine: #4e5058;
     /// The ground of the window's tooltip and the zoom level's note.
     in-out property <color> tooltip: #0b0b0d;
-    /// An avatar's ground before Static knows the person's own tint.
+    /// An avatar's ground before Chatter knows the person's own tint.
     in-out property <color> avatar: #5f6370;
     /// Whether the theme is dark, for the std-widgets that follow the system's scheme.
     in-out property <bool> dark: true;

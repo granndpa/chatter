@@ -248,7 +248,7 @@ impl TextParagraph {
                                 glyph_x_range = Some(x_range);
                             }
                         }
-                        // Static: an emoji whose animation plays draws the
+                        // Chatter: an emoji whose animation plays draws the
                         // frame it is on over the glyph it would show, so the
                         // text keeps its wrapping, its selection and its caret.
                         let run_range = glyph_run.run().text_range();
@@ -256,7 +256,7 @@ impl TextParagraph {
                             .pictures
                             .iter()
                             .find(|(range, _)| *range == run_range)
-                            .and_then(|(_, glyph)| crate::static_emoji::frame_of_glyph(*glyph));
+                            .and_then(|(_, glyph)| crate::chatter_emoji::frame_of_glyph(*glyph));
                         let ellipsis = if let Some(elision) = &elision {
                             Self::draw_glyph_run_with_selection(
                                 &glyph_run,
@@ -430,7 +430,7 @@ impl TextParagraph {
         }
     }
 
-    /// Static: covers each line of a hidden spoiler, a link to `yapfast:spoiler/`, with an
+    /// Chatter: covers each line of a hidden spoiler, a link to `yapfast:spoiler/`, with an
     /// opaque pill drawn over its glyphs; clicking the link reveals it.
     fn draw_spoiler_covers<R: GlyphRenderer>(
         &self,
@@ -474,7 +474,7 @@ impl TextParagraph {
         }
     }
 
-    /// Static: paints a translucent pill of a mention's colour under each line of it.
+    /// Chatter: paints a translucent pill of a mention's colour under each line of it.
     fn draw_mention_backgrounds<R: GlyphRenderer>(
         &self,
         item_renderer: &mut R,
@@ -525,7 +525,7 @@ impl TextParagraph {
         }
     }
 
-    /// Static: draws an animated emoji's frame in the box its glyph fills: the
+    /// Chatter: draws an animated emoji's frame in the box its glyph fills: the
     /// font's 1.36em square, its top 1.02em above the baseline. The glyph the run
     /// shaped stays in the layout, so wrapping and the caret do not move.
     fn draw_emoji_frame<R: GlyphRenderer>(
@@ -540,15 +540,15 @@ impl TextParagraph {
         };
         // The item being drawn depends on the clock, so the next tick draws it
         // again, as a selection's does.
-        crate::static_emoji::track();
+        crate::chatter_emoji::track();
         let scale_factor = item_renderer.scale_factor().get();
         let width = frame.size().width as f32;
         if width <= 0.0 || scale_factor <= 0.0 {
             return;
         }
         let font_size = glyph_run.run().font_size();
-        let side = font_size * crate::static_emoji::EMOJI_EM;
-        let top = glyph.y + para_y.get() - font_size * crate::static_emoji::EMOJI_TOP_EM;
+        let side = font_size * crate::chatter_emoji::EMOJI_EM;
+        let top = glyph.y + para_y.get() - font_size * crate::chatter_emoji::EMOJI_TOP_EM;
         let logical = |physical: f32| physical / scale_factor;
         item_renderer.save_state();
         item_renderer.translate(crate::lengths::LogicalVector::new(
@@ -581,7 +581,7 @@ impl TextParagraph {
         // there is no selection, which `run_coverage` reports as `Unselected`.
         selection_brush: Option<&<R as GlyphRenderer>::PlatformBrush>,
         line_spans: &[SelectionSpan],
-        // Static: the frame an animated emoji draws, in place of its glyphs.
+        // Chatter: the frame an animated emoji draws, in place of its glyphs.
         frame: Option<crate::graphics::Image>,
     ) {
         let run_x = glyph_run.offset()..glyph_run.offset() + glyph_run.advance();
@@ -725,7 +725,7 @@ impl TextParagraph {
         glyphs_it: &mut dyn Iterator<Item = parley::layout::Glyph>,
         // Forced fill for selected glyphs, overriding the run's own brush.
         override_fill_brush: Option<&<R as GlyphRenderer>::PlatformBrush>,
-        // Static: the frame an animated emoji draws, in place of its glyphs.
+        // Chatter: the frame an animated emoji draws, in place of its glyphs.
         frame: Option<crate::graphics::Image>,
     ) {
         let run = glyph_run.run();

@@ -64,7 +64,7 @@ def inno_setup():
 
 
 def compile_installer(package, version, flavour, output):
-    """Compiles packaging/windows/static.iss over the ZIP's files."""
+    """Compiles packaging/windows/chatter.iss over the ZIP's files."""
     prefix = inno_setup()
     environment = wine_environment(prefix)
 
@@ -81,15 +81,15 @@ def compile_installer(package, version, flavour, output):
     if license_path.is_file():
         definitions.append(f"/DLicenseFile={windows_path(license_path)}")
     subprocess.run(["wine", "C:\\InnoSetup\\ISCC.exe", "/Q", *definitions,
-                    f"/O{windows_path(output)}", windows_path(ROOT / "packaging/windows/static.iss")],
+                    f"/O{windows_path(output)}", windows_path(ROOT / "packaging/windows/chatter.iss")],
                    env=environment, check=True, timeout=1800)
     subprocess.run(["wineserver", "-w"], env=environment, check=True, timeout=120)
-    return output / f"Static-{version}{FLAVOURS[flavour]['suffix']}-windows-x64-setup.exe"
+    return output / f"Chatter-{version}{FLAVOURS[flavour]['suffix']}-windows-x64-setup.exe"
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--exe", type=Path, default=ROOT / "target" / TARGET / "release/static.exe")
+    parser.add_argument("--exe", type=Path, default=ROOT / "target" / TARGET / "release/chatter.exe")
     parser.add_argument("--flavour", choices=FLAVOURS, default="discord",
                         help="the features the executable was built with (default: discord)")
     parser.add_argument("--output", type=Path, help="default: target/dist/FLAVOUR")
@@ -130,34 +130,34 @@ def main():
     ))
     version = next(package["version"] for package in metadata["packages"] if package["name"] == "static")
     output.mkdir(parents=True, exist_ok=True)
-    base = f"Static-{version}{flavour['suffix']}"
+    base = f"Chatter-{version}{flavour['suffix']}"
     archive_path = output / f"{base}-windows-x64.zip"
     source_path = output / f"{base}-source.zip"
-    with tempfile.TemporaryDirectory(prefix="static-windows-package-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="chatter-windows-package-") as temporary:
         temporary = Path(temporary)
         rtc = source_snapshot(metadata, base, temporary, source_path)
 
         package = temporary / f"{base}-windows-x64"
         package.mkdir()
-        shutil.copy2(executable, package / "static.exe")
+        shutil.copy2(executable, package / "chatter.exe")
         shutil.copy2(ROOT / "LICENSE", package / "LICENSE.txt")
         # The source snapshot goes beside the packages, on the release page,
         # rather than into every install; SOURCE.txt says where.
-        source_url = f"https://github.com/yapfast/static-desktop/releases/tag/v{version}{flavour['suffix']}"
+        source_url = f"https://github.com/yapfast/chatter-desktop/releases/tag/v{version}{flavour['suffix']}"
         (package / "SOURCE.txt").write_text(
-            f"The source code of this build of Static {version}"
+            f"The source code of this build of Chatter {version}"
             + (", with the exact source of\nthe libraries it includes under the AGPL," if rtc else "")
             + " is published with it:\n\n"
             f"  {source_url}\n  {source_path.name}, SHA-256 in BUILD.json\n\n"
-            "and in the repository, https://github.com/yapfast/static-desktop. The licenses folder\n"
+            "and in the repository, https://github.com/yapfast/chatter-desktop. The licenses folder\n"
             "holds every dependency's own license and notices.\n",
             encoding="utf-8", newline="\r\n",
         )
         if args.flavour == "discord":
             first_steps = (
-                "3. Link your Discord account: Static shows a QR code, which Discord on\n"
+                "3. Link your Discord account: Chatter shows a QR code, which Discord on\n"
                 "   your phone scans (Settings, Scan QR Code). Discord doesn't allow apps\n"
-                "   like Static on personal accounts; linking puts your account at some\n"
+                "   like Chatter on personal accounts; linking puts your account at some\n"
                 "   risk of being suspended.\n"
                 "4. Open a channel, or a voice channel to talk.\n\n"
                 "No account or saved session is included.\n"
@@ -173,31 +173,31 @@ def main():
             secrets = "password or recovery key"
         edition = f" ({flavour['edition']})" if flavour["edition"] else ""
         (package / "README.txt").write_text(
-            f"Static{edition} for 64-bit Windows 10/11\n\n"
+            f"Chatter{edition} for 64-bit Windows 10/11\n\n"
             "1. Extract the entire ZIP to a folder.\n"
-            "2. Double-click static.exe.\n"
+            "2. Double-click chatter.exe.\n"
             + first_steps +
             "No Rust, Visual Studio, or separate app installation is required.\n"
-            "Static writes diagnostics to yapfast.log in its data folder,\n"
-            "%LOCALAPPDATA%\\Static\\Static\\data, or to the console run-static.cmd opens.\n"
+            "Chatter writes diagnostics to yapfast.log in its data folder,\n"
+            "%LOCALAPPDATA%\\Chatter\\Chatter\\data, or to the console run-chatter.cmd opens.\n"
             "Windows stores session secrets in Credential Manager and app data\n"
             "under your Windows user profile. Keep the first verified session.\n\n"
             "Voice: select a voice channel and Join voice; the gear chooses devices.\n"
             "Use headphones for the first two-machine audio test.\n"
             "If anything fails, record the error text, Windows version, GPU and\n"
             f"audio device model. Never send your {secrets} in logs.\n\n"
-            "If Static closes immediately, run run-static.cmd to keep its error visible.\n\n"
-            "Static switches to software rendering if the GPU cannot start.\n"
-            "To choose it yourself, run run-static.cmd --renderer software.\n"
-            "To retry the GPU after a fallback, run run-static.cmd --renderer gpu.\n\n"
-            "Static is free software under the GNU General Public License, version 3\n"
+            "If Chatter closes immediately, run run-chatter.cmd to keep its error visible.\n\n"
+            "Chatter switches to software rendering if the GPU cannot start.\n"
+            "To choose it yourself, run run-chatter.cmd --renderer software.\n"
+            "To retry the GPU after a fallback, run run-chatter.cmd --renderer gpu.\n\n"
+            "Chatter is free software under the GNU General Public License, version 3\n"
             "or later, in LICENSE.txt. Dependency notices and original licenses are\n"
             "included; SOURCE.txt says where this build's source code is published.\n",
             encoding="utf-8",
         )
-        (package / "run-static.cmd").write_text(
+        (package / "run-chatter.cmd").write_text(
             '@echo off\ncd /d "%~dp0"\nstatic.exe %*\n'
-            'if errorlevel 1 (\n  echo Static exited with an error.\n  pause\n)\n',
+            'if errorlevel 1 (\n  echo Chatter exited with an error.\n  pause\n)\n',
             encoding="utf-8", newline="\r\n",
         )
         skia_location = os.environ.get("SKIA_BINARIES_URL")

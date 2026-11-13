@@ -15,7 +15,7 @@ const KEPT_ROWS: usize = 8;
 /// `last`, and of those that have none yet. The picker brings the rest as it
 /// scrolls them into sight, since a server list can hold more emoji than fit in
 /// memory at once.
-fn fetch_shown_pictures(adapter: &mut Adapter, window: &StaticWindow, first: usize, last: usize) {
+fn fetch_shown_pictures(adapter: &mut Adapter, window: &ChatterWindow, first: usize, last: usize) {
     let wanted = custom_keys_without_pictures(&adapter.models.emoji_rows, first, last);
     if wanted.is_empty() {
         return;
@@ -34,7 +34,7 @@ fn fetch_shown_pictures(adapter: &mut Adapter, window: &StaticWindow, first: usi
 /// Gives the picker's grid the emoji it shows between `first` and `last` rows a
 /// picture each, drawn once, so scrolling draws a bitmap instead of walking the
 /// colour font's paint graph for every emoji on screen; see [`crate::emoji_glyphs`].
-fn fill_shown_glyphs(window: &StaticWindow, adapter: &mut Adapter, first: usize, last: usize) {
+fn fill_shown_glyphs(window: &ChatterWindow, adapter: &mut Adapter, first: usize, last: usize) {
     let scale = window.window().scale_factor();
     let_go_of_far_glyphs(adapter, first, last);
     let rows = &adapter.models.emoji_rows;
@@ -170,7 +170,7 @@ pub(super) fn custom_keys_without_pictures(
 fn wait_for_translation(
     answer: std::sync::mpsc::Receiver<Result<(String, String), String>>,
     state: Rc<RefCell<Adapter>>,
-    weak: slint::Weak<StaticWindow>,
+    weak: slint::Weak<ChatterWindow>,
     item: String,
 ) {
     slint::Timer::single_shot(std::time::Duration::from_millis(100), move || {
@@ -193,7 +193,7 @@ fn wait_for_translation(
     });
 }
 
-fn show_emoji(adapter: &Rc<RefCell<Adapter>>, window: &StaticWindow, query: &str, columns: usize) {
+fn show_emoji(adapter: &Rc<RefCell<Adapter>>, window: &ChatterWindow, query: &str, columns: usize) {
     let mut adapter = adapter.borrow_mut();
     let (rows, sections) = {
         let custom = adapter.app.emoji_sets();
@@ -221,7 +221,7 @@ fn show_emoji(adapter: &Rc<RefCell<Adapter>>, window: &StaticWindow, query: &str
     fill_shown_glyphs(window, &mut adapter, 0, GRID_ROWS);
 }
 
-pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
+pub(super) fn bind_callbacks(window: &ChatterWindow, adapter: &Rc<RefCell<Adapter>>) {
     super::tweaks::bind(window, adapter);
     super::updates::bind(window, adapter);
     super::discover::bind(window, adapter);
@@ -257,7 +257,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
                 adapter.layout.log_deletes = Some(deletes);
                 adapter.layout.log_ghost_pings = Some(ghosts);
                 adapter.layout.write(&adapter.root);
-                static_core::discord_text::message_history::keep(edits, deletes);
+                chatter_core::discord_text::message_history::keep(edits, deletes);
                 if let Some(window) = weak.upgrade() {
                     adapter.restyle = true;
                     adapter.refresh(&window);
@@ -268,9 +268,9 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
             let mut adapter = state.borrow_mut();
             adapter.layout.retain_message_history = Some(enabled);
             adapter.layout.write(&adapter.root);
-            static_core::discord_text::message_history::configure(enabled);
+            chatter_core::discord_text::message_history::configure(enabled);
             if clear {
-                static_core::discord_text::message_history::clear();
+                chatter_core::discord_text::message_history::clear();
             }
             if clear || !enabled {
                 let messages = Arc::make_mut(&mut adapter.app.state.messages);
@@ -315,7 +315,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
     window
         .global::<EmojiAnimations>()
         .on_frame(|key, _revision| {
-            i_slint_core::static_emoji::frame_of_key(key.as_str()).unwrap_or_default()
+            i_slint_core::chatter_emoji::frame_of_key(key.as_str()).unwrap_or_default()
         });
     window.global::<PictureStore>().on_request(move |url| {
         if url.is_empty() {
@@ -552,7 +552,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
                 &window,
                 Action::ChangeRelationship {
                     user: user.to_string(),
-                    change: static_core::chat::RelationshipChange::Unblock,
+                    change: chatter_core::chat::RelationshipChange::Unblock,
                 },
             );
         }
@@ -1016,7 +1016,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
     {
         let (adapter, weak) = (adapter.clone(), window.as_weak());
         window.on_new_thread(move |item, from| {
-            use static_core::application::ThreadFrom;
+            use chatter_core::application::ThreadFrom;
             let from = match from.as_str() {
                 "message" => ThreadFrom::Message,
                 "list" => ThreadFrom::List,
@@ -1371,7 +1371,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
     let weak = window.as_weak();
     window.on_open_link(move |link| {
         // An app's button or menu asks the app.
-        if let Some(action) = link.strip_prefix(static_core::commands::INTERACT) {
+        if let Some(action) = link.strip_prefix(chatter_core::commands::INTERACT) {
             let Some(window) = weak.upgrade() else { return };
             let action = action.to_string();
             state.borrow_mut().action(&window, Action::UseComponent(action));
@@ -1414,7 +1414,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
         // An emoji in a message's text opens its card, below it.
         if let Some(target) = emoji_text::target(&link) {
             let Some(window) = weak.upgrade() else { return };
-            if let Some(rect) = i_slint_core::static_selection::clicked_link() {
+            if let Some(rect) = i_slint_core::chatter_selection::clicked_link() {
                 window.invoke_anchor_link(
                     rect.origin.x,
                     rect.origin.y,
@@ -1443,7 +1443,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
             .map(|user| mention::Target::User(user.to_owned()));
         if let Some(target) = author.or_else(|| mention::target(&link)) {
             let Some(window) = weak.upgrade() else { return };
-            if let Some(rect) = i_slint_core::static_selection::clicked_link() {
+            if let Some(rect) = i_slint_core::chatter_selection::clicked_link() {
                 window.invoke_anchor_link(
                     rect.origin.x,
                     rect.origin.y,
@@ -1465,12 +1465,12 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
             state.borrow_mut().action(&window, action);
             return;
         }
-        // Discord's own links open their place here, when Static can show
+        // Discord's own links open their place here, when Chatter can show
         // it, and in the browser otherwise. An invite shows its server
         // first and joins only when asked, whatever the text says.
         #[cfg(feature = "discord")]
         if let Some(route) =
-            static_core::discord::discord_route(links::masked(&link).unwrap_or(&link))
+            chatter_core::discord::discord_route(links::masked(&link).unwrap_or(&link))
                 .filter(|route| state.borrow().app.state.opens_discord_route(route))
         {
             if let Some(window) = weak.upgrade() {
@@ -1599,19 +1599,19 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
         layout.unmute_on_join = Some(window.get_unmute_on_join());
         layout.deafen_on_join = window.get_deafen_on_join();
         layout.level_voice = Some(window.get_level_voice());
-        static_core::leveling::set_enabled(window.get_level_voice());
+        chatter_core::leveling::set_enabled(window.get_level_voice());
         layout.noise_suppression = chosen(&SUPPRESSORS, window.get_noise_suppression());
         layout.noise_strength = chosen(&STRENGTHS, window.get_noise_strength());
-        static_core::noise::set(layout.noise_suppression);
-        static_core::noise::set_strength(layout.noise_strength);
+        chatter_core::noise::set(layout.noise_suppression);
+        chatter_core::noise::set_strength(layout.noise_strength);
         layout.reduce_room_echo = window.get_dereverb();
-        static_core::noise::set_dereverb(layout.reduce_room_echo);
+        chatter_core::noise::set_dereverb(layout.reduce_room_echo);
         layout.input_sensitivity = Some(window.get_sensitivity());
-        static_core::noise::set_sensitivity(layout.sensitivity() as f32);
+        chatter_core::noise::set_sensitivity(layout.sensitivity() as f32);
         layout.input_mode = chosen(&INPUT_MODES, window.get_input_mode());
-        static_core::push_to_talk::set_on(layout.input_mode == InputMode::PushToTalk);
+        chatter_core::push_to_talk::set_on(layout.input_mode == InputMode::PushToTalk);
         layout.push_to_talk_release_delay = Some(window.get_talk_delay().max(0) as u32);
-        static_core::push_to_talk::set_release_delay(layout.release_delay());
+        chatter_core::push_to_talk::set_release_delay(layout.release_delay());
         layout.microphone_volume = Some(window.get_microphone_volume().clamp(0, 200) as u8);
         layout.speaker_volume = Some(window.get_speaker_volume().clamp(0, 200) as u8);
         play_call_volumes(&window);
@@ -1639,7 +1639,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
         layout.gpu_rendering = window.get_gpu_rendering();
         layout.gpu_encoding = Some(window.get_gpu_encoding());
         #[cfg(feature = "discord")]
-        static_core::stream_worker::set_hardware_encoding(window.get_gpu_encoding());
+        chatter_core::stream_worker::set_hardware_encoding(window.get_gpu_encoding());
         layout.close_to_tray = Some(window.get_close_to_tray());
         layout.multiple_windows = window.get_multiple_windows();
         adapter.layout.write(&adapter.root);
@@ -1708,27 +1708,27 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
     });
     window.on_volume_of(|person, stream| {
         let kind = if stream {
-            static_core::volume::Kind::Stream
+            chatter_core::volume::Kind::Stream
         } else {
-            static_core::volume::Kind::Voice
+            chatter_core::volume::Kind::Voice
         };
-        static_core::volume::to_slider(static_core::volume::get(kind, &person)).round() as i32
+        chatter_core::volume::to_slider(chatter_core::volume::get(kind, &person)).round() as i32
     });
     let state = adapter.clone();
     window.on_volume_changed(move |person, stream, value, done| {
         let kind = if stream {
-            static_core::volume::Kind::Stream
+            chatter_core::volume::Kind::Stream
         } else {
-            static_core::volume::Kind::Voice
+            chatter_core::volume::Kind::Voice
         };
         // Within a step of the default is the default, as Discord snaps it.
         let default = kind.default_gain();
-        let volume = if (value as f32 - static_core::volume::to_slider(default)).abs() < 1.0 {
+        let volume = if (value as f32 - chatter_core::volume::to_slider(default)).abs() < 1.0 {
             default
         } else {
-            static_core::volume::from_slider(value as f32)
+            chatter_core::volume::from_slider(value as f32)
         };
-        static_core::volume::set(kind, &person, volume);
+        chatter_core::volume::set(kind, &person, volume);
         // The drag's last step is remembered, rather than every one.
         if done {
             let mut adapter = state.borrow_mut();
@@ -1893,13 +1893,13 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
         }
     });
     window.on_selection_at(|x, y| {
-        i_slint_core::static_selection::copied_at(i_slint_core::lengths::LogicalPoint::new(x, y))
+        i_slint_core::chatter_selection::copied_at(i_slint_core::lengths::LogicalPoint::new(x, y))
             .unwrap_or_default()
             .into()
     });
     window.on_link_at(|x, y| {
         let point = i_slint_core::lengths::LogicalPoint::new(x, y);
-        i_slint_core::static_selection::pressed_link_at(point)
+        i_slint_core::chatter_selection::pressed_link_at(point)
             .as_deref()
             .and_then(web_address)
             .unwrap_or_default()
@@ -2405,12 +2405,12 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
         }
     });
     #[cfg(feature = "discord")]
-    window.set_share_lists(static_core::stream_worker::LISTS_SOURCES);
+    window.set_share_lists(chatter_core::stream_worker::LISTS_SOURCES);
     #[cfg(feature = "discord")]
     let weak = window.as_weak();
     #[cfg(feature = "discord")]
     window.on_list_share_sources(move || {
-        use static_core::stream_worker::{Report, Source, Worker};
+        use chatter_core::stream_worker::{Report, Source, Worker};
         // A picture fills a card in the share menu, in pixels.
         let scale = weak
             .upgrade()
@@ -2424,7 +2424,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
             let mut screens = vec![];
             let mut windows = vec![];
             let mut cameras = vec![];
-            for listed in static_core::stream_worker::shareable() {
+            for listed in chatter_core::stream_worker::shareable() {
                 match listed.source {
                     Source::Display(_) => screens.push(listed),
                     Source::Camera(_) => cameras.push(listed),
@@ -2446,7 +2446,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
                         picture: Default::default(),
                     })
                     .collect();
-                let titles = |listed: &[static_core::stream_worker::Shareable]| {
+                let titles = |listed: &[chatter_core::stream_worker::Shareable]| {
                     let titles: Vec<SharedString> = listed
                         .iter()
                         .map(|listed| listed.title.as_str().into())
@@ -2458,7 +2458,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
                 window.set_share_cameras(titles(&cameras));
                 // Where the system's dialog picks a screen or window, the
                 // menu's first choice asks it, before the cameras.
-                let dialog = (!static_core::stream_worker::LISTS_SOURCES).then_some(Source::Screen);
+                let dialog = (!chatter_core::stream_worker::LISTS_SOURCES).then_some(Source::Screen);
                 SHAREABLE.with_borrow_mut(|shareable| {
                     *shareable = screens
                         .into_iter()
@@ -2538,8 +2538,8 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
             {
                 let picked =
                     SHAREABLE.with_borrow(|shareable| shareable.get(source as usize).cloned());
-                static_core::stream_worker::pick(
-                    picked.unwrap_or(static_core::stream_worker::Source::Screen),
+                chatter_core::stream_worker::pick(
+                    picked.unwrap_or(chatter_core::stream_worker::Source::Screen),
                 );
             }
             #[cfg(not(feature = "discord"))]
@@ -2567,7 +2567,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
             if let Some(picked) =
                 SHAREABLE.with_borrow(|shareable| shareable.get(source as usize).cloned())
             {
-                static_core::stream_worker::pick(picked);
+                chatter_core::stream_worker::pick(picked);
             }
             #[cfg(not(feature = "discord"))]
             let _ = source;
@@ -2836,7 +2836,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
                 #[cfg(feature = "discord")]
                 if adapter.gate_meter.is_some() {
                     adapter.gate_meter =
-                        Some(static_core::discord_audio::GateMeter::start(Some(&id)));
+                        Some(chatter_core::discord_audio::GateMeter::start(Some(&id)));
                 }
                 adapter.action(&window, Action::Voice(voice::Command::Microphone(id)));
             }
@@ -3067,7 +3067,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
             let mut adapter = state.borrow_mut();
             let microphone = adapter.app.state.voice.microphone.clone();
             adapter.gate_meter =
-                on.then(|| static_core::discord_audio::GateMeter::start(microphone.as_deref()));
+                on.then(|| chatter_core::discord_audio::GateMeter::start(microphone.as_deref()));
         });
         let state = adapter.clone();
         let weak = window.as_weak();
@@ -3076,7 +3076,7 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
                 window.set_gate_level(meter.level().max(-100.0));
                 window.set_gate_sending(meter.sending());
                 window.set_gate_meter_note(SharedString::from(
-                    if !static_core::discord_audio::AVAILABLE {
+                    if !chatter_core::discord_audio::AVAILABLE {
                         "Discord voice and its level aren't available on this system yet."
                     } else if meter.failed() {
                         "Chatter can't read this microphone. Check that it's connected, or choose another."
@@ -3092,12 +3092,12 @@ pub(super) fn bind_callbacks(window: &StaticWindow, adapter: &Rc<RefCell<Adapter
 #[cfg(feature = "discord")]
 thread_local! {
     /// What the share menu lists to share, in its order.
-    static SHAREABLE: RefCell<Vec<static_core::stream_worker::Source>> = const { RefCell::new(Vec::new()) };
+    static SHAREABLE: RefCell<Vec<chatter_core::stream_worker::Source>> = const { RefCell::new(Vec::new()) };
 }
 
 /// Puts the cursor at a byte offset in the channel's composer, or the
 /// thread's beside it, and the keyboard there.
-fn place_composer_caret(window: &StaticWindow, (aside, caret): (bool, usize)) {
+fn place_composer_caret(window: &ChatterWindow, (aside, caret): (bool, usize)) {
     let caret = i32::try_from(caret).unwrap_or(i32::MAX);
     if aside {
         window.invoke_place_aside_composer_caret(caret);
@@ -3111,7 +3111,7 @@ fn place_composer_caret(window: &StaticWindow, (aside, caret): (bool, usize)) {
 /// it with `aside`: the `:name` and `@` or `#` words it suggests for.
 fn composer_caret(
     adapter: &mut Adapter,
-    window: &StaticWindow,
+    window: &ChatterWindow,
     text: &str,
     offset: i32,
     aside: bool,
@@ -3184,12 +3184,12 @@ fn composer_caret(
 
 /// Films with the chosen camera into the voice settings' preview, which is
 /// about 400 by 225 points.
-fn start_camera_test(adapter: &mut Adapter, window: &StaticWindow) {
+fn start_camera_test(adapter: &mut Adapter, window: &ChatterWindow) {
     let scale = window.window().scale_factor();
-    let feed = static_core::picture::Feed::new();
+    let feed = chatter_core::picture::Feed::new();
     feed.show_at(Some(((400.0 * scale) as u32, (225.0 * scale) as u32)));
     let camera = adapter.app.state.voice.camera.clone();
-    match static_core::camera::Camera::open(camera.as_deref(), Box::new(feed.sink())) {
+    match chatter_core::camera::Camera::open(camera.as_deref(), Box::new(feed.sink())) {
         Ok(camera) => adapter.camera_test = Some((camera, feed)),
         Err(error) => window.set_camera_note(error.to_string().into()),
     }
@@ -3199,7 +3199,7 @@ fn start_camera_test(adapter: &mut Adapter, window: &StaticWindow) {
 /// so pictures are made only for tiles in sight, at their size, and
 /// whether it's the tile in focus. With the call off screen, the camera in
 /// the corner shows there.
-fn place_videos(adapter: &Adapter, window: &StaticWindow) {
+fn place_videos(adapter: &Adapter, window: &ChatterWindow) {
     let voice = &adapter.app.state.voice;
     let shown = window.get_grid_shown() && voice.active();
     let scale = window.window().scale_factor();
@@ -3241,7 +3241,7 @@ const PIP_HEIGHT: f32 = 180.0;
 /// Opens a web page in the browser. Only web pages open: a message can't
 /// start other programs.
 /// The web address a link in a message leads to: a masked link's, behind
-/// the question asked before leaving. A mention or Static's own link has none.
+/// the question asked before leaving. A mention or Chatter's own link has none.
 pub(super) fn web_address(link: &str) -> Option<&str> {
     let link = links::masked(link).unwrap_or(link);
     (links::openable(link) && mention::target(link).is_none()).then_some(link)
@@ -3250,7 +3250,7 @@ pub(super) fn web_address(link: &str) -> Option<&str> {
 /// What opening one of Discord's own links does. A profile link anchors
 /// its card to the clicked words, or the pointer, as a mention does.
 #[cfg(feature = "discord")]
-fn discord_link_action(window: &StaticWindow, route: discord::DiscordRoute) -> Action {
+fn discord_link_action(window: &ChatterWindow, route: discord::DiscordRoute) -> Action {
     match route {
         discord::DiscordRoute::Invite { code } => Action::OpenInviteLink(code),
         discord::DiscordRoute::Authorize { query } => Action::OpenOAuthLink(query),
@@ -3272,7 +3272,7 @@ fn discord_link_action(window: &StaticWindow, route: discord::DiscordRoute) -> A
             item: format!("d:{message}"),
         },
         discord::DiscordRoute::User { user } => {
-            if let Some(rect) = i_slint_core::static_selection::clicked_link() {
+            if let Some(rect) = i_slint_core::chatter_selection::clicked_link() {
                 window.invoke_anchor_link(
                     rect.origin.x,
                     rect.origin.y,

@@ -596,7 +596,7 @@ impl GridLayoutOrganizedData {
 /// Uses 2-level indirection: cache[cache[jump_pos] + ri * stride + col * 4]
 /// Each jump cell stores [data_base, stride, 0, 0] where stride = step * 4.
 ///
-/// Layout: [static_cells (4 u16 each)] [jump_cells (4 u16 each, 1 per repeater)]
+/// Layout: [chatter_cells (4 u16 each)] [jump_cells (4 u16 each, 1 per repeater)]
 ///         [row_data (rep_count * step * 4 u16)] ... (repeated for each repeater)
 struct OrganizedDataGenerator<'a> {
     // Input
@@ -618,13 +618,13 @@ impl<'a> OrganizedDataGenerator<'a> {
     fn new(
         repeater_indices: &'a [u32],
         repeater_steps: &'a [u32],
-        static_cells: usize,
+        chatter_cells: usize,
         num_repeaters: usize,
         total_repeated_cells_count: usize,
         result: &'a mut GridLayoutOrganizedData,
     ) -> Self {
-        result.resize((static_cells + num_repeaters + total_repeated_cells_count) * 4, 0 as _);
-        let repeat_u16_offset = (static_cells + num_repeaters) * 4;
+        result.resize((chatter_cells + num_repeaters + total_repeated_cells_count) * 4, 0 as _);
+        let repeat_u16_offset = (chatter_cells + num_repeaters) * 4;
         Self {
             repeater_indices,
             repeater_steps,
@@ -823,16 +823,16 @@ fn organize_grid_layout_impl(
     repeater_steps: Slice<u32>,
 ) -> (GridLayoutOrganizedData, Errors) {
     let mut organized_data = GridLayoutOrganizedData::default();
-    // Cache size: static_cells * 4 + num_repeaters * 4 (jump cells)
+    // Cache size: chatter_cells * 4 + num_repeaters * 4 (jump cells)
     //              + per repeater: rep_count * step * 4 (data)
     let num_repeaters = repeater_indices.len() / 2;
     let total_repeated_cells =
         total_repeated_cells(repeater_indices.as_slice(), repeater_steps.as_slice());
-    let static_cells = input_data.len() - total_repeated_cells;
+    let chatter_cells = input_data.len() - total_repeated_cells;
     let mut generator = OrganizedDataGenerator::new(
         repeater_indices.as_slice(),
         repeater_steps.as_slice(),
-        static_cells,
+        chatter_cells,
         num_repeaters,
         total_repeated_cells,
         &mut organized_data,
@@ -969,13 +969,13 @@ impl<'a> GridLayoutCacheGenerator<'a> {
     fn new(
         repeater_indices: &'a [u32],
         repeater_steps: &'a [u32],
-        static_cells: usize,
+        chatter_cells: usize,
         num_repeaters: usize,
         total_repeated_cells_count: usize,
         result: &'a mut SharedVector<Coord>,
     ) -> Self {
-        result.resize((static_cells + num_repeaters + total_repeated_cells_count) * 2, 0 as _);
-        let repeat_f32_offset = (static_cells + num_repeaters) * 2;
+        result.resize((chatter_cells + num_repeaters + total_repeated_cells_count) * 2, 0 as _);
+        let repeat_f32_offset = (chatter_cells + num_repeaters) * 2;
         Self {
             repeater_indices,
             repeater_steps,
@@ -1068,11 +1068,11 @@ pub fn solve_grid_layout(
     let num_repeaters = repeater_indices.len() / 2;
     let total_repeated_cells =
         total_repeated_cells(repeater_indices.as_slice(), repeater_steps.as_slice());
-    let static_cells = constraints.len() - total_repeated_cells;
+    let chatter_cells = constraints.len() - total_repeated_cells;
     let mut generator = GridLayoutCacheGenerator::new(
         repeater_indices.as_slice(),
         repeater_steps.as_slice(),
-        static_cells,
+        chatter_cells,
         num_repeaters,
         total_repeated_cells,
         &mut result,
@@ -3048,7 +3048,7 @@ mod tests {
         let mut generator = GridLayoutCacheGenerator::new(
             repeater_indices.as_slice(),
             repeater_steps.as_slice(),
-            0, // static_cells
+            0, // chatter_cells
             1, // num_repeaters
             6, // total_repeated_cells (3 rows * 2 columns)
             &mut layout_cache_v,
@@ -3212,7 +3212,7 @@ mod tests {
         let mut generator = GridLayoutCacheGenerator::new(
             repeater_indices.as_slice(),
             repeater_steps.as_slice(),
-            0,  // static_cells
+            0,  // chatter_cells
             2,  // num_repeaters
             12, // total_repeated_cells (3*2 + 2*3)
             &mut layout_cache_v,

@@ -9,10 +9,10 @@ installing one replaces the other, and both keep one data folder.
 ## Run the package
 
 `target/dist/discord` holds the release's portable ZIP and installer,
-`Static-VERSION-windows-x64-setup.exe`; `target/dist/full` the preview's,
-`Static-VERSION-full-preview-windows-x64-setup.exe`. The installer needs no administrator
-rights: it installs for the current user into `%LOCALAPPDATA%\Programs\Static`,
-adds Static to the Start menu, optionally to the desktop, and starts it when
+`Chatter-VERSION-windows-x64-setup.exe`; `target/dist/full` the preview's,
+`Chatter-VERSION-full-preview-windows-x64-setup.exe`. The installer needs no administrator
+rights: it installs for the current user into `%LOCALAPPDATA%\Programs\Chatter`,
+adds Chatter to the Start menu, optionally to the desktop, and starts it when
 the person signs in unless they untick that. Settings → Advanced turns that
 on and off later ([the tray](tray.md#starting-at-sign-in)). Uninstalling,
 from Settings → Apps, removes the program and the sign-in entry and keeps the
@@ -20,21 +20,21 @@ data folder. Neither is signed, so SmartScreen warns before either runs.
 
 For the ZIP:
 
-1. Copy `target/dist/discord/Static-VERSION-windows-x64.zip`, or the full
+1. Copy `target/dist/discord/Chatter-VERSION-windows-x64.zip`, or the full
    preview's ZIP, to the tester's PC.
-2. Extract the whole ZIP, then double-click `static.exe` in the extracted folder.
+2. Extract the whole ZIP, then double-click `chatter.exe` in the extracted folder.
 3. Link Discord by its QR code, or, in the full preview, sign in with a Matrix
    account. Matrix voice needs a homeserver that offers MatrixRTC (see
    [voice](voice.md)).
 4. Open an encrypted room for text, or a voice channel for voice.
 
 The package needs no Rust or Visual Studio installation. It includes the native
-media code and Skia renderer. Opened from Explorer, Static shows only its
+media code and Skia renderer. Opened from Explorer, Chatter shows only its
 window and writes its diagnostics to `yapfast.log` in its data folder,
-`%LOCALAPPDATA%\Static\Static\data`, or the `--data-dir` folder. The log
+`%LOCALAPPDATA%\Chatter\Chatter\data`, or the `--data-dir` folder. The log
 grows across starts and starts over past 4 MiB. Started from a console, as
-`run-static.cmd` does, Static writes there instead. If it closes immediately,
-run `run-static.cmd` to keep the error visible. `run-static.cmd --renderer
+`run-chatter.cmd` does, Chatter writes there instead. If it closes immediately,
+run `run-chatter.cmd` to keep the error visible. `run-chatter.cmd --renderer
 gpu` or `--renderer software` picks the renderer for one start; see [Rendering
 on Windows](#rendering-on-windows).
 
@@ -45,11 +45,11 @@ device verification and recovery are being tested.
 
 ## Rendering on Windows
 
-Static renders with Skia Software unless "Render with the GPU" in Settings →
+Chatter renders with Skia Software unless "Render with the GPU" in Settings →
 Advanced is on. On Windows that setting asks Slint for Skia with Direct3D
 required, which draws through wgpu's Direct3D 12; Linux uses OpenGL. NVIDIA's
 OpenGL driver on Windows kept about one core busy while it waited for the
-screen, which is why Windows doesn't. If the GPU can't start, Static restarts
+screen, which is why Windows doesn't. If the GPU can't start, Chatter restarts
 itself with Skia Software, says so in the window and turns the setting off
 (`src/graphics.rs`, `src/ui.rs`).
 
@@ -57,13 +57,13 @@ itself with Skia Software, says so in the window and turns the setting off
 
 With Alice signed in on Linux and Bob on Windows:
 
-1. Exchange messages in general and confirm they survive restarting Static.
+1. Exchange messages in general and confirm they survive restarting Chatter.
 2. Alice joins Lounge, stays muted and waits. Bob joins later and should see Alice.
 3. Choose microphone and speakers in the voice settings. Use headphones.
 4. Unmute both people and confirm each can hear the other.
 5. Check mute, deafen, leaving, and rejoining. Browse general while voice stays connected.
 6. Choose a camera in the voice settings, try "Test video", then turn the camera
-   on in Lounge. Each should see the other's camera. Restart Static and check the
+   on in Lounge. Each should see the other's camera. Restart Chatter and check the
    camera is still chosen.
 7. Record Windows version, GPU/driver, audio devices, cameras, input/copy/paste behavior,
    window resizing, and any error text. Never include passwords or recovery keys.
@@ -71,12 +71,12 @@ With Alice signed in on Linux and Bob on Windows:
 ## Discord voice on Windows
 
 Discord voice, the input meter and the Discord input sensitivity meter,
-ringing, Static's sounds, and a watched stream's or a video's sound use WASAPI
-on Windows, in `crates/static-core/src/audio_io/wasapi.rs`. Each stream is
-shared-mode and event-driven: the audio engine converts between Static's 48 kHz
+ringing, Chatter's sounds, and a watched stream's or a video's sound use WASAPI
+on Windows, in `crates/chatter-core/src/audio_io/wasapi.rs`. Each stream is
+shared-mode and event-driven: the audio engine converts between Chatter's 48 kHz
 and the device's format, and reading or writing waits for its event on the
 thread that already did the reading or writing on Linux, copying straight
-between Static's buffers and the engine's. WebRTC's Windows device module names
+between Chatter's buffers and the engine's. WebRTC's Windows device module names
 each device by its endpoint id (`{0.0.0.00000000}.{…}` for speakers,
 `{0.0.1.00000000}.{…}` for microphones), so the chosen device opens directly
 by that id; none is the console default. Go Live's sound is in
@@ -91,35 +91,35 @@ communications ducking setting turns other sound down during a call.
 ## Go Live on Windows
 
 Sharing, watching and playing a video run in the stream worker, as on Linux:
-Static starts its own executable with `--stream-worker`, which writes its logs
-where Static does: Static's console, or Static's log file. The video frames reach
+Chatter starts its own executable with `--stream-worker`, which writes its logs
+where Chatter does: Chatter's console, or Chatter's log file. The video frames reach
 the window through a temporary file both processes map. Windows won't delete
-a mapped file, so there Static creates it with `FILE_FLAG_DELETE_ON_CLOSE` and
+a mapped file, so there Chatter creates it with `FILE_FLAG_DELETE_ON_CLOSE` and
 `FILE_ATTRIBUTE_TEMPORARY`, which keeps it in memory while it fits, and
 Windows removes it once both processes close it. On Linux it's still unlinked once the worker has it open.
 
-Windows has no screen sharing dialog for Static to use, so the share menu
+Windows has no screen sharing dialog for Chatter to use, so the share menu
 lists what there is to share above the resolution: the screens as pictures, two
 to a row, named "Entire screen" (or "Screen 1", "Screen 2", … with several),
-then each window with a title. Static's own windows aren't listed. libwebrtc's
+then each window with a title. Chatter's own windows aren't listed. libwebrtc's
 capturers make the list, on a short-lived thread as the menu opens, and the
 worker finds the picked one by its id. The menu opens with the screens' names;
 their pictures come from a worker job (`Job::Glance`) that takes one frame of
 each screen, scaled down to its card, and exits, so capturing them takes memory
 only until they're in. A window closed after it was listed ends sharing with
-"That screen or window is gone." Without a pick, Static shares the first
+"That screen or window is gone." Without a pick, Chatter shares the first
 screen.
 
 Go Live's sound comes from WASAPI process loopback: one stream of everything
-Windows plays except Static's own process tree, the Static window and its
+Windows plays except Chatter's own process tree, the Chatter window and its
 workers. It needs Windows 10's 2004 update or later. Unlike Linux, where
 each application is heard on its own and Discord's own client is left out,
 Windows mixes every other application into one stream and can leave out only
-Static. Where Windows refuses process loopback, Static shares without sound and
+Chatter. Where Windows refuses process loopback, Chatter shares without sound and
 logs why, as it does on Linux without a PulseAudio server.
 
 The stream's H264 goes to NVIDIA's NVENC, then AMD's AMF, through FFmpeg in
-`crates/static-core/native/hwenc.c`, while "Encode streams with the GPU" is
+`crates/chatter-core/native/hwenc.c`, while "Encode streams with the GPU" is
 on, and to x264 when neither opens or the setting is off. Intel graphics
 encode with x264 on Windows. Where the card encodes AV1 or H265, the stream
 offers those first, in the same way. The camera always uses x264. AMF has
@@ -130,8 +130,8 @@ the rest.
 Real Windows needs checking for: the window list's contents and titles,
 sharing a window that's minimized, moved to another screen or closed while
 shared, screens on mixed-DPI setups, Windows Graphics Capture's yellow
-border, process loopback hearing other applications and leaving out Static's
-own voices, AMF on an AMD card in a whole Static (AV1 on an RX 7000 or
+border, process loopback hearing other applications and leaving out Chatter's
+own voices, AMF on an AMD card in a whole Chatter (AV1 on an RX 7000 or
 newer), and the worker's start-up time from a
 packaged build.
 
@@ -154,11 +154,11 @@ The notification-area icon is `Shell_NotifyIconW` on a hidden window of the
 UI thread; see [the tray](tray.md#windows).
 
 Under Wine, closing the window to the tray and opening it again from the
-icon work. A right click reaches Static (`WM_RBUTTONDOWN`, `WM_RBUTTONUP`) and
+icon work. A right click reaches Chatter (`WM_RBUTTONDOWN`, `WM_RBUTTONUP`) and
 `TrackPopupMenu` runs, but Wine's Wayland driver never shows the menu,
 most likely because its owner is a window that was never shown. Until the
-menu closes, its loop holds Static's UI thread, as every Win32 menu does; on
-Windows a click anywhere else closes it. So Open Static, Disconnect and Quit
+menu closes, its loop holds Chatter's UI thread, as every Win32 menu does; on
+Windows a click anywhere else closes it. So Open Chatter, Disconnect and Quit
 in the menu are untested on Windows.
 
 [The tray](tray.md#windows) lists what to check on real Windows.
@@ -182,20 +182,20 @@ and its dots rising; the same while resizing by a border.
 
 ## The window's size and place
 
-Static starts where it was left; see [Layout and
+Chatter starts where it was left; see [Layout and
 look](chat-ui.md#layout-and-look). Slint makes the native window only once its
 event loop runs, and shows it straight away, so there's no window to give
-`SetWindowPlacement` before it shows. Static gives Slint the size and place
+`SetWindowPlacement` before it shows. Chatter gives Slint the size and place
 before `show()` instead, and keeps the un-maximized ones itself while the
 window is maximized. `MonitorFromRect` and `GetMonitorInfoW`
 (`src/ui/placement.rs`) check them against the monitors: if the title bar would
-show on no monitor, Static forgets the place and Windows puts the window on
+show on no monitor, Chatter forgets the place and Windows puts the window on
 the primary monitor, and a window too big for its monitor's work area shrinks
 to it.
 
 Check on real Windows: two monitors at different scales, starting on the
 one that isn't the primary, maximized and not; a monitor unplugged while
-Static is closed; a window snapped to half the screen, which comes back at
+Chatter is closed; a window snapped to half the screen, which comes back at
 the snapped size; and the taskbar at the top or the left.
 
 ## Rebuild from Linux
@@ -207,7 +207,7 @@ nix develop path:./nix#windows --command scripts/build-windows        # Discord 
 nix develop path:./nix#windows --command scripts/build-windows full   # full preview
 ```
 
-Both flavours build to the same `static.exe`, so each run packages straight
+Both flavours build to the same `chatter.exe`, so each run packages straight
 away; the packaging script tells them apart by the Matrix SDK's source paths
 and refuses the wrong one. This installs the pinned Rust toolchain's Windows
 target, cross-compiles with cargo-xwin and Clang, then packages the executable.
@@ -230,12 +230,12 @@ remaps source paths, so a binary people download names no folder of this
 machine ([Building](building.md#windows)). Source it the same way before any
 Windows binary you hand to someone.
 
-A [one-line WebRTC patch](../vendor/webrtc-sys/README.static.md) also fixes an
+A [one-line WebRTC patch](../vendor/webrtc-sys/README.chatter.md) also fixes an
 MSVC class/struct declaration mismatch, matching the upstream resolution.
 
 The package contains dependency notices, original licenses and build hashes.
-The source snapshot, `Static-VERSION-source.zip` (the full preview's
-`Static-VERSION-full-preview-source.zip`), sits beside the packages in
+The source snapshot, `Chatter-VERSION-source.zip` (the full preview's
+`Chatter-VERSION-full-preview-source.zip`), sits beside the packages in
 `target/dist/FLAVOUR` rather than in them, and goes on the release page with
 them, tag `vVERSION` or `vVERSION-full-preview`: `SOURCE.txt` in each package
 names that page and `BUILD.json` the snapshot's SHA-256, which the AGPL
@@ -261,30 +261,30 @@ nix develop path:./nix#windows --command bash -c '
 ```
 
 Drop the two feature flags for the full build. The executable is
-`target/x86_64-pc-windows-msvc/fast/static.exe`. `static.exe --help` and
+`target/x86_64-pc-windows-msvc/fast/chatter.exe`. `chatter.exe --help` and
 `--smoke-test` run under Wine without a display; `--audio-devices` lists the
 microphones, speakers and cameras Wine sees.
 
 ## Test under Wine
 
 Build the test executable without running it, then run it with Wine.
-`static-core` needs no Skia:
+`chatter-core` needs no Skia:
 
 ```sh
 nix develop path:./nix#windows --command \
   cargo xwin test --no-run --profile fast --target x86_64-pc-windows-msvc -p
-  static-core --lib
+  chatter-core --lib
 ```
 
 Cargo prints the path,
-`target/x86_64-pc-windows-msvc/fast/deps/static_core-HASH.exe`. Run it in its
+`target/x86_64-pc-windows-msvc/fast/deps/chatter_core-HASH.exe`. Run it in its
 own prefix, with the usual test filter and flags:
 
 ```sh
 nix develop path:./nix#windows --command env WINEPREFIX=/tmp/wine-test
 WINEDEBUG=-all \
   DISPLAY= WAYLAND_DISPLAY= wine
-  target/x86_64-pc-windows-msvc/fast/deps/static_core-HASH.exe frames
+  target/x86_64-pc-windows-msvc/fast/deps/chatter_core-HASH.exe frames
 ```
 
 A new prefix takes `wineboot -i` first. The device tests are `#[ignore]`d;
@@ -326,7 +326,7 @@ nix develop path:./nix#windows --command env TMPDIR=/tmp \
 There are two ways to show the window, and each misses something:
 
 - Wine's Wayland driver, on the session's Weston: the script unsets `DISPLAY`
-  and runs plain `wine static.exe "$@"`. This is enough for most UI checks.
+  and runs plain `wine chatter.exe "$@"`. This is enough for most UI checks.
   `wine explorer /desktop=…` fails here with "xdg_surface geometry … is
   larger than the configured fullscreen state", since the desktop's frame
   doesn't fit the kiosk window. Screen capture gets no frames, the preview of
@@ -336,7 +336,7 @@ There are two ways to show the window, and each misses something:
   starts `Xwayland :58 -geometry 1120x760` (the session's size; not
   `-fullscreen`, which gives 640×480 stretched), then, with `DISPLAY=:58`,
   `WAYLAND_DISPLAY` unset and `SLINT_SCALE_FACTOR=1`, runs `wine explorer
-  /desktop=static,1120x760 static.exe "$@"`. GDI then captures the real
+  /desktop=static,1120x760 chatter.exe "$@"`. GDI then captures the real
   screen, and the window can be moved, resized and maximized. Stop the extra
   Xwayland by its PID after `scripts/ui-session stop`.
 
@@ -349,7 +349,7 @@ display that reports no refresh rate would hit the same.
 which shows the path works but nothing about a real card. To check the
 fallback to Skia Software, hide Vulkan with `VK_DRIVER_FILES=/nonexistent.json
 VK_ICD_FILENAMES=/nonexistent.json`. Don't use `WINEDLLOVERRIDES=d3d12=d`:
-`static.exe` imports `d3d12.dll`, so it then won't start at all.
+`chatter.exe` imports `d3d12.dll`, so it then won't start at all.
 
 ## What's open
 

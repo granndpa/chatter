@@ -40,7 +40,7 @@ fn wait<T: 'static>(answer: mpsc::Receiver<T>, done: impl FnOnce(T) + 'static) {
     });
 }
 
-fn check(state: State, weak: slint::Weak<StaticWindow>) {
+fn check(state: State, weak: slint::Weak<ChatterWindow>) {
     let (sent, answer) = mpsc::channel();
     std::thread::spawn(move || {
         let _ = sent.send(updater::check());
@@ -68,7 +68,7 @@ fn check(state: State, weak: slint::Weak<StaticWindow>) {
 }
 
 /// Downloads and installs the release found, then quits so it can start.
-fn install(adapter: &Rc<RefCell<Adapter>>, window: &StaticWindow) {
+fn install(adapter: &Rc<RefCell<Adapter>>, window: &ChatterWindow) {
     let Some(release) = adapter.borrow().updates.release.clone() else {
         return;
     };
@@ -99,7 +99,7 @@ fn install(adapter: &Rc<RefCell<Adapter>>, window: &StaticWindow) {
     });
 }
 
-pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
+pub(super) fn bind(window: &ChatterWindow, adapter: &Rc<RefCell<Adapter>>) {
     {
         let (state, weak) = (Rc::downgrade(adapter), window.as_weak());
         window.on_install_update(move || {
@@ -117,7 +117,7 @@ pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
                 let mut adapter = adapter.borrow_mut();
                 adapter.layout.community_asked = true;
                 adapter.layout.write(&adapter.root);
-                adapter.action(&window, static_core::application::Action::OpenInviteLink(code.into()));
+                adapter.action(&window, chatter_core::application::Action::OpenInviteLink(code.into()));
             }
         });
     }

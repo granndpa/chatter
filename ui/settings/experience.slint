@@ -7,7 +7,7 @@ component Divider inherits Rectangle { height: 1px; background: Theme.line; }
 export component AccessibilitySettings inherits VerticalLayout {
     /// Message text: 0 small, 1 default, 2 large.
     in-out property <int> text-size;
-    /// When animations play: 0 while Static has the focus, 1 always, 2 never.
+    /// When animations play: 0 while Chatter has the focus, 1 always, 2 never.
     in-out property <int> animate;
     in-out property <bool> reduced-motion;
     callback preferences-changed;

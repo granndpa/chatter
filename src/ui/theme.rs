@@ -1,10 +1,10 @@
 //! The window's colours: a full set of what `Theme` in `ui/theme.slint` holds,
-//! which Static sets on the window to change them all at once.
+//! which Chatter sets on the window to change them all at once.
 
 use std::{cell::Cell, rc::Rc};
 
 use slint::{Color, ComponentHandle, Model, ModelRc, VecModel};
-use static_ui::StaticWindow;
+use chatter_ui::ChatterWindow;
 
 /// Opaque `#rrggbb`.
 const fn rgb(hex: u32) -> Color {
@@ -30,8 +30,8 @@ macro_rules! theme {
 
         impl Theme {
             /// Sets only the colours that differ from those the window
-            /// shows: nothing when it starts in Static, its defaults.
-            fn set(&self, tokens: &static_ui::Theme<'_>) {
+            /// shows: nothing when it starts in Chatter, its defaults.
+            fn set(&self, tokens: &chatter_ui::Theme<'_>) {
                 if tokens.get_dark() != self.dark {
                     tokens.set_dark(self.dark);
                 }
@@ -54,8 +54,8 @@ macro_rules! theme {
 
             /// The colours the window shows now.
             #[cfg(test)]
-            pub fn shown(window: &StaticWindow) -> Self {
-                let tokens = window.global::<static_ui::Theme>();
+            pub fn shown(window: &ChatterWindow) -> Self {
+                let tokens = window.global::<chatter_ui::Theme>();
                 Self { dark: tokens.get_dark(), $($name: tokens.$get(),)* }
             }
         }
@@ -104,7 +104,7 @@ theme! {
 
 /// Discord's current dark theme: soft charcoal panels, a darker rail and channel list, and blurple.
 /// The defaults in `ui/theme.slint` are these, so the first frame shows them.
-pub const STATIC_THEME: Theme = Theme {
+pub const CHATTER_THEME: Theme = Theme {
     dark: true,
     rail: rgb(0x121214),
     sidebar: rgb(0x121214),
@@ -607,7 +607,7 @@ const PAPER: Theme = Theme {
     avatar: rgb(0x8c8070),
 };
 
-/// A theme Static comes with: the id a layout stores and the name Appearance
+/// A theme Chatter comes with: the id a layout stores and the name Appearance
 /// shows.
 pub struct BuiltIn {
     pub id: &'static str,
@@ -615,13 +615,13 @@ pub struct BuiltIn {
     pub theme: Theme,
 }
 
-/// The themes Static comes with, as Appearance lists them: the dark ones, then
+/// The themes Chatter comes with, as Appearance lists them: the dark ones, then
 /// the light ones.
 pub const BUILT_IN: [BuiltIn; 12] = [
     BuiltIn {
         id: "yap",
         name: "Discord Dark",
-        theme: STATIC_THEME,
+        theme: CHATTER_THEME,
     },
     BuiltIn {
         id: "onyx",
@@ -700,7 +700,7 @@ pub fn lookup<'a>(id: &str, custom: &'a [Custom]) -> Option<(&'a str, Theme)> {
 /// this version doesn't have or the person deleted.
 pub fn chosen<'a>(id: Option<&str>, custom: &'a [Custom]) -> (&'a str, Theme) {
     id.and_then(|id| lookup(id, custom))
-        .unwrap_or((BUILT_IN[0].id, STATIC_THEME))
+        .unwrap_or((BUILT_IN[0].id, CHATTER_THEME))
 }
 
 /// A colour's name as `ui/theme.slint` and `layout.json` have it.
@@ -819,7 +819,7 @@ impl<'de> serde::Deserialize<'de> for Custom {
     }
 }
 
-/// The number in a custom theme's id, if it's one Static gives.
+/// The number in a custom theme's id, if it's one Chatter gives.
 fn custom_number(id: &str) -> Option<u32> {
     id.strip_prefix("custom:")?.parse().ok()
 }
@@ -834,7 +834,7 @@ pub fn new_id(custom: &[Custom]) -> String {
     format!("custom:{}", last + 1)
 }
 
-/// Gives a new id to each custom theme from `layout.json` whose id Static
+/// Gives a new id to each custom theme from `layout.json` whose id Chatter
 /// wouldn't have given, or that another has, so that ids stay apart from
 /// the built-in ones and from each other.
 pub fn tidy(custom: &mut [Custom]) {
@@ -903,12 +903,12 @@ pub fn muted_color() -> u32 {
 impl Theme {
     /// Shows the window in these colours. Returns whether colours that rows
     /// carry in their markup change, as rows built before have the old ones.
-    pub fn apply(&self, window: &StaticWindow) -> bool {
-        self.set(&window.global::<static_ui::Theme>());
+    pub fn apply(&self, window: &ChatterWindow) -> bool {
+        self.set(&window.global::<chatter_ui::Theme>());
         let rgb = |colour: Color| colour.as_argb_encoded() & 0xff_ffff;
         // The Discord themes draw a mention's text as Discord does, a light
         // blurple; the other themes use their link colour.
-        let mention_colour = if self.dark && rgb(self.link) == rgb(STATIC_THEME.link) {
+        let mention_colour = if self.dark && rgb(self.link) == rgb(CHATTER_THEME.link) {
             0xc9cdfb
         } else {
             rgb(self.link)
@@ -922,8 +922,8 @@ impl Theme {
 
 /// Appearance's cards: each theme's name and the colours its preview draws
 /// with, the built-in ones first.
-pub fn cards(custom: &[Custom]) -> ModelRc<static_ui::ThemeCard> {
-    let card = |id: &str, name: &str, custom: bool, theme: &Theme| static_ui::ThemeCard {
+pub fn cards(custom: &[Custom]) -> ModelRc<chatter_ui::ThemeCard> {
+    let card = |id: &str, name: &str, custom: bool, theme: &Theme| chatter_ui::ThemeCard {
         id: id.into(),
         name: name.into(),
         custom,
@@ -954,7 +954,7 @@ pub struct Editor {
     pub editing: Option<String>,
     pub base: &'static str,
     pub theme: Theme,
-    rows: Rc<VecModel<static_ui::ThemeColour>>,
+    rows: Rc<VecModel<chatter_ui::ThemeColour>>,
 }
 
 impl Editor {
@@ -976,7 +976,7 @@ impl Editor {
             .enumerate()
             .filter_map(|(index, name)| {
                 let colour = self.theme.colour(index)?;
-                Some(static_ui::ThemeColour {
+                Some(chatter_ui::ThemeColour {
                     name: token(name).into(),
                     colour,
                     hex: hex(colour).into(),
@@ -987,7 +987,7 @@ impl Editor {
         self.rows.set_vec(rows);
     }
 
-    pub fn rows(&self) -> ModelRc<static_ui::ThemeColour> {
+    pub fn rows(&self) -> ModelRc<chatter_ui::ThemeColour> {
         ModelRc::from(self.rows.clone())
     }
 

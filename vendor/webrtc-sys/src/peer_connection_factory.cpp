@@ -51,7 +51,7 @@ namespace livekit_ffi {
 
 class PeerConnectionObserver;
 
-// Static: hands each block of captured audio to the application's processor,
+// Chatter: hands each block of captured audio to the application's processor,
 // which sets its gain; see capture.rs.
 class CaptureLeveling : public webrtc::CustomProcessing {
  public:
@@ -115,7 +115,7 @@ PeerConnectionFactory::PeerConnectionFactory(
       std::move(std::make_unique<livekit_ffi::VideoDecoderFactory>());
   dependencies.audio_encoder_factory = webrtc::CreateBuiltinAudioEncoderFactory();
   dependencies.audio_decoder_factory = webrtc::CreateBuiltinAudioDecoderFactory();
-  // Static: captured audio goes through Static's leveling after WebRTC's processing.
+  // Chatter: captured audio goes through Chatter's leveling after WebRTC's processing.
   auto audio_processing = std::make_unique<webrtc::BuiltinAudioProcessingBuilder>();
   audio_processing->SetCapturePostProcessing(std::make_unique<CaptureLeveling>());
   dependencies.audio_processing_builder = std::move(audio_processing);

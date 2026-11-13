@@ -261,9 +261,9 @@ pub struct StyledTextItem {
     anchor_position_byte_offset: Property<i32>,
     cursor_position_byte_offset: Property<i32>,
     pub cached_rendering_data: CachedRenderingData,
-    /// Static: a press in this text is selecting.
+    /// Chatter: a press in this text is selecting.
     pressed: Cell<bool>,
-    /// Static: the part of this text a selection covers, as last drawn, and its colour.
+    /// Chatter: the part of this text a selection covers, as last drawn, and its colour.
     shown_selection: core::cell::RefCell<Option<(core::ops::Range<usize>, Color)>>,
     /// The unit of the mouse selection under way, if any.
     #[cfg_attr(not(feature = "shared-parley"), allow(dead_code))]
@@ -318,11 +318,11 @@ impl From<Option<SelectionUnit>> for MouseSelection {
     }
 }
 
-/// Static: selecting the text of a `StyledText`; see [`crate::static_selection`].
+/// Chatter: selecting the text of a `StyledText`; see [`crate::chatter_selection`].
 impl StyledTextItem {
     /// The text as one string, its paragraphs joined by newlines, as the layout places them.
     pub(crate) fn plain(self: Pin<&Self>) -> String {
-        crate::static_selection::plain(&self.text())
+        crate::chatter_selection::plain(&self.text())
     }
 
     /// The text at `position`, in this item's coordinates, by `unit`.
@@ -449,8 +449,8 @@ impl Item for StyledTextItem {
                 renderer.text_layout_cache(),
             )
         };
-        // Static: pressing and dragging selects, as in a read-only `TextInput`, on through the
-        // texts and pictures around it; see `crate::static_selection`. A double press selects by
+        // Chatter: pressing and dragging selects, as in a read-only `TextInput`, on through the
+        // texts and pictures around it; see `crate::chatter_selection`. A double press selects by
         // word and a triple press by paragraph. A click that selects nothing still follows a link.
         #[cfg(feature = "shared-parley")]
         let in_window = |position: &LogicalPoint| {
@@ -467,7 +467,7 @@ impl Item for StyledTextItem {
         match event {
             #[cfg(feature = "shared-parley")]
             MouseEvent::Pressed { position, button: PointerEventButton::Left, click_count, .. } => {
-                let pressed = crate::static_selection::press(
+                let pressed = crate::chatter_selection::press(
                     self_rc,
                     self,
                     window_adapter,
@@ -480,24 +480,24 @@ impl Item for StyledTextItem {
             }
             #[cfg(feature = "shared-parley")]
             MouseEvent::Moved { position, .. } if self.pressed.get() => {
-                crate::static_selection::drag_to(window_adapter, in_window(position));
+                crate::chatter_selection::drag_to(window_adapter, in_window(position));
                 *cursor = super::MouseCursorInner::BuiltIn(super::BuiltInMouseCursor::Text);
                 InputEventResult::GrabMouse
             }
             #[cfg(feature = "shared-parley")]
             MouseEvent::Released { position, button: PointerEventButton::Left, .. } => {
                 self.pressed.set(false);
-                if !crate::static_selection::release(window_adapter)
+                if !crate::chatter_selection::release(window_adapter)
                     && let Some((link, rect)) = find_link_box(position)
                 {
-                    // Static: where the link is, for a popup it opens; see `clicked_link`.
+                    // Chatter: where the link is, for a popup it opens; see `clicked_link`.
                     let rect = rect / scale_factor;
                     let origin = self_rc.map_to_window(
                         self_rc.geometry().origin + rect.origin.to_vector(),
                     );
-                    crate::static_selection::set_clicked_link(Some(LogicalRect::new(origin, rect.size)));
+                    crate::chatter_selection::set_clicked_link(Some(LogicalRect::new(origin, rect.size)));
                     Self::FIELD_OFFSETS.link_clicked().apply_pin(self).call(&(link.into(),));
-                    crate::static_selection::set_clicked_link(None);
+                    crate::chatter_selection::set_clicked_link(None);
                 }
                 point(position);
                 InputEventResult::EventAccepted
@@ -507,11 +507,11 @@ impl Item for StyledTextItem {
                 point(position);
                 InputEventResult::EventAccepted
             }
-            // Static: other buttons go on to the items around the text, so a right click on a
+            // Chatter: other buttons go on to the items around the text, so a right click on a
             // message's text opens the message's menu, which can copy the link pressed.
             #[cfg(feature = "shared-parley")]
             MouseEvent::Pressed { position, .. } => {
-                crate::static_selection::set_pressed_link(in_window(position), find_link(position));
+                crate::chatter_selection::set_pressed_link(in_window(position), find_link(position));
                 point(position);
                 InputEventResult::EventIgnored
             }
@@ -590,8 +590,8 @@ impl Item for StyledTextItem {
         self_rc: &ItemRc,
         size: LogicalSize,
     ) -> RenderingResult {
-        // Static: what of this text a selection covers.
-        *self.shown_selection.borrow_mut() = crate::static_selection::covered(self_rc);
+        // Chatter: what of this text a selection covers.
+        *self.shown_selection.borrow_mut() = crate::chatter_selection::covered(self_rc);
         (*backend).draw_text(self, self_rc, size, &self.cached_rendering_data);
         RenderingResult::ContinueRenderingChildren
     }
@@ -671,9 +671,9 @@ impl RenderText for StyledTextItem {
         true
     }
 
-    fn static_selection(self: Pin<&Self>) -> Option<(core::ops::Range<usize>, Color)> {
+    fn chatter_selection(self: Pin<&Self>) -> Option<(core::ops::Range<usize>, Color)> {
         // Drawing calls this, so draws the text again when a selection changes.
-        crate::static_selection::track();
+        crate::chatter_selection::track();
         self.shown_selection.borrow().clone()
     }
 
@@ -1397,8 +1397,8 @@ impl Item for TextInput {
                 return InputEventResult::GrabMouse;
             }
             MouseEvent::Pressed { button: PointerEventButton::Middle, .. } => {
-                // Static: the press pastes here rather than autoscrolling what's around.
-                crate::static_autoscroll::decline();
+                // Chatter: the press pastes here rather than autoscrolling what's around.
+                crate::chatter_autoscroll::decline();
                 #[cfg(not(any(target_os = "android", target_os = "ios")))]
                 self.ensure_focus_and_ime(window_adapter, self_rc);
             }
@@ -1821,12 +1821,12 @@ impl RenderString for TextInput {
         PlainOrStyledText::Plain(if self.is_password() { mask_password(&text) } else { text })
     }
 
-    // Static: an input method's text, inserted while composing, moves the marked bytes.
-    fn marks(self: Pin<&Self>) -> Option<crate::static_marks::Marks> {
+    // Chatter: an input method's text, inserted while composing, moves the marked bytes.
+    fn marks(self: Pin<&Self>) -> Option<crate::chatter_marks::Marks> {
         if self.is_password() || !self.preedit_text().is_empty() {
             return None;
         }
-        crate::static_marks::marks_of(&self.text())
+        crate::chatter_marks::marks_of(&self.text())
     }
     fn line_height_factor(self: Pin<&Self>) -> Option<f32> {
         resolve_line_height_factor(Self::FIELD_OFFSETS.line_height_factor().apply_pin(self).get())

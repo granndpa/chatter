@@ -1,4 +1,4 @@
-//! Create a Server and Discover, as `static_core`'s application keeps them.
+//! Create a Server and Discover, as `chatter_core`'s application keeps them.
 
 use super::*;
 
@@ -16,7 +16,7 @@ fn grouped(count: u64) -> String {
 }
 
 /// Shows Create a Server and Discover as the application has them.
-pub(super) fn show(adapter: &Adapter, window: &StaticWindow) {
+pub(super) fn show(adapter: &Adapter, window: &ChatterWindow) {
     let state = &adapter.app.state;
     match &state.create_server {
         Some(dialog) => {
@@ -80,7 +80,7 @@ pub(super) fn show(adapter: &Adapter, window: &StaticWindow) {
     }
 }
 
-pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
+pub(super) fn bind(window: &ChatterWindow, adapter: &Rc<RefCell<Adapter>>) {
     macro_rules! act {
         ($callback:ident, $action:expr) => {{
             let (state, weak) = (adapter.clone(), window.as_weak());

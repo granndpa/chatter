@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build pinned Skia with WebRTC's static Windows CRT, then namespace its JPEG table."""
+"""Build pinned Skia with WebRTC's chatter Windows CRT, then namespace its JPEG table."""
 import gzip
 import hashlib
 import json

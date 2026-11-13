@@ -1,10 +1,10 @@
-//! The title bar Static draws in place of the desktop's on Linux: whether it
+//! The title bar Chatter draws in place of the desktop's on Linux: whether it
 //! does, and moving, sizing, minimizing, maximizing and closing the window
-//! from it through winit. Static also uses these actions for its Windows bar.
+//! from it through winit. Chatter also uses these actions for its Windows bar.
 //!
 //! A desktop that gives its windows title bars, as KDE and GNOME do, draws
-//! one on Static's too unless Static draws its own. A tiling compositor such
-//! as Hyprland or sway draws none, and there Static's would be in the way.
+//! one on Chatter's too unless Chatter draws its own. A tiling compositor such
+//! as Hyprland or sway draws none, and there Chatter's would be in the way.
 //! The desktop doesn't say which it does: KWin and Hyprland both answer
 //! xdg-decoration with server-side. So `XDG_CURRENT_DESKTOP` decides, until
 //! the person chooses in Appearance.
@@ -18,7 +18,7 @@
 use slint::winit_030::winit::window::{ResizeDirection, WindowAttributes};
 
 thread_local! {
-    /// Windows are made without the desktop's frame, for Static's title bar.
+    /// Windows are made without the desktop's frame, for Chatter's title bar.
     static OWN: Cell<bool> = const { Cell::new(false) };
 }
 
@@ -54,17 +54,17 @@ const DIRECTIONS: [ResizeDirection; 8] = [
     ResizeDirection::West,
 ];
 
-/// Static also offers the existing window actions on Windows. Upstream
+/// Chatter also offers the existing window actions on Windows. Upstream
 /// presentation and other platforms keep their inherited frame policy.
 fn offered() -> bool {
-    cfg!(target_os = "linux") || (cfg!(windows) && static_window::enabled())
+    cfg!(target_os = "linux") || (cfg!(windows) && chatter_window::enabled())
 }
 
 /// Whether the desktop draws the title bar unless the person chose: on a
 /// desktop not known to give windows one, it's the desktop's, which may be
 /// none at all.
 pub(super) fn system_by_default() -> bool {
-    if cfg!(windows) && static_window::enabled() && !cfg!(test) {
+    if cfg!(windows) && chatter_window::enabled() && !cfg!(test) {
         false
     } else {
         cfg!(test) || !std::env::var("XDG_CURRENT_DESKTOP").is_ok_and(|desktops| framed(&desktops))
@@ -81,23 +81,23 @@ fn framed(desktops: &str) -> bool {
     })
 }
 
-/// Makes the windows from now on with Static's title bar or the desktop's,
-/// as the layout has it, and returns whether Static's.
+/// Makes the windows from now on with Chatter's title bar or the desktop's,
+/// as the layout has it, and returns whether Chatter's.
 pub(super) fn choose(system: Option<bool>) -> bool {
     let own = offered() && !system.unwrap_or_else(system_by_default);
     OWN.set(own);
     own
 }
 
-/// Each window as Slint makes it: with the desktop's frame unless Static
+/// Each window as Slint makes it: with the desktop's frame unless Chatter
 /// draws its own title bar.
 pub(super) fn attributes(attributes: WindowAttributes) -> WindowAttributes {
     attributes.with_decorations(!OWN.get())
 }
 
-/// Shows the title bar as the layout has it: the desktop's, or Static's. A
+/// Shows the title bar as the layout has it: the desktop's, or Chatter's. A
 /// window made since the choice changed shows it from before it's shown.
-pub(super) fn show(window: &StaticWindow, system: Option<bool>) {
+pub(super) fn show(window: &ChatterWindow, system: Option<bool>) {
     let own = choose(system);
     window.set_title_bar_choice(offered());
     window.set_system_title_bar(!own);
@@ -105,7 +105,7 @@ pub(super) fn show(window: &StaticWindow, system: Option<bool>) {
 }
 
 /// What the title bar and the window's edges do, and the setting.
-pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
+pub(super) fn bind(window: &ChatterWindow, adapter: &Rc<RefCell<Adapter>>) {
     let weak = window.as_weak();
     window.on_move_window(move || {
         winit(&weak, |winit| {
@@ -172,7 +172,7 @@ pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
 
 /// Acts on the window's winit window, once it has one.
 fn winit(
-    weak: &slint::Weak<StaticWindow>,
+    weak: &slint::Weak<ChatterWindow>,
     act: impl FnOnce(&slint::winit_030::winit::window::Window),
 ) {
     if let Some(window) = weak.upgrade() {

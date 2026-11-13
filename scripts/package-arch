@@ -15,16 +15,16 @@ if (($#)); then
 else
   # The AppImage of Cargo.toml's version, which scripts/set-version sets.
   current=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1)
-  appimage=target/dist/linux/Static-$current-x86_64.AppImage
+  appimage=target/dist/linux/Chatter-$current-x86_64.AppImage
 fi
 if [[ ! -f $appimage ]]; then
   echo "scripts/package-arch: no $appimage; run scripts/build-appimage first" >&2
   exit 2
 fi
 name=$(basename "$appimage")
-version=${name#Static-}
+version=${name#Chatter-}
 version=${version%-x86_64.AppImage}
-if [[ $name != "Static-$version-x86_64.AppImage" ]]; then
+if [[ $name != "Chatter-$version-x86_64.AppImage" ]]; then
   echo "scripts/package-arch: $name isn't named as the release's AppImage" >&2
   exit 2
 fi

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sets Static's version in Cargo.toml and Cargo.lock, as the nightly release
+# Sets Chatter's version in Cargo.toml and Cargo.lock, as the nightly release
 # does before building: `scripts/set-version 0.2.0-nightly.20261020.5`.
 # The app, the packages' names and SOURCE.txt's release link all take it. A
 # stable version also goes into the Arch PKGBUILD, which builds its tag, and

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Measure Static's CPU, memory and frame rate while scrolling a long history.
+"""Measure Chatter's CPU, memory and frame rate while scrolling a long history.
 
-The fixture posts the sample conversation plus --messages more as Bob. Static opens
+The fixture posts the sample conversation plus --messages more as Bob. Chatter opens
 the text channel as Alice, settles, and is sampled idle. Then the private seat
 sends 60 touchpad scroll events a second, alternating up and down every two seconds, while
 the process is sampled again. Every renderer named runs in turn on the same
@@ -11,7 +11,7 @@ Pass the display scale given to scripts/run-framework-isolated with --scale; the
 window size is in physical pixels. Frame rates need the compositor's commit log:
 set YAPFAST_FRAMEWORK_SURFACE_LOG for run-framework-isolated, then, once it has
 exited and flushed the log, run this script again with --frames RESULTS LOG.
-They count new buffers Static submitted, not frames presented.
+They count new buffers Chatter submitted, not frames presented.
 
 Run inside scripts/run-framework-isolated --no-services, with the local stack
 running (scripts/test-stack up).
@@ -39,7 +39,7 @@ def frames(results_path, log_path):
     results = json.loads(Path(results_path).read_text())
     for sample in results['samples']:
         start, end = sample['window_ns']
-        count = sum(1 for commit in commits if commit['pid'] == sample['static_pid'] and commit['new_buffer']
+        count = sum(1 for commit in commits if commit['pid'] == sample['chatter_pid'] and commit['new_buffer']
                     and start <= commit['monotonic_ns'] < end)
         sample['new_buffers_per_second'] = round(count / ((end - start) / 1e9), 1)
         print(json.dumps({key: sample[key] for key in ('renderer', 'profile', 'new_buffers_per_second')}))
@@ -53,9 +53,9 @@ if len(sys.argv) == 4 and sys.argv[1] == '--frames':
 INPUT = runpy.run_path(str(ROOT / 'scripts/framework-input'))
 INPUT['require_private_display']()
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-parser.add_argument('--exe', type=Path, default=ROOT / 'target/measure/static')
+parser.add_argument('--exe', type=Path, default=ROOT / 'target/measure/chatter')
 parser.add_argument('--renderer', action='append', choices=['gpu', 'software'])
-parser.add_argument('--fixture-executable', type=Path, required=True, help='static-core test binary')
+parser.add_argument('--fixture-executable', type=Path, required=True, help='chatter-core test binary')
 parser.add_argument('--messages', type=int, default=300, help='history posted before measuring')
 parser.add_argument('--size', default='1120x760', help='window size in physical pixels')
 parser.add_argument('--scale', type=int, default=1, help='the display scale given to run-framework-isolated')
@@ -76,7 +76,7 @@ def sample(pid, renderer, profile, during=None):
     if during:
         during(lambda: process.poll() is None)
     result = json.loads(process.communicate()[0])
-    result.update(renderer=renderer, profile=profile, static_pid=pid, window_ns=[start, time.monotonic_ns()],
+    result.update(renderer=renderer, profile=profile, chatter_pid=pid, window_ns=[start, time.monotonic_ns()],
                   size=[width, height], scale=args.scale)
     print(json.dumps({key: result[key] for key in ('renderer', 'profile', 'pss_mib_mean', 'rss_mib_mean',
                                                     'cpu_percent_one_core')}), flush=True)
@@ -94,13 +94,13 @@ if seeded.returncode != 0:
 try:
     for renderer in renderers:
         log = (args.output / f'{renderer}.log').open('wb')
-        static = subprocess.Popen([str(args.exe.resolve()), '--renderer', renderer, '--data-dir', str(fixture / 'alice')],
+        chatter = subprocess.Popen([str(args.exe.resolve()), '--renderer', renderer, '--data-dir', str(fixture / 'alice')],
                                 env=dict(os.environ, YAPFAST_UI_TEST_SIZE=f'{width}x{height}'),
                                 stdout=log, stderr=log, start_new_session=True)
         try:
             time.sleep(12)
-            if static.poll() is not None:
-                raise RuntimeError(f'Static exited during startup; see {renderer}.log')
+            if chatter.poll() is not None:
+                raise RuntimeError(f'Chatter exited during startup; see {renderer}.log')
             # Screenshots are in physical pixels; pointer positions are in logical ones.
             origin_x, origin_y = locate_rail(voice_harness.capture(args.output, f'{renderer}-startup'),
                                              minimum_height=height * 3 // 4)
@@ -114,12 +114,12 @@ try:
             click(141, 148)  # general
             time.sleep(args.warmup)
             voice_harness.capture(args.output, f'{renderer}-idle')
-            results.append(sample(static.pid, renderer, 'settled idle, long history open'))
+            results.append(sample(chatter.pid, renderer, 'settled idle, long history open'))
 
             def scroll(running):
                 INPUT['send'](f'move {origin_x + width / args.scale * .6} {origin_y + height / args.scale * .5}')
                 # framework-input waits 30 ms after each event, so send directly at 60 Hz.
-                seat = str(INPUT['require_private_display']() / 'static-input.sock')
+                seat = str(INPUT['require_private_display']() / 'chatter-input.sock')
                 started = time.monotonic()
                 with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as client:
                     while running():
@@ -128,16 +128,16 @@ try:
                         client.sendto(f'scroll {25 * direction}'.encode(), seat)
                         time.sleep(max(0, (int(elapsed * 60) + 1) / 60 - elapsed))
 
-            results.append(sample(static.pid, renderer, 'scrolling, 60 touchpad events/s', scroll))
+            results.append(sample(chatter.pid, renderer, 'scrolling, 60 touchpad events/s', scroll))
             for _ in range(20):  # Leave the view scrolled up, so the capture shows that scrolling worked.
                 INPUT['scroll'](-25)
             voice_harness.capture(args.output, f'{renderer}-scrolled')
             click(width / args.scale - 19, -20)  # Close on the private window's title bar.
-            static.wait(timeout=20)
+            chatter.wait(timeout=20)
         finally:
-            if static.poll() is None:
-                os.killpg(static.pid, signal.SIGTERM)
-                static.wait(timeout=20)
+            if chatter.poll() is None:
+                os.killpg(chatter.pid, signal.SIGTERM)
+                chatter.wait(timeout=20)
             log.close()
 finally:
     (args.output / 'results.json').write_text(json.dumps({

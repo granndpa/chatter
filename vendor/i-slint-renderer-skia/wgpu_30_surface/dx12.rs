@@ -81,7 +81,7 @@ pub unsafe fn make_dx12_surface(
     }
 }
 
-/// Static: records the transition back to `D3D12_RESOURCE_STATE_PRESENT` and flushes it.
+/// Chatter: records the transition back to `D3D12_RESOURCE_STATE_PRESENT` and flushes it.
 ///
 /// wgpu's tracker still believes the swapchain buffer is in `PRESENT`, because that is where wgpu
 /// itself left it before Skia took over, so it emits no barrier of its own. `Present` requires

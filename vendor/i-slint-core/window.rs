@@ -943,29 +943,29 @@ impl WindowInner {
         // handle multiple press release
         event = self.click_state.check_repeat(event, self.context());
 
-        // Static: a left press ends a selection; one in text starts another.
+        // Chatter: a left press ends a selection; one in text starts another.
         if matches!(
             event,
             MouseEvent::Pressed { button: crate::items::PointerEventButton::Left, .. }
         ) {
-            crate::static_selection::pressed();
+            crate::chatter_selection::pressed();
         }
 
-        // Static: an autoscroll takes the pointer's events until it ends; see
-        // `crate::static_autoscroll`.
-        match crate::static_autoscroll::handle(&event) {
-            crate::static_autoscroll::Handling::Dispatch => {}
-            crate::static_autoscroll::Handling::Take(cursor) => {
+        // Chatter: an autoscroll takes the pointer's events until it ends; see
+        // `crate::chatter_autoscroll`.
+        match crate::chatter_autoscroll::handle(&event) {
+            crate::chatter_autoscroll::Handling::Dispatch => {}
+            crate::chatter_autoscroll::Handling::Take(cursor) => {
                 self.show_cursor(cursor);
                 return Some(MouseDispatchResult { drag_action: None, accepted: true });
             }
-            crate::static_autoscroll::Handling::Ended => {
+            crate::chatter_autoscroll::Handling::Ended => {
                 self.show_cursor(BuiltInMouseCursor::Default)
             }
         }
         let middle_press = match event {
             MouseEvent::Pressed { position, button: PointerEventButton::Middle, .. } => {
-                crate::static_autoscroll::pressing();
+                crate::chatter_autoscroll::pressing();
                 Some(position)
             }
             _ => None,
@@ -1227,10 +1227,10 @@ impl WindowInner {
             matches!(event, MouseEvent::Drop { .. }).then(|| event.position()).flatten();
         let accepted = dispatch_accepted | grab_accepted;
 
-        // Static: a middle press that a flickable can autoscroll for starts it there, and the
+        // Chatter: a middle press that a flickable can autoscroll for starts it there, and the
         // items it reached let go of it.
         if let Some(position) = middle_press
-            && let Some(cursor) = crate::static_autoscroll::start(&window_adapter, position)
+            && let Some(cursor) = crate::chatter_autoscroll::start(&window_adapter, position)
         {
             let mut released = MouseInputState::default();
             crate::input::send_exit_events(
@@ -1460,25 +1460,25 @@ impl WindowInner {
         internal_key_event.key_event.modifiers =
             self.context().modifiers().get().modifiers_for(&internal_key_event);
 
-        // Static: copies or clears a selection of text; see `crate::static_selection`. Escape still
+        // Chatter: copies or clears a selection of text; see `crate::chatter_selection`. Escape still
         // goes on to the focused item.
         if internal_key_event.event_type == KeyEventType::KeyPressed {
             if matches!(internal_key_event.shortcut(), Some(crate::input::StandardShortcut::Copy))
-                && crate::static_selection::copy(self)
+                && crate::chatter_selection::copy(self)
             {
                 return crate::input::KeyEventResult::EventAccepted;
             }
             let escape = char::from(crate::input::key_codes::Key::Escape);
             let escaped = internal_key_event.key_event.text.chars().eq([escape]);
-            // Static: a key ends an autoscroll, and Escape does nothing else.
-            if crate::static_autoscroll::stop() {
+            // Chatter: a key ends an autoscroll, and Escape does nothing else.
+            if crate::chatter_autoscroll::stop() {
                 self.show_cursor(BuiltInMouseCursor::Default);
                 if escaped {
                     return crate::input::KeyEventResult::EventAccepted;
                 }
             }
             if escaped {
-                crate::static_selection::clear();
+                crate::chatter_selection::clear();
             }
         }
 
@@ -1542,8 +1542,8 @@ impl WindowInner {
             || internal_key_event.key_event.modifiers.meta
             || internal_key_event.key_event.modifiers.alt;
 
-        // Static: a key nothing took, with no popup open, may go to the app; see
-        // `crate::static_typing`.
+        // Chatter: a key nothing took, with no popup open, may go to the app; see
+        // `crate::chatter_typing`.
         if internal_key_event.event_type == KeyEventType::KeyPressed
             && !extra_mod
             && !(internal_key_event.key_event.modifiers.shift
@@ -1551,16 +1551,16 @@ impl WindowInner {
             && self.active_popups.borrow().is_empty()
         {
             let nothing_focused = self.focus_item.borrow().upgrade().is_none();
-            match crate::static_typing::offer(&internal_key_event.key_event.text, nothing_focused) {
-                crate::static_typing::Offer::Declined => {}
-                crate::static_typing::Offer::Taken => {
+            match crate::chatter_typing::offer(&internal_key_event.key_event.text, nothing_focused) {
+                crate::chatter_typing::Offer::Declined => {}
+                crate::chatter_typing::Offer::Taken => {
                     self.ensure_tree_instantiated();
                     return crate::input::KeyEventResult::EventAccepted;
                 }
-                crate::static_typing::Offer::Deliver => {
+                crate::chatter_typing::Offer::Deliver => {
                     // A composer beside the channel takes the focus in a change handler.
                     crate::properties::ChangeTracker::run_change_handlers();
-                    return crate::static_typing::delivering(|| {
+                    return crate::chatter_typing::delivering(|| {
                         self.process_key_input(internal_key_event)
                     });
                 }
@@ -1908,14 +1908,14 @@ impl WindowInner {
         // should not assume that the modifiers are in the same state.
         if !have_focus {
             self.context().modifiers().take();
-            // Static: an autoscroll ends with the window's focus.
-            if crate::static_autoscroll::stop() {
+            // Chatter: an autoscroll ends with the window's focus.
+            if crate::chatter_autoscroll::stop() {
                 self.show_cursor(BuiltInMouseCursor::Default);
             }
         }
     }
 
-    /// Static: shows the pointer as `cursor` until the items under it show it otherwise.
+    /// Chatter: shows the pointer as `cursor` until the items under it show it otherwise.
     fn show_cursor(&self, cursor: BuiltInMouseCursor) {
         let mut state = self.mouse_input_state.take();
         let cursor = MouseCursorInner::BuiltIn(cursor);

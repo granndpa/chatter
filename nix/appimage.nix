@@ -8,7 +8,7 @@
 # libraries every desktop has, and loads the GPU, display, audio and screen
 # capture ones at runtime. The glibc it was built against sets the oldest
 # distribution it runs on.
-{ pkgs, static }:
+{ pkgs, chatter }:
 let
   id = "io.github.yapfast.Yapfast";
   native = import ./native.nix { inherit pkgs; };
@@ -30,7 +30,7 @@ let
     sha256 = "0396xi3km1yd0z4329lbjxmv82ddc40gd0x8hca0ylcj7i28pjig";
   };
   # Where AppImageUpdate and the AppImage managers look for a newer release.
-  updateInformation = "gh-releases-zsync|static|static|latest|Static-*-x86_64.AppImage.zsync";
+  updateInformation = "gh-releases-zsync|chatter|chatter|latest|Chatter-*-x86_64.AppImage.zsync";
   # What scripts/package-linux.py adds to the release's BUILD.json.
   build = builtins.toJSON {
     glibc_floor = glibcFloor;
@@ -43,9 +43,9 @@ let
     update_information = updateInformation;
   };
 in
-pkgs.runCommand "static-appdir-${static.version}" {
+pkgs.runCommand "chatter-appdir-${chatter.version}" {
   nativeBuildInputs = with pkgs; [ patchelf binutils librsvg ];
-  inherit (static) version;
+  inherit (chatter) version;
   inherit updateInformation build;
 } ''
   appdir="$out/AppDir"
@@ -53,32 +53,32 @@ pkgs.runCommand "static-appdir-${static.version}" {
   printf '%s\n' "$build" > "$out/build.json"
   mkdir -p "$appdir/usr/bin"
   # wrapProgram's wrapper sets Nix's library path; the binary itself is beside it.
-  cp ${static}/bin/.static-wrapped "$appdir/usr/bin/static"
-  chmod u+w "$appdir/usr/bin/static"
-  patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 --remove-rpath "$appdir/usr/bin/static"
+  cp ${chatter}/bin/.static-wrapped "$appdir/usr/bin/chatter"
+  chmod u+w "$appdir/usr/bin/chatter"
+  patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 --remove-rpath "$appdir/usr/bin/chatter"
 
-  needed=$(readelf -d "$appdir/usr/bin/static" | sed -n 's/.*(NEEDED).*\[\(.*\)\]/\1/p')
+  needed=$(readelf -d "$appdir/usr/bin/chatter" | sed -n 's/.*(NEEDED).*\[\(.*\)\]/\1/p')
   for library in $needed; do
     case " ${toString hostLibraries} " in
       *" $library "*) ;;
-      *) echo "static links $library, which not every distribution has; bundle it or load it at runtime" >&2; exit 1 ;;
+      *) echo "chatter links $library, which not every distribution has; bundle it or load it at runtime" >&2; exit 1 ;;
     esac
   done
   newest() {
-    readelf -V "$appdir/usr/bin/static" | grep -o "Name: $1_[0-9.]*" | sed "s/Name: $1_//" | sort -uV | tail -1
+    readelf -V "$appdir/usr/bin/chatter" | grep -o "Name: $1_[0-9.]*" | sed "s/Name: $1_//" | sort -uV | tail -1
   }
   for pair in GLIBC:${glibcFloor} GLIBCXX:${libstdcxxFloor}; do
     name=''${pair%%:*} floor=''${pair#*:} asked=$(newest "''${pair%%:*}")
     if [ "$(printf '%s\n' "$asked" "$floor" | sort -V | tail -1)" != "$floor" ]; then
-      echo "static asks for $name $asked, newer than the $floor the AppImage promises" >&2
+      echo "chatter asks for $name $asked, newer than the $floor the AppImage promises" >&2
       exit 1
     fi
   done
 
-  share=${static}/share
+  share=${chatter}/share
   cp -r "$share" "$appdir/usr/share"
   chmod -R u+w "$appdir/usr/share"
-  ln -s usr/bin/static "$appdir/AppRun"
+  ln -s usr/bin/chatter "$appdir/AppRun"
   ln -s usr/share/applications/${id}.desktop "$appdir/${id}.desktop"
   ln -s usr/share/icons/hicolor/scalable/apps/${id}.svg "$appdir/${id}.svg"
   # File managers show .DirIcon as the AppImage's thumbnail, and want a PNG.

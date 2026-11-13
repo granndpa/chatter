@@ -42,7 +42,7 @@ repository = "https://github.com/slint-ui/slint"
 rustdoc-args = ["--generate-link-to-definition"]
 
 [features]
-# Static: without wgpu, which Static never selects: it asks for Skia OpenGL or
+# Chatter: without wgpu, which Chatter never selects: it asks for Skia OpenGL or
 # Skia Software by name. On Linux its Vulkan surface would need Skia's Vulkan,
 # which the prebuilt Skia with its own FreeType lacks.
 default = [
@@ -194,10 +194,10 @@ default-features = false
 
 [target.'cfg(not(any(target_vendor = "apple", target_family = "windows")))'.dependencies.skia-safe]
 version = "0.157.0"
-# Static: Skia's own FreeType, which draws COLRv1 colour fonts, such as the only
+# Chatter: Skia's own FreeType, which draws COLRv1 colour fonts, such as the only
 # Noto Color Emoji Fedora installs; the prebuilt Skia built for the system's
 # FreeType draws none of their glyphs. Rust-skia prebuilds that Skia only with
-# textlayout and without Vulkan, which Static draws without.
+# textlayout and without Vulkan, which Chatter draws without.
 features = [
     "gl",
     "embed-freetype",

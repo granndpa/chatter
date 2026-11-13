@@ -143,11 +143,11 @@ struct RepeaterInner {
     /// ListView-specific layout state (offset, cached heights, scroll position).
     layout_state: RepeaterLayoutState,
     scroll_to_row: Option<scroll::ScrollToRowRequest>,
-    /// Static: see `StaticHold`.
+    /// Chatter: see `StaticHold`.
     static_hold: StaticHold,
 }
 
-/// Static: what `static_anchor::hold` asks of a ListView's layout, and what the layout at the
+/// Chatter: what `chatter_anchor::hold` asks of a ListView's layout, and what the layout at the
 /// end of the list needs from the one before.
 #[derive(Clone, Copy, Default, Debug)]
 struct StaticHold {
@@ -200,7 +200,7 @@ trait RepeaterInstanceOps {
     /// Height of the instance, or `None` if not yet created.
     fn height(&self, instance_idx: usize) -> Option<Coord>;
 
-    /// Static: the height of the instance once the parts its data shows or hides are made, which
+    /// Chatter: the height of the instance once the parts its data shows or hides are made, which
     /// otherwise happens when it's next visited, such as to draw it.
     fn static_settled_height(&self, instance_idx: usize) -> Option<Coord> {
         self.height(instance_idx)
@@ -258,7 +258,7 @@ pub trait ListViewProperties {
     /// Register the content properties as dependencies of the current
     /// binding evaluation without reading them.
     fn register_as_dependencies(&self);
-    /// Static: set `content-y`, ending an animation of it.
+    /// Chatter: set `content-y`, ending an animation of it.
     fn static_content_y_reset(&self, value: LogicalLength) {
         self.content_y_set(value);
     }
@@ -362,7 +362,7 @@ fn update_visible_instances(
         content_y_value = content_y_value.min(0 as Coord);
     }
 
-    // Static: `content-y` moved to the end of the list or past it, as when a chat's timeline
+    // Chatter: `content-y` moved to the end of the list or past it, as when a chat's timeline
     // follows its newest row, or a scroll reaches the end. The rows are laid out up from the
     // last, which ends at the bottom of the view. Laid out down from the row the average height
     // puts at that `content-y`, they end short of the end or past it: `content-height` changes
@@ -429,7 +429,7 @@ fn update_visible_instances(
     let one_and_a_half_screen = listview_height * 3 as Coord / 2 as Coord;
     #[allow(unused_mut)]
     let mut first_item_y = state.anchor_y;
-    // Static: rows went in above, inside `static_anchor::hold`. When they went in right above the
+    // Chatter: rows went in above, inside `chatter_anchor::hold`. When they went in right above the
     // first instance, it keeps its bottom edge where it was, as its top part can change with the
     // rows now before it, and goes on doing so as its height settles.
     let added = hold.added.take();
@@ -641,7 +641,7 @@ fn update_visible_instances(
         // content_width and content_height, but the content_y is not yet consistent.
         // So the physics animations limit value may be inconsistent.
         if added.is_some() {
-            // Static: rows went in above inside `static_anchor::hold`. An animation, such as a
+            // Chatter: rows went in above inside `chatter_anchor::hold`. An animation, such as a
             // wheel's, would scroll on to where it was going regardless, moving the rows shown.
             props.static_content_y_reset(LogicalLength::new(new_content_y));
         } else if new_content_y != props.content_y_get_internal().get() {
@@ -675,7 +675,7 @@ fn update_visible_instances(
     changed
 }
 
-/// Static: lays the rows out up from the last, whose bottom edge is the bottom of the view, for
+/// Chatter: lays the rows out up from the last, whose bottom edge is the bottom of the view, for
 /// `content-y` at the end of the list; see `update_visible_instances`. Returns whether any instance
 /// was created.
 fn static_layout_end(
@@ -850,15 +850,15 @@ impl RepeaterInner {
     /// Implements [`ModelChangeListener::row_added`].
     /// Returns whether the instances changed.
     fn row_added(&mut self, mut index: usize, mut count: usize) -> bool {
-        // Static: the anchored row moves down with the rows that go in before it.
+        // Chatter: the anchored row moves down with the rows that go in before it.
         if let Some(anchor) = &mut self.static_hold.anchor
             && index <= anchor.row
         {
             anchor.row += count;
         }
-        // Static: inside `static_anchor::hold`, rows right above the first instance count as
+        // Chatter: inside `chatter_anchor::hold`, rows right above the first instance count as
         // before it too, and it remembers its height; see `update_visible_instances`.
-        let holding = crate::static_anchor::holding();
+        let holding = crate::chatter_anchor::holding();
         let held = holding
             && index == self.layout_state.offset
             && self.instances.first().is_some_and(|instance| instance.1.is_some());
@@ -898,7 +898,7 @@ impl RepeaterInner {
     /// Implements [`ModelChangeListener::row_removed`].
     /// Returns whether the instances changed.
     fn row_removed(&mut self, mut index: usize, mut count: usize) -> bool {
-        // Static: the anchored row moves up with the rows removed before it, and the anchor ends
+        // Chatter: the anchored row moves up with the rows removed before it, and the anchor ends
         // with the row.
         self.static_hold.anchor = self.static_hold.anchor.and_then(|mut anchor| {
             if index + count <= anchor.row {
@@ -999,7 +999,7 @@ impl<T: RepeatedItemTree> ModelChangeListener for RepeaterTracker<T> {
         self.instances_changed();
         let mut inner = self.inner.borrow_mut();
         inner.instances.clear();
-        // Static: the rows the anchor counted are gone.
+        // Chatter: the rows the anchor counted are gone.
         inner.static_hold = StaticHold::default();
     }
 }

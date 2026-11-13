@@ -23,7 +23,7 @@ export component DiscordBadge inherits Rectangle {
 // Linking Discord by QR code: the risk to the account first, then the code to
 // scan with the phone app, then who scanned it while they confirm. A token
 // pasted instead links without the phone. The phase is 0 before linking, 1
-// while Static gets a code, 2 showing it, 3 once it's scanned, 4 when linking
+// while Chatter gets a code, 2 showing it, 3 once it's scanned, 4 when linking
 // failed, 5 while Discord's captcha waits in the browser, and 6 while Discord
 // checks a token.
 export component DiscordLinkPanel inherits VerticalLayout {

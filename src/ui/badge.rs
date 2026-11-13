@@ -4,7 +4,7 @@
 use super::*;
 
 /// Shows `count` mentions and DMs waiting on the taskbar button, or none.
-pub(super) fn show(window: &StaticWindow, count: u64) {
+pub(super) fn show(window: &ChatterWindow, count: u64) {
     #[cfg(windows)]
     {
         use slint::winit_030::WinitWindowAccessor as _;

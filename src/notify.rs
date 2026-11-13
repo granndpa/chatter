@@ -1,8 +1,8 @@
 //! Desktop notifications. On Linux they go to the freedesktop notification service,
 //! which GNOME, KDE and the other desktops run; clicking one opens its conversation.
-//! Elsewhere Static doesn't show them yet.
+//! Elsewhere Chatter doesn't show them yet.
 
-use static_core::chat::Alert;
+use chatter_core::chat::Alert;
 
 /// How a notification shows.
 #[derive(Clone, Copy)]
@@ -27,7 +27,7 @@ impl Notifier {
         {
             let (requests, alerts) = std::sync::mpsc::channel();
             let started = std::thread::Builder::new()
-                .name("static-notify".into())
+                .name("chatter-notify".into())
                 .spawn(move || linux::run(alerts, opened));
             if let Err(error) = started {
                 tracing::warn!(%error, "could not start desktop notifications");
@@ -67,7 +67,7 @@ mod linux {
         sync::{Arc, Mutex, mpsc::Receiver},
     };
 
-    use static_core::chat::Alert;
+    use chatter_core::chat::Alert;
     use zbus::{
         blocking::{Connection, MessageIterator},
         zvariant::{StructureBuilder, Value},
@@ -100,7 +100,7 @@ mod linux {
         let clicks = connection.clone();
         let rooms = shown.clone();
         let listening = std::thread::Builder::new()
-            .name("static-notify-clicks".into())
+            .name("chatter-notify-clicks".into())
             .spawn(move || listen(&clicks, &rooms, opened));
         if let Err(error) = listening {
             tracing::warn!(%error, "notifications can't open their conversations");
@@ -112,9 +112,9 @@ mod linux {
             }
             let mut hints = HashMap::<&str, Value>::new();
             hints.insert("category", Value::from("im.received"));
-            // Static plays its own sounds, and rings for a call itself.
+            // Chatter plays its own sounds, and rings for a call itself.
             hints.insert("suppress-sound", Value::from(true));
-            // The server finds Static's name and icon through its desktop entry.
+            // The server finds Chatter's name and icon through its desktop entry.
             hints.insert("desktop-entry", Value::from(crate::icon::APP_ID));
             if let Some(picture) = &alert.picture
                 && let Some(image) = image_data(picture)
@@ -191,7 +191,7 @@ mod linux {
     }
 
     /// The author's picture, as the specification's `(iiibiiay)` image.
-    fn image_data(picture: &static_core::chat::Picture) -> Option<Value<'static>> {
+    fn image_data(picture: &chatter_core::chat::Picture) -> Option<Value<'static>> {
         let width = i32::try_from(picture.width).ok()?;
         let height = i32::try_from(picture.height).ok()?;
         let structure = StructureBuilder::new()

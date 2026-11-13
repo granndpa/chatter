@@ -16,20 +16,20 @@ TICKS = os.sysconf('SC_CLK_TCK')
 
 
 # The other people, the fixture and the tests run from the `fast` profile, which
-# everyday builds keep current. The Static a script measures comes separately,
+# everyday builds keep current. The Chatter a script measures comes separately,
 # from the `measure` profile, which optimizes the Slint interface too.
 
 
 def test_binary():
-    """The static-core test executable, which runs the other people."""
-    output = subprocess.run(['cargo', 'test', '--locked', '--profile', 'fast', '-p', 'static-core', '--features', 'matrix',
+    """The chatter-core test executable, which runs the other people."""
+    output = subprocess.run(['cargo', 'test', '--locked', '--profile', 'fast', '-p', 'chatter-core', '--features', 'matrix',
                              '--no-run', '--message-format=json'], check=True, capture_output=True, text=True, cwd=ROOT).stdout
     for line in output.splitlines():
         message = json.loads(line)
         if message.get('reason') == 'compiler-artifact' and message.get('executable') \
-                and message['target']['name'] == 'static_core' and 'lib' in message['target']['kind']:
+                and message['target']['name'] == 'chatter_core' and 'lib' in message['target']['kind']:
             return message['executable']
-    raise SystemExit('could not find the static-core test executable')
+    raise SystemExit('could not find the chatter-core test executable')
 
 
 def provision(env=None):
@@ -44,7 +44,7 @@ def provision(env=None):
 
 def capture(folder, name):
     time.sleep(.3)
-    with tempfile.TemporaryDirectory(prefix='static-voice-shot-') as temporary:
+    with tempfile.TemporaryDirectory(prefix='chatter-voice-shot-') as temporary:
         subprocess.run(['weston-screenshooter'], env=dict(os.environ, XDG_PICTURES_DIR=temporary),
                        check=True, timeout=10, capture_output=True)
         picture = next(Path(temporary).glob('*.png'))
@@ -55,7 +55,7 @@ def capture(folder, name):
 
 
 def locate_rail(picture, minimum_height=HEIGHT // 2):
-    """Top-left corner of Static's window content in screenshot pixels, found by the rail's exact colour."""
+    """Top-left corner of Chatter's window content in screenshot pixels, found by the rail's exact colour."""
     # The rail's exact graphite (Theme.rail, #111215) forms the window's long left edge.
     output_width, output_height = (int(value) for value in subprocess.check_output(
         ['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height',
@@ -67,7 +67,7 @@ def locate_rail(picture, minimum_height=HEIGHT // 2):
                    for y in range(output_height)) for x in range(output_width)]
     best = max(columns)
     if best < minimum_height:
-        raise RuntimeError(f'Static rail was not found; inspect {picture}')
+        raise RuntimeError(f'Chatter rail was not found; inspect {picture}')
     x = next(x for x, count in enumerate(columns) if count >= best - 2)
     ys = [y for y in range(output_height)
           if pixels[(y * output_width + x) * 3:(y * output_width + x) * 3 + 3] == target]

@@ -1,0 +1,24 @@
+// Chatter's icon, which Explorer shows for the exe and its shortcuts, and the
+// window loads by its number (src/icon.rs). scripts/make-windows-icon draws it.
+1 ICON "chatter.ico"
+1 VERSIONINFO
+FILEVERSION 0,7,0,0
+PRODUCTVERSION 0,7,0,0
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "Chatter\0"
+            VALUE "FileDescription", "Chatter\0"
+            VALUE "FileVersion", "0.7.0\0"
+            VALUE "OriginalFilename", "chatter.exe\0"
+            VALUE "ProductName", "Chatter\0"
+            VALUE "ProductVersion", "0.7.0\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END

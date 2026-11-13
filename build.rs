@@ -1,4 +1,4 @@
-//! Gives the Windows executable its icon: compiles packaging/windows/static.rc
+//! Gives the Windows executable its icon: compiles packaging/windows/chatter.rc
 //! with the available resource compiler and links the result. Makes Twemoji's
 //! pictures a font for the program to carry. On Linux, lets a plain `cargo build` link
 //! rust-skia's own Skia archive beside libwebrtc.
@@ -83,7 +83,7 @@ fn pack_twemoji() {
         .collect();
     let font = emoji_font_tables::build_strike(
         &emoji_font_tables::TWEMOJI,
-        "Static Twemoji",
+        "Chatter Twemoji",
         &glyphs,
         &also,
     );
@@ -178,13 +178,13 @@ fn own_code_point(name: &str) -> Option<u32> {
 }
 
 fn windows_icon() {
-    let resources = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("static.res");
+    let resources = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("chatter.res");
     // The script names only the icon beside it, so it needs no preprocessor.
     let status = match Command::new("llvm-rc")
         .current_dir("packaging/windows")
         .args(["-no-preprocess", "-FO"])
         .arg(&resources)
-        .arg("static.rc")
+        .arg("chatter.rc")
         .status()
     {
         Ok(status) => status,
@@ -196,7 +196,7 @@ fn windows_icon() {
                 .current_dir("packaging/windows")
                 .args(["/fo"])
                 .arg(&resources)
-                .arg("static.rc")
+                .arg("chatter.rc")
                 .status()
                 .unwrap_or_else(|error| panic!("could not run the Windows SDK's rc.exe: {error}"))
         }
@@ -204,7 +204,7 @@ fn windows_icon() {
     };
     assert!(
         status.success(),
-        "resource compiler could not compile static.rc"
+        "resource compiler could not compile chatter.rc"
     );
     // The MSVC linker takes compiled resources as an input.
     println!("cargo:rustc-link-arg-bins={}", resources.display());

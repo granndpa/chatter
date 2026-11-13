@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check renderer selection and GPU-to-Skia-Software recovery on the private compositor.
 
-Static starts with Skia Software unless the GPU setting or --renderer gpu asks
+Chatter starts with Skia Software unless the GPU setting or --renderer gpu asks
 for Skia GPU. A GPU start is
 made to fail by hiding every EGL vendor from libglvnd, which is how a missing or
 broken OpenGL driver appears to the window. Each scenario uses its own data
@@ -23,15 +23,15 @@ INPUT = runpy.run_path(str(ROOT / 'scripts/framework-input'))
 INPUT['require_private_display']()
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--output', type=Path, required=True)
-parser.add_argument('--exe', type=Path, default=ROOT / 'target/fast/static')
+parser.add_argument('--exe', type=Path, default=ROOT / 'target/fast/chatter')
 args = parser.parse_args()
 args.output.mkdir(parents=True, exist_ok=True)
-BROKEN_EGL = {'__EGL_VENDOR_LIBRARY_FILENAMES': '/nonexistent/static-no-egl-vendor.json'}
+BROKEN_EGL = {'__EGL_VENDOR_LIBRARY_FILENAMES': '/nonexistent/chatter-no-egl-vendor.json'}
 results = []
 
 
 def capture(name):
-    with tempfile.TemporaryDirectory(prefix='static-fallback-shot-') as folder:
+    with tempfile.TemporaryDirectory(prefix='chatter-fallback-shot-') as folder:
         subprocess.run(['weston-screenshooter'], env=dict(os.environ, XDG_PICTURES_DIR=folder),
                        check=True, timeout=10, capture_output=True)
         picture = next(Path(folder).glob('*.png'))
@@ -70,9 +70,9 @@ def opened(log):
             for line in plain.splitlines() if 'starting the Slint desktop window' in line]
 
 
-base = Path(tempfile.mkdtemp(prefix='static-fallback-data-', dir=args.output))
+base = Path(tempfile.mkdtemp(prefix='chatter-fallback-data-', dir=args.output))
 
-# 1. Without --renderer, Static starts Skia Software and never tries the GPU.
+# 1. Without --renderer, Chatter starts Skia Software and never tries the GPU.
 data = base / 'default'
 _, running, log, picture = launch('default', data)
 check('default start uses Skia Software', running and opened(log) == ['skia-software'],

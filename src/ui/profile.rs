@@ -6,7 +6,7 @@ use super::*;
 /// A bio with each custom emoji as its glyph where the emoji's picture has
 /// arrived already, and as a blank of an emoji's width where it has not, so
 /// the bio doesn't show `:name:` and then jump when the picture comes.
-fn bio_with_emoji(bio: &str, emoji: &[static_core::chat::CustomEmoji]) -> String {
+fn bio_with_emoji(bio: &str, emoji: &[chatter_core::chat::CustomEmoji]) -> String {
     let mut out = crate::custom_emoji::text(bio, emoji);
     for each in emoji {
         if crate::custom_emoji::glyph(&each.id).is_none() {
@@ -39,10 +39,10 @@ pub(super) fn friend_offer(relation: Relation) -> i32 {
 /// The custom status as the account panel shows it: its words on one line,
 /// after its emoji when that's Unicode, and the address of its custom emoji's
 /// picture.
-pub(super) fn status_line(status: &static_core::chat::CustomStatus) -> (String, Option<String>) {
+pub(super) fn status_line(status: &chatter_core::chat::CustomStatus) -> (String, Option<String>) {
     let text = one_line(&status.text);
     match (&status.emoji, &status.emoji_id) {
-        (_, Some(id)) => (text, static_core::discord::emoji_picture(id)),
+        (_, Some(id)) => (text, chatter_core::discord::emoji_picture(id)),
         (Some(emoji), None) if text.is_empty() => (emoji.clone(), None),
         (Some(emoji), None) => (format!("{emoji} {text}"), None),
         (None, None) => (text, None),
@@ -52,7 +52,7 @@ pub(super) fn status_line(status: &static_core::chat::CustomStatus) -> (String, 
 /// A custom status or what someone is doing, as a row shows it: its words on
 /// one line, and the address of its custom emoji's picture.
 pub(super) fn activity_line(activity: Option<&str>) -> (SharedString, SharedString) {
-    let (emoji, words) = activity.map_or((None, ""), static_core::discord::status_parts);
+    let (emoji, words) = activity.map_or((None, ""), chatter_core::discord::status_parts);
     (one_line(words).into(), emoji.unwrap_or_default().into())
 }
 
@@ -70,7 +70,7 @@ fn activity_now() -> i32 {
 }
 
 /// Someone's activities as their profile's cards show them.
-pub(super) fn activity_rows(activities: &static_core::chat::Activities) -> ModelRc<ActivityRow> {
+pub(super) fn activity_rows(activities: &chatter_core::chat::Activities) -> ModelRc<ActivityRow> {
     if activities.is_empty() {
         return ModelRc::default();
     }
@@ -82,7 +82,7 @@ pub(super) fn activity_rows(activities: &static_core::chat::Activities) -> Model
 }
 
 #[cfg(feature = "discord")]
-fn activity_row(activity: &static_core::chat::Activity) -> ActivityRow {
+fn activity_row(activity: &chatter_core::chat::Activity) -> ActivityRow {
     let seconds = |ms: Option<u64>| {
         ms.map_or(0, |ms| {
             i32::try_from((ms / 1000).saturating_sub(ACTIVITY_EPOCH)).unwrap_or(0)
@@ -94,7 +94,7 @@ fn activity_row(activity: &static_core::chat::Activity) -> ActivityRow {
         Some(emoji) => format!("{emoji} {}", activity.name),
         None => activity.name.to_string(),
     };
-    let (name_emoji, name) = static_core::discord::status_parts(&name);
+    let (name_emoji, name) = chatter_core::discord::status_parts(&name);
     let state = match (&activity.state, activity.party) {
         (Some(state), Some((size, most))) => format!("{state} ({size} of {most})"),
         (None, Some((size, most))) => format!("{size} of {most}"),
@@ -136,7 +136,7 @@ fn activity_row(activity: &static_core::chat::Activity) -> ActivityRow {
 }
 
 /// Whether a line under a name only says what one of the activities does.
-pub(super) fn names_an_activity(line: &str, activities: &static_core::chat::Activities) -> bool {
+pub(super) fn names_an_activity(line: &str, activities: &chatter_core::chat::Activities) -> bool {
     #[cfg(feature = "discord")]
     return activities
         .iter()
@@ -151,7 +151,7 @@ pub(super) fn names_an_activity(line: &str, activities: &static_core::chat::Acti
 impl Adapter {
     /// Keeps ActivityClock current, once a second, while a profile on
     /// screen times an activity, and leaves it be otherwise.
-    pub(super) fn tick_activities(&mut self, window: &StaticWindow) {
+    pub(super) fn tick_activities(&mut self, window: &ChatterWindow) {
         let timed = |data: ProfileData| {
             data.activities
                 .iter()
@@ -182,7 +182,7 @@ impl Adapter {
 }
 
 /// The picker's key for the custom status's emoji: the emoji, or `name:id`.
-pub(super) fn status_key(status: &static_core::chat::CustomStatus) -> Option<String> {
+pub(super) fn status_key(status: &chatter_core::chat::CustomStatus) -> Option<String> {
     match (&status.emoji, &status.emoji_id) {
         (Some(name), Some(id)) => Some(format!("{name}:{id}")),
         (Some(emoji), None) => Some(emoji.clone()),
@@ -264,7 +264,7 @@ pub(super) fn profile_data(
         .activity
         .as_deref()
         .filter(|line| !names_an_activity(line, &profile.activities))
-        .map_or((None, ""), static_core::discord::status_parts);
+        .map_or((None, ""), chatter_core::discord::status_parts);
     let avatar = cached_picture(pictures, state, profile.avatar.as_deref());
     let banner = cached_picture(pictures, state, profile.banner.as_deref());
     // With no banner, accent colour or theme, Discord tints the banner area
@@ -405,7 +405,7 @@ pub(super) fn role_rows(roles: &[ProfileRole], width: f32) -> ModelRc<ProfileRol
     const GAP: f32 = 4.;
     // Padding, the colour dot and the space after it.
     const CHROME: f32 = 8. + 10. + 6. + 8.;
-    let mut rows: Vec<Vec<static_ui::ProfileRole>> = Vec::new();
+    let mut rows: Vec<Vec<chatter_ui::ProfileRole>> = Vec::new();
     let mut used = width;
     for role in roles {
         let chip = CHROME + 7. * role.name.chars().count() as f32;
@@ -416,7 +416,7 @@ pub(super) fn role_rows(roles: &[ProfileRole], width: f32) -> ModelRc<ProfileRol
             used += GAP + chip;
         }
         if let Some(row) = rows.last_mut() {
-            row.push(static_ui::ProfileRole {
+            row.push(chatter_ui::ProfileRole {
                 id: SharedString::default(),
                 removable: false,
                 name: role.name.clone().into(),

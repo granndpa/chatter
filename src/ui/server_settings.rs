@@ -2,7 +2,7 @@
 //! two-factor prompt Discord's held-back requests open; see
 //! `ui/server_settings.slint` and `ui/mfa.slint`.
 
-use static_core::{
+use chatter_core::{
     application::{
         AFK_TIMEOUTS, AUDIT_ACTIONS, AuditInput, AuditKind, AuditLogPage, AuditSpan, AuditWords,
         BOOSTED, BanInput, BansPage, DEFAULT_ROLE_COLOR, EmojiInput, EmojiPage, ExpressionRules,
@@ -19,7 +19,7 @@ use static_core::{
 };
 
 use super::{messages::escape_markdown, *};
-use static_core::clock;
+use chatter_core::clock;
 
 /// A page's id in the sidebar and the screen.
 fn section_id(section: SettingsSection) -> i32 {
@@ -112,7 +112,7 @@ fn method(id: i32) -> Option<MfaMethod> {
 
 impl Adapter {
     /// The open server's settings, as their screen shows them.
-    pub(super) fn show_server_settings(&mut self, window: &StaticWindow) {
+    pub(super) fn show_server_settings(&mut self, window: &ChatterWindow) {
         let Some(settings) = self.app.state.server_settings.as_ref() else {
             if window.get_server_settings_open() {
                 window.set_server_settings_open(false);
@@ -226,7 +226,7 @@ impl Adapter {
                     window.set_server_settings_description(page.description.as_str().into());
                 }
                 let (icon, new_icon) = page.icon();
-                let left = static_core::application::DESCRIPTION_LIMIT as i64
+                let left = chatter_core::application::DESCRIPTION_LIMIT as i64
                     - page.description.trim().chars().count() as i64;
                 prompt.profile = ServerProfilePrompt {
                     icon_url: icon.unwrap_or_default().into(),
@@ -304,7 +304,7 @@ impl Adapter {
                 prompt.bans = bans_prompt(
                     page,
                     self.app
-                        .may(&settings.server, static_core::chat::Permission::Ban),
+                        .may(&settings.server, chatter_core::chat::Permission::Ban),
                 );
             }
             Some(SettingsPage::AuditLog(page)) => {
@@ -400,7 +400,7 @@ impl Adapter {
         }
     }
 
-    pub(super) fn show_mfa(&self, window: &StaticWindow) {
+    pub(super) fn show_mfa(&self, window: &ChatterWindow) {
         let Some(prompt) = self.app.mfa_prompt() else {
             if window.get_mfa_open() {
                 window.set_mfa_open(false);
@@ -1595,7 +1595,7 @@ fn role_input(what: i32, text: SharedString, number: i32) -> Option<RoleInput> {
     })
 }
 
-pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
+pub(super) fn bind(window: &ChatterWindow, adapter: &Rc<RefCell<Adapter>>) {
     macro_rules! act {
         ($callback:ident($($arg:ident),*) => $action:expr) => {{
             let state = adapter.clone();

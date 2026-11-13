@@ -1,6 +1,6 @@
-//! Opening Discord's own protocol links in Static: a current-user
+//! Opening Discord's own protocol links in Chatter: a current-user
 //! protocol registration on Windows, and the person's default
-//! applications on Linux. Static's own `yapfast:` scheme is registered by
+//! applications on Linux. Chatter's own `yapfast:` scheme is registered by
 //! its installer or desktop entry; this claims `discord:` only when
 //! Settings says to, and gives the previous handler back when turned off.
 
@@ -9,17 +9,17 @@ use std::path::Path;
 /// Whether this platform can claim Discord's protocol links.
 pub const SUPPORTED: bool = cfg!(any(windows, target_os = "linux"));
 
-/// Whether Discord protocol links open in this Static.
+/// Whether Discord protocol links open in this Chatter.
 pub fn discord_enabled(root: &Path) -> bool {
     platform::enabled(root)
 }
 
-/// Claims Discord protocol links for this Static, or gives them back.
+/// Claims Discord protocol links for this Chatter, or gives them back.
 pub fn set_discord_enabled(root: &Path, enabled: bool) -> std::io::Result<()> {
     platform::set(root, enabled)
 }
 
-/// Points a claimed registration at this Static after its folder moved
+/// Points a claimed registration at this Chatter after its folder moved
 /// or an update replaced it. A handler someone else chose since is left.
 pub fn refresh(root: &Path) {
     if let Err(error) = platform::refresh(root) {
@@ -27,13 +27,13 @@ pub fn refresh(root: &Path) {
     }
 }
 
-/// This Static as a command: itself, its data folder when it isn't the
+/// This Chatter as a command: itself, its data folder when it isn't the
 /// usual one, then the link the desktop hands it.
 #[cfg(windows)]
 fn command(root: &Path) -> std::io::Result<Vec<String>> {
     use crate::autostart::path_text;
     let mut command = vec![path_text(std::env::current_exe()?)?];
-    let usual = static_core::default_directory().ok();
+    let usual = chatter_core::default_directory().ok();
     if usual.as_deref() != Some(root) {
         command.extend([
             "--data-dir".to_owned(),
@@ -86,7 +86,7 @@ mod windows {
     const LEGACY_SCHEME_COMMAND: &str = r"Software\Classes\yapfast\shell\open\command";
     const LEGACY_SCHEME_ICON: &str = r"Software\Classes\yapfast\DefaultIcon";
     const COMMAND: &str = r"Software\Classes\discord\shell\open\command";
-    const BACKUP: &str = r"Software\Static\DiscordProtocol";
+    const BACKUP: &str = r"Software\Chatter\DiscordProtocol";
     const PREVIOUS_COMMAND: &str = "PreviousCommand";
     const HAD_COMMAND: &str = "HadCommand";
     const HAD_URL_PROTOCOL: &str = "HadUrlProtocol";
@@ -124,7 +124,7 @@ mod windows {
                         },
                     )?;
                 }
-                register_static(root, &ours)?;
+                register_chatter(root, &ours)?;
                 if query_string(PROTOCOL, Some("URL Protocol")).is_none() {
                     set_string(PROTOCOL, Some("URL Protocol"), "")?;
                 }
@@ -157,16 +157,16 @@ mod windows {
             && query_string(COMMAND, None).as_deref().is_some_and(is_ours)
         {
             let ours = command_line(&super::command(root)?);
-            register_static(root, &ours)?;
+            register_chatter(root, &ours)?;
             set_string(COMMAND, None, &ours)?;
         }
         Ok(())
     }
 
-    /// Registers Static's own scheme for this copy, as the installer
+    /// Registers Chatter's own scheme for this copy, as the installer
     /// does, so a portable copy can be handed `yapfast:` links too.
-    fn register_static(root: &Path, ours: &str) -> io::Result<()> {
-        set_string(LEGACY_SCHEME_PROTOCOL, None, "URL:Static Protocol")?;
+    fn register_chatter(root: &Path, ours: &str) -> io::Result<()> {
+        set_string(LEGACY_SCHEME_PROTOCOL, None, "URL:Chatter Protocol")?;
         set_string(LEGACY_SCHEME_PROTOCOL, Some("URL Protocol"), "")?;
         let program = super::command(root)?
             .into_iter()
@@ -183,7 +183,7 @@ mod windows {
     /// The registered command line, with the link last, after
     /// `--open-link`. Windows puts the link in as it comes, quotes
     /// included, so whatever it splits into follows the marker, where
-    /// Static reads no option. The program comes first, quoted as Windows
+    /// Chatter reads no option. The program comes first, quoted as Windows
     /// names one.
     fn command_line(command: &[String]) -> String {
         let mut line: Vec<String> = command
@@ -198,11 +198,11 @@ mod windows {
         line.join(" ")
     }
 
-    /// Whether a registered command runs a Static, wherever it lives,
+    /// Whether a registered command runs a Chatter, wherever it lives,
     /// with or without `--open-link`, as earlier builds registered it.
     fn is_ours(command: &str) -> bool {
         let command = command.to_ascii_lowercase();
-        command.contains("static.exe") && command.contains("%1")
+        command.contains("chatter.exe") && command.contains("%1")
     }
 
     fn set_string(key: &str, name: Option<&str>, value: &str) -> io::Result<()> {
@@ -315,12 +315,12 @@ mod windows {
 
         #[test]
         fn recognises_its_own_registered_command() {
-            assert!(is_ours(r#""C:\Apps\Static\static.exe" --open-link "%1""#));
-            assert!(is_ours(r#""C:\Apps\Static\static.exe" "%1""#));
+            assert!(is_ours(r#""C:\Apps\Chatter\chatter.exe" --open-link "%1""#));
+            assert!(is_ours(r#""C:\Apps\Chatter\chatter.exe" "%1""#));
             assert!(!is_ours(r#""C:\Apps\Discord\Discord.exe" "%1""#));
             assert_eq!(
-                command_line(&[r"C:\Apps\Static\static.exe".into()]),
-                r#""C:\Apps\Static\static.exe" --open-link "%1""#
+                command_line(&[r"C:\Apps\Chatter\chatter.exe".into()]),
+                r#""C:\Apps\Chatter\chatter.exe" --open-link "%1""#
             );
         }
 
@@ -342,9 +342,9 @@ mod windows {
 #[cfg(target_os = "linux")]
 mod linux {
     //! The person's own `mimeapps.list` is the setting: it's on while its
-    //! default applications name Static first for `discord:`. Static's
+    //! default applications name Chatter first for `discord:`. Chatter's
     //! desktop entry declares only `yapfast:`, so without a Discord app
-    //! installed the desktop doesn't fall back to Static for Discord's
+    //! installed the desktop doesn't fall back to Chatter for Discord's
     //! links; gio and xdg-open follow a default all the same.
 
     use std::{
@@ -354,12 +354,12 @@ mod linux {
 
     use crate::desktop_entry;
 
-    /// What the switch claims: Discord's links, and Static's own, which
+    /// What the switch claims: Discord's links, and Chatter's own, which
     /// another app may have been chosen for.
     const SCHEMES: [&str; 2] = ["x-scheme-handler/discord", "x-scheme-handler/yapfast"];
     const DEFAULTS: &str = "[Default Applications]";
     /// In the data folder: each scheme's line in `mimeapps.list` before
-    /// Static claimed it, as it was, or nothing when there was none.
+    /// Chatter claimed it, as it was, or nothing when there was none.
     const PREVIOUS: &str = "discord-protocol-previous";
 
     fn desktop() -> String {
@@ -375,7 +375,7 @@ mod linux {
         if enabled {
             desktop_entry::install();
             if !desktop_exists() {
-                return Err(io::Error::other("Static's desktop entry isn't installed"));
+                return Err(io::Error::other("Chatter's desktop entry isn't installed"));
             }
         }
         apply(&list, &root.join(PREVIOUS), enabled)
@@ -383,17 +383,17 @@ mod linux {
 
     pub fn refresh(_: &Path) -> io::Result<()> {
         // A package or the AppImage entry itself names the current
-        // Static; the default names only that entry.
+        // Chatter; the default names only that entry.
         Ok(())
     }
 
     fn enabled_in(list: &Path) -> bool {
         std::fs::read_to_string(list)
-            .is_ok_and(|text| default_line(&text, SCHEMES[0]).is_some_and(names_static))
+            .is_ok_and(|text| default_line(&text, SCHEMES[0]).is_some_and(names_chatter))
     }
 
     /// Claims the schemes in `list`, keeping their lines in `previous`, or
-    /// puts those lines back where Static still has them.
+    /// puts those lines back where Chatter still has them.
     fn apply(list: &Path, previous: &Path, enabled: bool) -> io::Result<()> {
         let current = match std::fs::read_to_string(list) {
             Err(error) if error.kind() == io::ErrorKind::NotFound => String::new(),
@@ -401,11 +401,11 @@ mod linux {
         };
         let mut text = current.clone();
         if enabled {
-            // Kept from the first claim on: a line naming Static is no
+            // Kept from the first claim on: a line naming Chatter is no
             // one else's to give back.
             if !previous.exists() {
                 let lines = SCHEMES.map(|scheme| {
-                    default_line(&current, scheme).filter(|line| !names_static(line))
+                    default_line(&current, scheme).filter(|line| !names_chatter(line))
                 });
                 let kept: String = lines
                     .into_iter()
@@ -420,7 +420,7 @@ mod linux {
         } else {
             let kept = std::fs::read_to_string(previous).unwrap_or_default();
             for scheme in SCHEMES {
-                if default_line(&text, scheme).is_some_and(names_static) {
+                if default_line(&text, scheme).is_some_and(names_chatter) {
                     let line = kept.lines().find(|line| key(line) == Some(scheme));
                     text = with_line(&text, scheme, line);
                 }
@@ -438,8 +438,8 @@ mod linux {
         Ok(())
     }
 
-    /// Whether a default line names Static first.
-    fn names_static(line: &str) -> bool {
+    /// Whether a default line names Chatter first.
+    fn names_chatter(line: &str) -> bool {
         line.split_once('=')
             .and_then(|(_, value)| value.split(';').next())
             .is_some_and(|first| first.trim() == desktop())

@@ -62,7 +62,7 @@ set NASM=C:\Program Files\NASM\nasm.exe
 cargo build --release --no-default-features --features desktop,discord
 ```
 
-The app is `target\release\static.exe`.
+The app is `target\release\chatter.exe`.
 
 ### Linux
 

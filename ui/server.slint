@@ -167,7 +167,7 @@ export component JoinDialog inherits Rectangle {
                 if root.prompt.field: TextField {
                     init => { self.focus-input(); }
                     min-height: 36px; text-size: 15px; pad: 10px;
-                    placeholder: "https://discord.gg/static"; label: "Invite link";
+                    placeholder: "https://discord.gg/chatter"; label: "Invite link";
                     text <=> root.link;
                     accepted => { if !root.prompt.busy { root.find(root.link); } }
                 }
@@ -371,7 +371,7 @@ export struct OAuthPrompt {
     /// one server a link names, which can't be changed.
     guild-picker: bool,
     guild-name: string,
-    /// Where Discord sends the person next when Static won't open it,
+    /// Where Discord sends the person next when Chatter won't open it,
     /// such as an app's own address, to copy.
     address: string,
     /// What the main button does, such as "Authorize"; empty for none.

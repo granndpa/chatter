@@ -7,7 +7,7 @@ rtc:
   node_ip: 127.0.0.1
   use_external_ip: false
 keys:
-  static-test: static-test-secret-do-not-deploy
+  chatter-test: chatter-test-secret-do-not-deploy
 room:
   auto_create: false
 logging:

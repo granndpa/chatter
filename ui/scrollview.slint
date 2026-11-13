@@ -1,4 +1,4 @@
-// Static's ScrollView and ListView: the Fluent style's, with a scrollbar thumb that
+// Chatter's ScrollView and ListView: the Fluent style's, with a scrollbar thumb that
 // stays under the pointer while it's dragged.
 //
 // The Fluent bar starts its drag over whenever `maximum` changes. In a ListView
@@ -225,7 +225,7 @@ export component ListView inherits ScrollView {
 }
 
 // Where an autoscroll began, which Slint's core reports to the application:
-// see `static_autoscroll` in vendor/i-slint-core.
+// see `chatter_autoscroll` in vendor/i-slint-core.
 export global Autoscroll {
     in-out property <bool> shown;
     in-out property <length> x;

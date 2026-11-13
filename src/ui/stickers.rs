@@ -1,7 +1,7 @@
 //! A virtualized sticker list; PictureStore requests only instantiated rows.
 use super::*;
 
-pub(super) fn show(adapter: &Adapter, window: &StaticWindow) {
+pub(super) fn show(adapter: &Adapter, window: &ChatterWindow) {
     let state = &adapter.app.state;
     let picker = &state.sticker_picker;
     window.set_sticker_picker_open(picker.open);
@@ -51,7 +51,7 @@ pub(super) fn show(adapter: &Adapter, window: &StaticWindow) {
     ));
 }
 
-pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
+pub(super) fn bind(window: &ChatterWindow, adapter: &Rc<RefCell<Adapter>>) {
     macro_rules! bind {
         ($callback:ident, $action:expr) => {{
             let (state, weak) = (adapter.clone(), window.as_weak());

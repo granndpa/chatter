@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Measure joining a voice channel as it fills, with one process per person.
 
-Alice runs the given Static build and joins muted first. Every other person is a
+Alice runs the given Chatter build and joins muted first. Every other person is a
 separate headless participant process (matrix_voice::tests::stress_participant) using
 the same voice stack: it publishes a tone in turn with the others, with digital
 silence and Opus DTX otherwise, and decodes every stream it receives.
@@ -35,9 +35,9 @@ import voice_harness
 INPUT = runpy.run_path(str(ROOT / 'scripts/framework-input'))
 INPUT['require_private_display']()
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-parser.add_argument('--exe', type=Path, default=ROOT / 'target/measure/static')
+parser.add_argument('--exe', type=Path, default=ROOT / 'target/measure/chatter')
 parser.add_argument('--participant-executable', type=Path, required=True,
-                    help='static-core test binary, preferably built with --release')
+                    help='chatter-core test binary, preferably built with --release')
 parser.add_argument('--people', type=int, default=20, help='people in the full call, including Alice')
 parser.add_argument('--gap', type=float, default=12, help='seconds between joins')
 parser.add_argument('--rejoins', type=int, default=3, help='leave and rejoin cycles at full size')
@@ -46,24 +46,24 @@ parser.add_argument('--timeout', type=float, default=120, help='longest wait for
 parser.add_argument('--output', type=Path, required=True)
 args = parser.parse_args()
 args.output.mkdir(parents=True, exist_ok=True)
-livekit, synapse = Container('static-test-livekit-1'), Container('static-test-synapse-1')
+livekit, synapse = Container('chatter-test-livekit-1'), Container('chatter-test-synapse-1')
 
 
 def capture(name):
     return voice_harness.capture(args.output, name)
 
 
-def cpu_snapshot(static, people):
-    return {'static': process_cpu_seconds(static.pid), 'synapse': synapse.read()['cpu_seconds'],
+def cpu_snapshot(chatter, people):
+    return {'chatter': process_cpu_seconds(chatter.pid), 'synapse': synapse.read()['cpu_seconds'],
             'livekit': livekit.read()['cpu_seconds'],
             'people': {person.account.name: process_cpu_seconds(person.process.pid) for person in people}}
 
 
-def join(newcomer, earlier, static, everyone):
+def join(newcomer, earlier, chatter, everyone):
     """Join one participant and time its key exchange with everyone already in."""
     earlier_identities = {person.status()['identity'] for person in earlier}
     earlier_members = {person.status()['member_id'] for person in earlier}
-    before = cpu_snapshot(static, everyone)
+    before = cpu_snapshot(chatter, everyone)
     started = time.monotonic()
     newcomer.send('join')
     joined = wait_for(lambda: newcomer.status().get('phase') == 'joined', args.timeout)
@@ -71,7 +71,7 @@ def join(newcomer, earlier, static, everyone):
         raise RuntimeError(f'{newcomer.account.name} did not join')
     status = newcomer.status()
     identity, member = status['identity'], status['member_id']
-    # Alice's muted Static client is not observable here, so she is left out.
+    # Alice's muted Chatter client is not observable here, so she is left out.
     conditions = {
         'newcomer_has_all_keys_s': lambda: earlier_identities <= set(newcomer.status().get('keyed', [])),
         'all_have_newcomer_key_s': lambda: all(identity in person.status().get('keyed', []) for person in earlier),
@@ -85,7 +85,7 @@ def join(newcomer, earlier, static, everyone):
                 reached[name] = round(time.monotonic() - started, 2)
         time.sleep(.1)
     settled = time.monotonic() - started
-    after = cpu_snapshot(static, everyone)
+    after = cpu_snapshot(chatter, everyone)
     others = [person.account.name for person in earlier]
     result = {
         'participant': newcomer.account.name, 'people_after_join': len(earlier) + 2,
@@ -94,7 +94,7 @@ def join(newcomer, earlier, static, everyone):
         'window_s': round(settled, 2),
         'cpu_s_newcomer': round(after['people'][newcomer.account.name] - before['people'][newcomer.account.name], 2),
         'cpu_s_others_total': round(sum(after['people'][name] - before['people'][name] for name in others), 2),
-        'cpu_s_talk': round(after['static'] - before['static'], 2),
+        'cpu_s_talk': round(after['chatter'] - before['chatter'], 2),
         'cpu_s_synapse': round(after['synapse'] - before['synapse'], 2),
         'cpu_s_livekit': round(after['livekit'] - before['livekit'], 2),
     }
@@ -102,13 +102,13 @@ def join(newcomer, earlier, static, everyone):
     return result
 
 
-def steady(static, people):
-    before = cpu_snapshot(static, people)
+def steady(chatter, people):
+    before = cpu_snapshot(chatter, people)
     started = time.monotonic()
-    static_sample = json.loads(subprocess.check_output(
-        ['python3', str(ROOT / 'scripts/measure-process'), str(static.pid), '--seconds', str(args.seconds)], text=True))
+    chatter_sample = json.loads(subprocess.check_output(
+        ['python3', str(ROOT / 'scripts/measure-process'), str(chatter.pid), '--seconds', str(args.seconds)], text=True))
     elapsed = time.monotonic() - started
-    after = cpu_snapshot(static, people)
+    after = cpu_snapshot(chatter, people)
     clients = []
     for person in people:
         memory = process_memory_mib(person.process.pid)
@@ -123,7 +123,7 @@ def steady(static, people):
         return {'mean': round(statistics.mean(values), 2), 'min': min(values), 'max': max(values)}
 
     result = {
-        'static': {key: static_sample[key] for key in ('cpu_percent_one_core', 'pss_mib_mean', 'rss_mib_mean')},
+        'chatter': {key: chatter_sample[key] for key in ('cpu_percent_one_core', 'pss_mib_mean', 'rss_mib_mean')},
         'headless_participant_cpu_percent_one_core': summary('cpu_percent_one_core'),
         'headless_participant_pss_mib': summary('pss_mib'),
         'headless_participant_rss_mib': summary('rss_mib'),
@@ -155,13 +155,13 @@ try:
                                 YAPFAST_TEST_EXTRA_ACCOUNTS=str(count - 1)))
     accounts = [fixture / 'bob'] + [fixture / f'load-{index}' for index in range(count - 1)]
     log = (args.output / 'yapfast.log').open('wb')
-    static = subprocess.Popen([str(args.exe.resolve()), '--renderer', 'gpu', '--data-dir', str(fixture / 'alice')],
+    chatter = subprocess.Popen([str(args.exe.resolve()), '--renderer', 'gpu', '--data-dir', str(fixture / 'alice')],
                             env=dict(os.environ, YAPFAST_UI_TEST_SIZE=f'{WIDTH}x{HEIGHT}'),
                             stdout=log, stderr=log, start_new_session=True)
     try:
         time.sleep(12)
-        if static.poll() is not None:
-            raise RuntimeError('Static exited during startup; see yapfast.log')
+        if chatter.poll() is not None:
+            raise RuntimeError('Chatter exited during startup; see yapfast.log')
         origin_x, origin_y = locate_rail(capture('startup'))
 
         def click(x, y):
@@ -178,10 +178,10 @@ try:
             raise RuntimeError('participants did not finish syncing')
         time.sleep(args.gap)
         for position, person in enumerate(people):
-            joins.append(join(person, people[:position], static, people))
+            joins.append(join(person, people[:position], chatter, people))
             time.sleep(args.gap)
         capture('full')
-        steady_state = steady(static, people)
+        steady_state = steady(chatter, people)
         last = people[-1]
         for cycle in range(args.rejoins):
             last.send('leave')
@@ -189,17 +189,17 @@ try:
                 raise RuntimeError('rejoin participant did not leave')
             leave_s = round(last.status().get('leave_ms', 0) / 1000, 2)
             time.sleep(args.gap)
-            result = join(last, people[:-1], static, people)
+            result = join(last, people[:-1], chatter, people)
             result['leave_call_s_before'] = leave_s
             rejoins.append(result)
             time.sleep(args.gap)
         capture('after-rejoins')
         click(WIDTH - 19, -20)  # Close on the private window's title bar.
-        static.wait(timeout=20)
+        chatter.wait(timeout=20)
     finally:
-        if static.poll() is None:
-            os.killpg(static.pid, signal.SIGTERM)
-            static.wait(timeout=20)
+        if chatter.poll() is None:
+            os.killpg(chatter.pid, signal.SIGTERM)
+            chatter.wait(timeout=20)
         log.close()
 finally:
     for person in people:
@@ -209,7 +209,7 @@ finally:
         'binary': str(args.exe), 'binary_sha256': hashlib.sha256(args.exe.read_bytes()).hexdigest(),
         'participant_binary': str(args.participant_executable),
         'os': f'{platform.system()} {platform.release()}', 'machine': platform.machine(),
-        'isolation': 'Private headless Weston and PulseAudio; Static, every participant process, LiveKit and Synapse share the host',
+        'isolation': 'Private headless Weston and PulseAudio; Chatter, every participant process, LiveKit and Synapse share the host',
         'people': args.people, 'gap_seconds': args.gap,
         'joins': joins, 'steady_state': steady_state, 'rejoins': rejoins,
     }, indent=2) + '\n')

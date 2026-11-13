@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare Static's memory with only Matrix, only Discord, or both networks built in.
+"""Compare Chatter's memory with only Matrix, only Discord, or both networks built in.
 
 Each build is a `measure` profile binary with different Cargo features (see
 docs/building.md); the comparison is between builds, so LTO isn't needed. All run against test data only: Matrix against the local
@@ -7,22 +7,22 @@ stack with a seeded fixture account, Discord against testing/fake_discord.ts.
 Both histories hold the same 60 messages with the same image, file and reply.
 The combined build is measured twice, once with each network's channel open.
 
-Each profile opens #general, warms up, samples Static's process while idle, then
+Each profile opens #general, warms up, samples Chatter's process while idle, then
 samples again while Bob posts a message every 2 s in the open channel. Voice
 isn't measured: the fake Discord has no voice server.
 
-Start the local stack (scripts/test-stack up). Copy target/measure/static, built
-with each feature set, into --builds (target/networks) as static-matrix,
-static-discord and static-combined; docs/measurements/README.md gives the builds.
-Find the static-core test binary with
-`nix develop path:./nix --command cargo test --profile fast --locked -p static-core --features matrix --no-run --message-format short`
+Start the local stack (scripts/test-stack up). Copy target/measure/chatter, built
+with each feature set, into --builds (target/networks) as chatter-matrix,
+chatter-discord and chatter-combined; docs/measurements/README.md gives the builds.
+Find the chatter-core test binary with
+`nix develop path:./nix --command cargo test --profile fast --locked -p chatter-core --features matrix --no-run --message-format short`
 (its "Executable unittests src/lib.rs" line), then run from the repository root:
 
     nix-shell --impure testing/display/shell.nix --run 'scripts/run-framework-isolated
         --audio --no-services --alsa-plugins "$YAPFAST_FRAMEWORK_ALSA_PLUGINS"
         --compositor-log .local/networks.weston.log --
         python3 testing/measure_networks.py --output .local/measure-networks
-        --load-executable target/fast/deps/static_core-HASH'
+        --load-executable target/fast/deps/chatter_core-HASH'
 
 (one line). Without --load-executable it runs `cargo test --no-run` itself,
 with the `fast` profile, inside the private session. This script starts
@@ -48,13 +48,13 @@ INPUT = runpy.run_path(str(ROOT / 'scripts/framework-input'))
 INPUT['require_private_display']()
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument('--builds', type=Path, default=ROOT / 'target/networks',
-                    help='folder with static-matrix, static-discord and static-combined')
+                    help='folder with chatter-matrix, chatter-discord and chatter-combined')
 parser.add_argument('--profile', action='append', choices=['matrix', 'discord', 'combined-discord', 'combined-matrix'])
 parser.add_argument('--renderer', default='software', choices=['gpu', 'software'])
 parser.add_argument('--warmup', type=int, default=20, help='seconds before each sample')
 parser.add_argument('--seconds', type=int, default=30, help='sample length')
 parser.add_argument('--output', type=Path, required=True)
-parser.add_argument('--load-executable', type=Path, help='prebuilt static-core test binary for the Matrix load process')
+parser.add_argument('--load-executable', type=Path, help='prebuilt chatter-core test binary for the Matrix load process')
 args = parser.parse_args()
 profiles = args.profile or ['matrix', 'discord', 'combined-discord', 'combined-matrix']
 args.output.mkdir(parents=True, exist_ok=True)
@@ -66,7 +66,7 @@ DISCORD_SERVER = 'discord:1400000000000000100'
 DISCORD_GENERAL = 'discord:1400000000000000100:1400000000000000102'
 # History length shared by both networks: four fixture messages and 56 more.
 EXTRA_MESSAGES = 56
-# Rail centres: Static lists Matrix servers before Discord ones.
+# Rail centres: Chatter lists Matrix servers before Discord ones.
 FIRST_SERVER, SECOND_SERVER = (36, 101), (36, 158)
 MATRIX_GENERAL = (141, 148)
 
@@ -82,7 +82,7 @@ def provision(executable):
 
 def capture(name):
     time.sleep(.3)
-    with tempfile.TemporaryDirectory(prefix='static-measure-shot-') as folder:
+    with tempfile.TemporaryDirectory(prefix='chatter-measure-shot-') as folder:
         subprocess.run(['weston-screenshooter'], env=dict(os.environ, XDG_PICTURES_DIR=folder),
                        check=True, timeout=10, capture_output=True)
         picture = next(Path(folder).glob('*.png'))
@@ -102,7 +102,7 @@ def locate_rail(picture):
                    for y in range(output_height)) for x in range(output_width)]
     best = max(columns)
     if best < HEIGHT - 80:
-        raise RuntimeError(f'Static rail was not found; inspect {picture}')
+        raise RuntimeError(f'Chatter rail was not found; inspect {picture}')
     x = next(x for x, count in enumerate(columns) if count >= best - 2)
     ys = [y for y in range(output_height)
           if pixels[(y * output_width + x) * 3:(y * output_width + x) * 3 + 3] == target]
@@ -205,7 +205,7 @@ def measure(profile, executable, data, discord, load):
     try:
         time.sleep(12)
         if process.poll() is not None:
-            raise RuntimeError(f'Static exited during startup; see {profile}.log')
+            raise RuntimeError(f'Chatter exited during startup; see {profile}.log')
         origin_x, origin_y = locate_rail(capture(f'{profile}-startup'))
 
         def click(point):
@@ -271,7 +271,7 @@ def prewarm(executable, data):
 builds = {name: (args.builds / f'static-{name}').resolve() for name in ('matrix', 'discord', 'combined')}
 for name, path in builds.items():
     if not path.exists():
-        raise SystemExit(f'missing {path}; copy each feature build of target/measure/static there')
+        raise SystemExit(f'missing {path}; copy each feature build of target/measure/chatter there')
 results = []
 load = discord = None
 executable = str(args.load_executable.resolve()) if args.load_executable else test_binary()

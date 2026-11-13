@@ -135,7 +135,7 @@ impl Item for ImageItem {
         size: LogicalSize,
     ) -> RenderingResult {
         (*backend).draw_image(self, self_rc, size, &self.cached_rendering_data);
-        // Static
+        // Chatter
         tint_if_selected(backend, self_rc, size);
         RenderingResult::ContinueRenderingChildren
     }
@@ -154,7 +154,7 @@ impl Item for ImageItem {
     }
 }
 
-/// Static: tints a picture a selection of text covers; see `crate::static_selection`.
+/// Chatter: tints a picture a selection of text covers; see `crate::chatter_selection`.
 fn tint_if_selected(backend: &mut &mut dyn ItemRenderer, self_rc: &ItemRc, size: LogicalSize) {
     struct Tint(Brush);
     impl crate::item_rendering::RenderRectangle for Tint {
@@ -162,7 +162,7 @@ fn tint_if_selected(backend: &mut &mut dyn ItemRenderer, self_rc: &ItemRc, size:
             self.0.clone()
         }
     }
-    if let Some((_, color)) = crate::static_selection::covered(self_rc) {
+    if let Some((_, color)) = crate::chatter_selection::covered(self_rc) {
         // Stronger than over text, to show over light pictures.
         let tint = Tint(Brush::SolidColor(color.with_alpha(0.5)));
         let tint: Pin<&Tint> = Pin::new(&tint);
@@ -172,8 +172,8 @@ fn tint_if_selected(backend: &mut &mut dyn ItemRenderer, self_rc: &ItemRc, size:
 
 impl RenderImage for ImageItem {
     fn target_size(self: Pin<&Self>) -> LogicalSize {
-        // Static: draws the picture again when a selection changes, for its tint.
-        crate::static_selection::track();
+        // Chatter: draws the picture again when a selection changes, for its tint.
+        crate::chatter_selection::track();
         LogicalSize::from_lengths(self.width(), self.height())
     }
 
@@ -327,7 +327,7 @@ impl Item for ClippedImage {
         size: LogicalSize,
     ) -> RenderingResult {
         (*backend).draw_image(self, self_rc, size, &self.cached_rendering_data);
-        // Static
+        // Chatter
         tint_if_selected(backend, self_rc, size);
         RenderingResult::ContinueRenderingChildren
     }
@@ -348,8 +348,8 @@ impl Item for ClippedImage {
 
 impl RenderImage for ClippedImage {
     fn target_size(self: Pin<&Self>) -> LogicalSize {
-        // Static: draws the picture again when a selection changes, for its tint.
-        crate::static_selection::track();
+        // Chatter: draws the picture again when a selection changes, for its tint.
+        crate::chatter_selection::track();
         LogicalSize::from_lengths(self.width(), self.height())
     }
 

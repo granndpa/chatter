@@ -15,7 +15,7 @@ fn tab_name(state: &AppState, room: &str) -> Option<String> {
 }
 
 /// Adds the conversation open now as a tab, and shows the tabs.
-pub(super) fn show(adapter: &mut Adapter, window: &StaticWindow) {
+pub(super) fn show(adapter: &mut Adapter, window: &ChatterWindow) {
     let enabled = adapter.layout.chat_tabs;
     window.set_chat_tabs_enabled(enabled);
     if !enabled {
@@ -60,7 +60,7 @@ pub(super) fn show(adapter: &mut Adapter, window: &StaticWindow) {
     }
 }
 
-pub(super) fn bind(window: &StaticWindow, adapter: &Rc<RefCell<Adapter>>) {
+pub(super) fn bind(window: &ChatterWindow, adapter: &Rc<RefCell<Adapter>>) {
     {
         let (state, weak) = (adapter.clone(), window.as_weak());
         window.on_chat_tab_open(move |room| {

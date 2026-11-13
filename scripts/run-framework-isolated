@@ -46,7 +46,7 @@ if not args.seat_plugin.exists():
     subprocess.run([str(Path(__file__).with_name('build-framework-seat')), str(args.seat_plugin)], check=True, timeout=35)
 if not args.gtk_dpi_module.exists():
     subprocess.run([str(Path(__file__).with_name('build-framework-gtk-dpi')), str(args.gtk_dpi_module)], check=True, timeout=35)
-with tempfile.TemporaryDirectory(prefix='static-framework-display-') as temporary:
+with tempfile.TemporaryDirectory(prefix='chatter-framework-display-') as temporary:
     runtime = Path(temporary)
     runtime.chmod(0o700)
     configuration = runtime / 'config'
