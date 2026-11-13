@@ -1324,6 +1324,17 @@ impl Layout {
             layout.each_sound.insert(Sound::Mention, 0);
         }
         theme::tidy(&mut layout.custom_themes);
+        // The installer's "Update automatically / manually", once.
+        let chosen = root.join("installer-updates.txt");
+        if let Ok(choice) = std::fs::read_to_string(&chosen) {
+            match choice.trim() {
+                "automatic" => layout.auto_update = Some(true),
+                "manual" => layout.auto_update = Some(false),
+                _ => {}
+            }
+            let _ = std::fs::remove_file(&chosen);
+            layout.write(root);
+        }
         layout
     }
 

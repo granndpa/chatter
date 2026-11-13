@@ -1,6 +1,6 @@
 [package]
 name = "chatter-desktop"
-version = "0.7.2"
+version = "0.7.3"
 edition = "2024"
 rust-version = "1.97"
 publish = false

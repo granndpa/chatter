@@ -38,6 +38,9 @@ ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputBaseFilename=Chatter-{#AppVersion}{#FileSuffix}-windows-x64-setup
 SetupIconFile=chatter.ico
+WizardImageFile=wizard-large-100.bmp,wizard-large-125.bmp,wizard-large-150.bmp,wizard-large-200.bmp
+WizardSmallImageFile=wizard-small-100.bmp,wizard-small-125.bmp,wizard-small-150.bmp,wizard-small-200.bmp
+WizardImageStretch=no
 UninstallDisplayIcon={app}\chatter.exe
 UninstallDisplayName={#DisplayName}
 WizardStyle=modern
@@ -65,6 +68,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 ; README.txt explains the ZIP; the installer needs no instructions.
 Source: "{#SourceDir}\*"; Excludes: "README.txt"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Copied out by hand for "Just trying it out".
+Source: "{#SourceDir}\chatter.exe"; Flags: dontcopy
 
 [Icons]
 Name: "{autoprograms}\Chatter"; Filename: "{app}\chatter.exe"
@@ -94,3 +99,74 @@ Filename: "{app}\chatter.exe"; Description: "{cm:LaunchProgram,Chatter}"; Flags:
 ; Before the files go: discord:// links open in the app that had them again,
 ; if Settings claimed them for this Chatter.
 Filename: "{app}\chatter.exe"; Parameters: "--release-discord-links"; Flags: runhidden waituntilterminated; RunOnceId: "ReleaseDiscordLinks"
+
+[Code]
+var
+  IntroPage: TInputOptionWizardPage;
+  UpdatePage: TInputOptionWizardPage;
+  Trying: Boolean;
+
+procedure InitializeWizard;
+begin
+  IntroPage := CreateInputOptionPage(wpWelcome,
+    'How do you want to use Chatter?', 'You can always install it later.',
+    'Pick one, then click Next.', True, False);
+  IntroPage.Add('Just trying it out (opens Chatter now, nothing gets installed)');
+  IntroPage.Add('I want to install Chatter');
+  IntroPage.SelectedValueIndex := 1;
+
+  UpdatePage := CreateInputOptionPage(IntroPage.ID,
+    'Updates', 'How should Chatter stay up to date?',
+    'You can change this later in Settings.', True, False);
+  UpdatePage.Add('Update automatically (recommended)');
+  UpdatePage.Add('Update manually (an Update button shows when a new version is out)');
+  UpdatePage.SelectedValueIndex := 0;
+end;
+
+{ Copies Chatter to a folder of its own and opens it, without installing. }
+procedure TryChatter;
+var
+  Dir: String;
+  Code: Integer;
+begin
+  ExtractTemporaryFile('chatter.exe');
+  Dir := ExpandConstant('{localappdata}\Chatter Trial');
+  ForceDirectories(Dir);
+  FileCopy(ExpandConstant('{tmp}\chatter.exe'), Dir + '\chatter.exe', False);
+  ShellExec('', Dir + '\chatter.exe', '', Dir, SW_SHOWNORMAL, ewNoWait, Code);
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  if (CurPageID = IntroPage.ID) and (IntroPage.SelectedValueIndex = 0) then
+  begin
+    TryChatter;
+    Trying := True;
+    WizardForm.Close;
+    Result := False;
+  end;
+end;
+
+procedure CancelButtonClick(CurPageID: Integer; var Cancel, Confirm: Boolean);
+begin
+  if Trying then
+    Confirm := False;
+end;
+
+{ Chatter reads this once on its next start, then deletes it. }
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  Dir, Choice: String;
+begin
+  if CurStep = ssPostInstall then
+  begin
+    Dir := ExpandConstant('{localappdata}\yapfast\Yapfast\data');
+    ForceDirectories(Dir);
+    if UpdatePage.SelectedValueIndex = 0 then
+      Choice := 'automatic'
+    else
+      Choice := 'manual';
+    SaveStringToFile(Dir + '\installer-updates.txt', Choice, False);
+  end;
+end;
