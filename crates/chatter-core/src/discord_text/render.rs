@@ -731,6 +731,7 @@ pub(super) fn chat_member(member: ListedMember) -> ChatMember {
         group: Some(member.group),
         group_icon: member.group_icon,
         role_icon: member.role_icon,
+        tag: member.tag.map(|tag| crate::chat::ServerTag { text: tag.text, badge: tag.badge }),
         presence: Some(discord::presence(member.presence)),
         color: member.color,
         activity: member.activity,

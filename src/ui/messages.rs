@@ -679,6 +679,13 @@ pub(super) fn message_row_within(
         color: role_color(message.color),
         has_color: message.color.is_some(),
         bot: message.bot,
+        tag: message.tag.as_ref().map(|tag| tag.text.as_str()).unwrap_or_default().into(),
+        tag_badge: message
+            .tag
+            .as_ref()
+            .and_then(|tag| tag.badge.as_deref())
+            .unwrap_or_default()
+            .into(),
         initial: initial(&message.author),
         tint: tint(&message.author),
         // Virtualized avatars resolve their URLs when their components are built.
@@ -812,6 +819,8 @@ pub(super) fn message_row_within(
             color: Default::default(),
             has_color: false,
             bot: false,
+            tag: SharedString::default(),
+            tag_badge: SharedString::default(),
             forwarded: false,
             body: "Blocked message.".into(),
             styled: slint::StyledText::from_markdown(&note)

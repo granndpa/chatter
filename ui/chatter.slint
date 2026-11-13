@@ -2557,11 +2557,14 @@ export component ChatterWindow inherits Window {
                             header-box := Rectangle {
                                 property <bool> banner: ClientStyle.enabled && root.header-server != "" && root.header-banner != "";
                                 height: ClientStyle.header-height + (header-box.banner ? 81px : 0px);
-                                if header-box.banner: Image {
+                                if header-box.banner: banner-image := Image {
                                     x: 0px; y: 0px; width: parent.width; height: parent.height;
                                     source: PictureStore.picture(root.header-banner, PictureStore.revision);
                                     image-fit: cover; accessible-role: none;
                                     init => { PictureStore.request(root.header-banner); }
+                                    changed source => {
+                                        if self.source.width == 0 { PictureStore.request(root.header-banner); }
+                                    }
                                 }
                                 if header-box.banner: Rectangle {
                                     x: 0px; y: 0px; width: parent.width; height: ClientStyle.header-height;

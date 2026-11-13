@@ -1820,6 +1820,9 @@ impl OpenChannel {
             avatar: Some(discord.avatar(Some(&self.guild), &message.author_id)),
             color: server.and_then(|server| discord.color(server, &message.author_id)),
             bot: message.bot,
+            tag: discord
+                .server_tag(&message.author_id)
+                .map(|tag| crate::chat::ServerTag { text: tag.text, badge: tag.badge }),
             forwarded: message.forwarded,
             body,
             formatted: ordinary,

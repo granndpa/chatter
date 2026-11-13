@@ -994,9 +994,9 @@ impl Adapter {
                     .and_then(|person| in_voice.get(person));
                 RoomRow {
                     id: room.id.clone().into(),
-                    name: room.name.clone().into(),
+                    name: shown_name(&room.name).into(),
                     category: folds_by.unwrap_or(&heading).into(),
-                    heading: heading.into(),
+                    heading: shown_name(&heading).into(),
                     icon: self.icons.room(room),
                     selected: Some(&room.id) == state.selected.as_ref(),
                     unread: room.unread > 0,
@@ -1607,7 +1607,7 @@ impl Adapter {
         let state = &self.app.state;
         let room = state.selected_room();
         window.set_room_selected(room.is_some());
-        window.set_room_name(room.map_or("", |room| room.name.as_str()).into());
+        window.set_room_name(shown_name(room.map_or("", |room| room.name.as_str())).into());
         window.set_room_direct(room.is_some_and(|room| room.direct));
         window.set_room_presence(presence_name(room.and_then(|room| room.presence)).into());
         let (activity, activity_emoji) =
@@ -1859,7 +1859,14 @@ impl Adapter {
                     let (activity, activity_emoji) = activity_line(member.activity.as_deref());
                     MemberRow {
                         id: member.id.clone().into(),
-                        name: member.name.clone().into(),
+                        name: crate::emoji_text::text(&member.name).into(),
+                        tag: member.tag.as_ref().map(|tag| tag.text.as_str()).unwrap_or_default().into(),
+                        tag_badge: member
+                            .tag
+                            .as_ref()
+                            .and_then(|tag| tag.badge.as_deref())
+                            .unwrap_or_default()
+                            .into(),
                         initial: initial(&member.name),
                         tint: tint(&member.name),
                         picture: slint::Image::default(),
@@ -4296,6 +4303,31 @@ impl Adapter {
             _ => SharedString::default(),
         });
     }
+}
+
+/// A channel or category name as Discord draws it: its emoji in Discord's
+/// own pictures, and a dot between words given room, as Discord's font does.
+pub(super) fn shown_name(name: &str) -> String {
+    let spaced = if name.contains(['\u{30fb}', '\u{ff65}', '\u{b7}']) {
+        let mut out = String::with_capacity(name.len() + 8);
+        for c in name.chars() {
+            if matches!(c, '\u{30fb}' | '\u{ff65}' | '\u{b7}') {
+                if !out.ends_with(' ') && !out.is_empty() {
+                    out.push(' ');
+                }
+                out.push('\u{b7}');
+                out.push(' ');
+            } else if c == ' ' && out.ends_with("\u{b7} ") {
+                continue;
+            } else {
+                out.push(c);
+            }
+        }
+        out
+    } else {
+        name.to_owned()
+    };
+    crate::emoji_text::text(&spaced)
 }
 
 /// The DMs with unread messages, the latest first, as Discord lists them on

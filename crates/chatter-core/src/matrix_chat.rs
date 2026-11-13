@@ -1090,6 +1090,7 @@ fn load_members(open: &mut OpenRoom, events: &UnboundedSender<Event>) {
                         group: None,
                         group_icon: None,
                         role_icon: None,
+                        tag: None,
                         presence: None,
                         color: None,
                         activity: None,

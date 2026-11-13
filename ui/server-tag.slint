@@ -1,0 +1,29 @@
+﻿import { PictureStore } from "controls.slint";
+
+// Discord's server tag by a name: its badge and up to four letters on a grey pill.
+export component ServerTagPill inherits Rectangle {
+    in property <string> text;
+    in property <string> badge;
+    property <image> picture: root.badge != "" ? PictureStore.picture(root.badge, PictureStore.revision) : @image-url("");
+    function request() {
+        if root.badge != "" && root.picture.width == 0 {
+            PictureStore.request(root.badge);
+        }
+    }
+    init => { root.request(); }
+    changed badge => { root.request(); }
+    changed picture => { root.request(); }
+    height: 18px;
+    border-radius: 4px;
+    background: #97979f29;
+    accessible-role: AccessibleRole.text;
+    accessible-label: "Server tag " + root.text;
+    HorizontalLayout {
+        padding-left: 4px; padding-right: 5px; spacing: 3px; alignment: start;
+        if root.badge != "": VerticalLayout {
+            alignment: center;
+            Image { source: root.picture; width: 12px; height: 12px; image-fit: contain; }
+        }
+        Text { text: root.text; color: #dbdee1; font-size: 12px; font-weight: 600; vertical-alignment: center; }
+    }
+}

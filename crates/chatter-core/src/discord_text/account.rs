@@ -320,6 +320,7 @@ pub(super) fn command(
                     id: user,
                     group_icon: None,
                     role_icon: None,
+                    tag: None,
                 })
                 .collect();
             members.sort_by_key(|member| member.name.to_lowercase());
@@ -377,6 +378,7 @@ pub(super) fn command(
                         id: user,
                         group_icon: None,
                         role_icon: None,
+                        tag: None,
                     })
                     .collect();
                 let _ = events.send(Event::MemberMatches {

@@ -713,6 +713,13 @@ pub struct ProfileRole {
     pub color: Option<u32>,
 }
 
+/// A Discord server tag: its letters and the address of its badge.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ServerTag {
+    pub text: String,
+    pub badge: Option<String>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ChatMember {
     pub id: String,
@@ -731,6 +738,8 @@ pub struct ChatMember {
     /// the group's heading and by their name.
     pub group_icon: Option<Arc<str>>,
     pub role_icon: Option<Arc<str>>,
+    /// The Discord server tag they wear.
+    pub tag: Option<ServerTag>,
     /// Whether they're around; Matrix members have no presence here.
     pub presence: Option<Presence>,
     /// The RGB colour of their name, from their highest coloured Discord role.
@@ -1480,6 +1489,8 @@ pub struct ChatMessage {
     pub color: Option<u32>,
     /// The author is a Discord bot or webhook.
     pub bot: bool,
+    /// The Discord server tag its author wears.
+    pub tag: Option<ServerTag>,
     /// Forwarded on Discord: its body, files and embeds are the original's.
     pub forwarded: bool,
     pub body: String,

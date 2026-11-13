@@ -599,6 +599,7 @@ fn the_thread_beside_suggests_mentions_and_emoji_above_its_composer() {
                 timed_out_until: None,
                 group_icon: None,
                 role_icon: None,
+                tag: None,
             }]),
         });
         adapter.refresh(&window);

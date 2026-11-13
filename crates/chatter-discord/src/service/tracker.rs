@@ -1133,6 +1133,7 @@ impl Tracker {
                     timed_out_until: None,
                     group_icon: None,
                     role_icon: None,
+                    tag: None,
                 }
             })
             .collect();

@@ -3071,6 +3071,11 @@ impl Discord {
         self.read_names().avatar(guild.and_then(server), user)
     }
 
+    /// The server tag a user wears, as far as it's known.
+    pub fn server_tag(&self, user: &str) -> Option<crate::message::ServerTag> {
+        self.read_names().server_tag(user).cloned()
+    }
+
     /// A member's roles in a server by id, as far as they're known, shared
     /// with what learned them.
     pub fn roles(&self, guild: &str, user: &str) -> Arc<[String]> {

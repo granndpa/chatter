@@ -1115,9 +1115,34 @@ impl serde::Serialize for Text {
     }
 }
 
+/// The server tag someone wears by their name: up to four letters, and the
+/// address of its badge picture.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ServerTag {
+    pub text: String,
+    pub badge: Option<String>,
+}
+
+/// A user object's `primary_guild` (or older `clan`), when worn.
+fn server_tag(guild: &Value) -> Option<ServerTag> {
+    if guild["identity_enabled"].as_bool() == Some(false) {
+        return None;
+    }
+    let text = guild["tag"].as_str().filter(|tag| !tag.is_empty())?.to_owned();
+    let badge = match (guild["identity_guild_id"].as_str(), guild["badge"].as_str()) {
+        (Some(server), Some(badge)) => Some(format!(
+            "https://cdn.discordapp.com/guild-tag-badges/{server}/{badge}.png?size=32"
+        )),
+        _ => None,
+    };
+    Some(ServerTag { text, badge })
+}
+
 /// Who is who, learned from the gateway and from messages.
 #[derive(Default)]
 pub struct Names {
+    /// Server tags by user id, of those who wear one.
+    tags: HashMap<Id, ServerTag>,
     /// Display names by user id.
     users: HashMap<Id, String>,
     /// Usernames by user id, such as `ann` for Ann.
@@ -1269,6 +1294,7 @@ impl Names {
         self.bots.retain(|user| seen.contains_key(user));
         self.officials.retain(|user| seen.contains_key(user));
         self.avatars.retain(|user, _| seen.contains_key(user));
+        self.tags.retain(|user, _| seen.contains_key(user));
         self.nicknames
             .retain(|(_, user), _| seen.contains_key(user));
         self.members.retain(|(_, user)| seen.contains_key(user));
@@ -1321,6 +1347,10 @@ impl Names {
             }
             Some(Value::Null) => learned |= changed(&mut self.avatars, id, None),
             _ => {}
+        }
+        // Partial user objects leave it out; null takes it off.
+        if let Some(guild) = user.get("primary_guild").or_else(|| user.get("clan")) {
+            learned |= changed(&mut self.tags, id, server_tag(guild));
         }
         self.version += u64::from(known && learned);
     }
@@ -1510,6 +1540,11 @@ impl Names {
         }
         let hash = user_id.and_then(|user| self.avatars.get(&user));
         ready::avatar(user, hash.map(String::as_str))
+    }
+
+    /// The server tag a user wears, as far as it's known.
+    pub fn server_tag(&self, user: &str) -> Option<&ServerTag> {
+        self.tags.get(&id(user)?)
     }
 
     /// Whether a user is one of Discord's own accounts.
@@ -2492,4 +2527,25 @@ mod tests {
 /// Whether what a message shows is another message's, as a forward's is.
 fn forwarded_from_other(value: &Value, shown: &Value) -> bool {
     !std::ptr::eq(value, shown)
+
+}
+
+#[cfg(test)]
+mod server_tag_tests {
+    use super::Names;
+    use serde_json::json;
+
+    #[test]
+    fn server_tags_are_learned_and_taken_off() {
+        let mut names = Names::default();
+        names.learn_user(&json!({"id": "2", "username": "ann", "primary_guild": {
+            "identity_guild_id": "9", "identity_enabled": true, "tag": "GMST", "badge": "abc"}}));
+        let tag = names.server_tag("2").unwrap();
+        assert_eq!(tag.text, "GMST");
+        assert!(tag.badge.as_deref().unwrap().contains("/guild-tag-badges/9/abc.png"));
+        names.learn_user(&json!({"id": "2", "primary_guild": {"identity_enabled": false, "tag": "GMST"}}));
+        assert!(names.server_tag("2").is_none());
+        names.learn_user(&json!({"id": "3", "clan": {"identity_guild_id": "9", "tag": "OLD"}}));
+        assert_eq!(names.server_tag("3").unwrap().text, "OLD");
+    }
 }

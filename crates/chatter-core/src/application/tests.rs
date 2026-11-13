@@ -286,6 +286,7 @@ fn members_belong_to_the_selected_text_room() {
         timed_out_until: None,
         group_icon: None,
         role_icon: None,
+        tag: None,
     };
     app.apply(Event::Members {
         room: "games".into(),
@@ -2988,6 +2989,7 @@ fn member(id: &str, name: &str) -> ChatMember {
         timed_out_until: None,
         group_icon: None,
         role_icon: None,
+        tag: None,
     }
 }
 
@@ -3912,6 +3914,7 @@ fn matrix_profiles_show_what_the_member_list_knows() {
             timed_out_until: None,
             group_icon: None,
             role_icon: None,
+            tag: None,
         }]),
     });
     let effects = app.dispatch(Action::ShowProfile {

@@ -149,6 +149,7 @@ pub fn member_server(alice: &[&str]) -> Application {
         timed_out_until: None,
         group_icon: None,
         role_icon: None,
+        tag: None,
     };
     app.apply(Event::Members {
         room: "discord:10:11".into(),

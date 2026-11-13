@@ -1,3 +1,4 @@
+import { ServerTagPill } from "server-tag.slint";
 import { ConnectionIcons } from "connection-icons.slint";
 import { ClientStyle } from "chatter/style.slint";
 import { ScrollView, ListView } from "scrollview.slint";
@@ -22,6 +23,8 @@ export struct MemberRow {
     /// The pictures of the role their group is and of their highest role that
     /// has one, which Discord draws by the group's heading and their name.
     group-icon: string, role-icon: string,
+    /// The Discord server tag they wear, and its badge's address.
+    tag: string, tag-badge: string,
 }
 
 /// A role's picture, asked for as it shows.
@@ -131,6 +134,9 @@ export component MemberPanel inherits Rectangle {
                             }
                             if member.role-icon != "": Middle {
                                 RoleIcon { url: member.role-icon; size: 16px; opacity: member.presence == "offline" ? 0.5 : 1; }
+                            }
+                            if member.tag != "": Middle {
+                                ServerTagPill { text: member.tag; badge: member.tag-badge; opacity: member.presence == "offline" ? 0.5 : 1; }
                             }
                             if member.timed-out: Image {
                                 source: @image-url("icons/clock.svg"); width: 14px; image-fit: contain;

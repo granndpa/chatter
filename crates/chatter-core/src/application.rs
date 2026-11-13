@@ -1000,6 +1000,7 @@ impl AppState {
                 timed_out_until: None,
                 group_icon: None,
                 role_icon: None,
+                tag: None,
             });
         }
         // Someone in a Discord voice channel, as it lists them, the open
@@ -1026,6 +1027,7 @@ impl AppState {
                 timed_out_until: None,
                 group_icon: None,
                 role_icon: None,
+                tag: None,
             });
         }
         let target = Target::User(user.to_owned());
@@ -1052,6 +1054,7 @@ impl AppState {
             timed_out_until: None,
             group_icon: None,
             role_icon: None,
+            tag: None,
         })
     }
 
