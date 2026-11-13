@@ -1234,7 +1234,12 @@ impl Adapter {
             } else if let Some(status) = &state.account_status {
                 status
             } else if state.online {
-                "Online"
+                match state.discord_presence.as_deref() {
+                    Some("idle") => "Idle",
+                    Some("dnd") => "Do Not Disturb",
+                    Some("invisible") => "Invisible",
+                    _ => "Online",
+                }
             } else {
                 "Offline, sync paused"
             }
@@ -1608,6 +1613,17 @@ impl Adapter {
         let room = state.selected_room();
         window.set_room_selected(room.is_some());
         window.set_room_name(shown_name(room.map_or("", |room| room.name.as_str())).into());
+        // Discord's composer names where the message goes.
+        window.set_composer_placeholder(
+            room.map_or_else(String::new, |room| {
+                if room.direct {
+                    format!("Message @{}", crate::emoji_text::text(&room.name))
+                } else {
+                    format!("Message #{}", shown_name(&room.name))
+                }
+            })
+            .into(),
+        );
         window.set_room_direct(room.is_some_and(|room| room.direct));
         window.set_room_presence(presence_name(room.and_then(|room| room.presence)).into());
         let (activity, activity_emoji) =
