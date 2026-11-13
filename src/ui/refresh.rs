@@ -2,6 +2,55 @@
 
 use super::*;
 
+/// Millisecond timing of a refresh pass, on while the CHATTER_TIMING
+/// environment variable is set. Logs passes above 2 ms with every phase
+/// that took a tenth of a millisecond or more, to find what scrolling and
+/// channel switching spend their time on.
+pub(super) struct Probe {
+    start: std::time::Instant,
+    last: std::time::Instant,
+    spans: Vec<(&'static str, std::time::Duration)>,
+}
+
+impl Probe {
+    pub(super) fn begin() -> Option<Self> {
+        static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+        (*ON.get_or_init(|| std::env::var_os("CHATTER_TIMING").is_some()))
+            .then(|| {
+                let now = std::time::Instant::now();
+                Self {
+                    start: now,
+                    last: now,
+                    spans: Vec::with_capacity(16),
+                }
+            })
+    }
+
+    pub(super) fn mark(probe: &mut Option<Self>, name: &'static str) {
+        if let Some(probe) = probe {
+            let now = std::time::Instant::now();
+            probe.spans.push((name, now - probe.last));
+            probe.last = now;
+        }
+    }
+
+    pub(super) fn finish(probe: Option<Self>) {
+        let Some(probe) = probe else { return };
+        let total = probe.start.elapsed();
+        if total < std::time::Duration::from_millis(2) {
+            return;
+        }
+        let mut line = String::new();
+        for (name, span) in &probe.spans {
+            if span.as_micros() >= 100 {
+                use std::fmt::Write;
+                let _ = write!(line, " {name}={:.1}ms", span.as_secs_f64() * 1000.0);
+            }
+        }
+        tracing::info!("refresh took {:.1}ms:{line}", total.as_secs_f64() * 1000.0);
+    }
+}
+
 /// What changed since the last refresh, read before it changes anything.
 pub(super) struct Changes {
     reset: bool,
@@ -388,6 +437,7 @@ impl Adapter {
     }
 
     pub(super) fn refresh(&mut self, window: &ChatterWindow) {
+        let mut probe = Probe::begin();
         super::tweaks::sync_account(self);
         let state = &self.app.state;
         if state.discord_online {
@@ -397,6 +447,7 @@ impl Adapter {
             self.seen_online && state.discord_linked && !state.discord_online && !state.preview,
         );
         refresh_avatar_sources(&self.app.state);
+        Probe::mark(&mut probe, "sources");
         super::discover::show(self, window);
         super::tabs::show(self, window);
         super::gallery::show(self, window);
@@ -404,6 +455,7 @@ impl Adapter {
         super::tweaks::record_visit(self);
         self.track_voice_log(window);
         self.drop_dismissed();
+        Probe::mark(&mut probe, "trackers");
         window
             .global::<PictureStore>()
             .set_revision(self.app.state.picture_changes as i32);
@@ -418,8 +470,11 @@ impl Adapter {
             window.set_recovery(SharedString::default());
             window.set_settings_open(false);
         }
+        Probe::mark(&mut probe, "changes");
         self.show_workspace(window);
+        Probe::mark(&mut probe, "workspace");
         self.show_sidebar(window);
+        Probe::mark(&mut probe, "sidebar");
         self.show_account(window);
         // A server's search stays, with its words, in the server's channels.
         if changes.selection && self.app.state.search_shown().is_none() {
@@ -427,11 +482,14 @@ impl Adapter {
         }
         self.show_header(window);
         self.show_dm_tools(window);
+        Probe::mark(&mut probe, "header");
         self.show_threads(window);
         self.show_forum(window);
         self.show_new_post(window);
         self.show_new_thread(window);
+        Probe::mark(&mut probe, "threads");
         self.show_members(window);
+        Probe::mark(&mut probe, "members");
         self.show_invite(window);
         self.show_join(window);
         self.show_oauth(window);
@@ -451,12 +509,18 @@ impl Adapter {
         self.show_reactions(window);
         self.show_gifs(window);
         self.show_emoji_card(window);
+        Probe::mark(&mut probe, "dialogs");
         self.show_emoji_animations(window);
+        Probe::mark(&mut probe, "animations");
         self.show_composer(window);
+        Probe::mark(&mut probe, "composer");
         self.show_messages(window, &changes);
+        Probe::mark(&mut probe, "messages");
         self.show_aside(window);
+        Probe::mark(&mut probe, "aside");
         self.show_voice(window);
         self.show_video(window);
+        Probe::mark(&mut probe, "voice");
         let state = &self.app.state;
         if changes.selection {
             self.focus_when_ready = state.shows_text() && !state.room_ready;
@@ -489,6 +553,8 @@ impl Adapter {
                 self.layout = layout;
             }
         }
+        Probe::mark(&mut probe, "rest");
+        Probe::finish(probe);
     }
 
     /// Drives the animated emoji: the frames the rows and the picker show are
